@@ -1,0 +1,859 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ROWAD_DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════
+// الشركاء والداعمون (Partners & Sponsors)
+// ═══════════════════════════════════════════════════════════
+
+model Partner {
+  id          String      @id @default(cuid())
+  name        String      @db.VarChar(255)
+  slug        String      @unique @db.VarChar(255)
+  logo        String?     @db.VarChar(500)
+  websiteUrl  String?     @db.VarChar(500)
+  type        PartnerType @default(PARTNER)
+  description String?     @db.Text
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([type])
+  @@index([isActive])
+  @@index([isActive, sortOrder])
+  @@map("partners")
+}
+
+enum PartnerType {
+  PARTNER   // شريك
+  SPONSOR   // راعي
+  SUPPORTER // داعم
+  DONOR     // مانح
+}
+
+// ═══════════════════════════════════════════════════════════
+// المستفيدون والأعضاء (Beneficiaries & Members)
+// ═══════════════════════════════════════════════════════════
+
+enum MemberType {
+  BENEFICIARY
+  TEAM
+  BOTH
+}
+
+model Beneficiary {
+  id             String            @id @default(cuid())
+  code           String            @unique @db.VarChar(50)
+  firstName      String            @db.VarChar(100)
+  lastName       String            @db.VarChar(100)
+  email          String?           @unique @db.VarChar(255)
+  phone          String?           @db.VarChar(50)
+  gender         Gender?
+  birthDate      DateTime?
+  nationality    String?           @db.VarChar(100)
+  country        String?           @db.VarChar(100)
+  city           String?           @db.VarChar(100)
+  educationLevel EducationLevel?
+  bio            String?           @db.Text
+  avatar         String?           @db.VarChar(500)
+  status         BeneficiaryStatus @default(ACTIVE)
+  registeredAt   DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  // ─── الحقول الموحّدة (Unified Member fields) ───
+  type         MemberType   @default(BENEFICIARY)
+  role         String?      @db.VarChar(200)
+  slug         String?      @unique @db.VarChar(255)
+  linkedinUrl  String?      @db.VarChar(500)
+  memberSince  DateTime?
+  sortOrder    Int          @default(0)
+  interests    String?      @db.Text   // JSON: تحليل الاهتمامات
+
+  enrollments             Enrollment[]
+  participations          Participation[]
+  beneficiaryJourneyStages BeneficiaryJourneyStage[]
+
+  @@index([code])
+  @@index([email])
+  @@index([status])
+  @@index([type])
+  @@index([country])
+  @@index([firstName, lastName])
+  @@index([status, registeredAt])
+  @@map("beneficiaries")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  DIPLOMA
+  BACHELOR
+  MASTER
+  DOCTORATE
+  OTHER
+}
+
+enum BeneficiaryStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ═══════════════════════════════════════════════════════════
+// المشاريع (Projects)
+// ═══════════════════════════════════════════════════════════
+
+model Project {
+  id           String        @id @default(cuid())
+  title        String        @db.VarChar(255)
+  slug         String        @unique @db.VarChar(255)
+  description  String        @db.Text
+  fullContent  String?       @db.Text
+  category     String        @db.VarChar(100)
+  status       ProjectStatus @default(ACTIVE)
+  coverImage   String?       @db.VarChar(500)
+  startDate    DateTime?
+  endDate      DateTime?
+  partnerLogos      String?             @db.Text
+  isFeatured        Boolean             @default(false)
+  sortOrder         Int                 @default(0)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+
+  programId String?
+  program   Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  knowledgeItems   KnowledgeItem[]
+  submittedReports SubmittedReport[]
+  evaluations      Evaluation[]
+
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([platformId])
+  @@index([programId])
+  @@index([status, sortOrder])
+  @@index([isFeatured, sortOrder])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+  PLANNING
+}
+
+// ═══════════════════════════════════════════════════════════
+// المنصات (Platforms) ← برامج (Programs) ← أنشطة (Activities)
+// ═══════════════════════════════════════════════════════════
+
+model Platform {
+  id          String    @id @default(cuid())
+  name        String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String    @db.Text
+  vision      String?   @db.Text
+  logo        String?   @db.VarChar(500)
+  coverImage  String?   @db.VarChar(500)
+  color       String?   @db.VarChar(50)
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  programs              Program[]
+  projects              Project[]
+  knowledgeItems        KnowledgeItem[]
+  submittedReports      SubmittedReport[]
+  platformIndicators    PlatformIndicator[]
+  coordinationTasks     CoordinationTask[]
+  evaluations           Evaluation[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([isActive, sortOrder])
+  @@map("platforms")
+}
+
+model Program {
+  id               String    @id @default(cuid())
+  name             String    @db.VarChar(255)
+  slug             String    @unique @db.VarChar(255)
+  description      String    @db.Text
+  icon             String?   @db.VarChar(500)
+  image            String?   @db.VarChar(500)
+  startDate        DateTime?
+  endDate          DateTime?
+  maxBeneficiaries Int?
+  sortOrder        Int       @default(0)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  activities          Activity[]
+  enrollments         Enrollment[]
+  projects            Project[]
+  knowledgeItems      KnowledgeItem[]
+  submittedReports    SubmittedReport[]
+  programIndicators   ProgramIndicator[]
+  coordinationTasks   CoordinationTask[]
+  evaluations         Evaluation[]
+
+  @@index([slug])
+  @@index([platformId])
+  @@index([isActive])
+  @@index([platformId, isActive, sortOrder])
+  @@map("programs")
+}
+
+model Activity {
+  id              String       @id @default(cuid())
+  name            String       @db.VarChar(255)
+  slug            String       @unique @db.VarChar(255)
+  description     String       @db.Text
+  type            ActivityType @default(WORKSHOP)
+  icon            String?      @db.VarChar(500)
+  location        String?      @db.VarChar(500)
+  isOnline        Boolean      @default(false)
+  startDate       DateTime?
+  endDate         DateTime?
+  maxParticipants Int?
+  sortOrder       Int          @default(0)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  participations Participation[]
+  evaluations     Evaluation[]
+
+  @@index([slug])
+  @@index([programId])
+  @@index([isActive])
+  @@index([type])
+  @@index([programId, isActive, sortOrder])
+  @@map("activities")
+}
+
+enum ActivityType {
+  WORKSHOP    // ورشة عمل
+  BOOTCAMP    // معسكر تدريبي
+  HACKATHON   // هاكاثون
+  SEMINAR     // ندوة
+  COMPETITION // مسابقة
+  MENTORING   // إرشاد
+  COURSE      // دورة
+  EVENT       // فعالية
+  OTHER
+}
+
+// ═══════════════════════════════════════════════════════════
+// التسجيل في البرامج (Enrollments)
+// ═══════════════════════════════════════════════════════════
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  status      EnrollmentStatus @default(PENDING)
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+  notes       String?          @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  beneficiaryId String
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  participations Participation[]
+
+  @@unique([beneficiaryId, programId])
+  @@index([beneficiaryId])
+  @@index([programId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DROPPED
+  REJECTED
+}
+
+// ═══════════════════════════════════════════════════════════
+// المشاركة في الأنشطة (Participations)
+// ═══════════════════════════════════════════════════════════
+
+model Participation {
+  id             String              @id @default(cuid())
+  status         ParticipationStatus @default(REGISTERED)
+  attendedAt     DateTime?
+  score          Float?
+  feedback       String?             @db.Text
+  certificateUrl String?             @db.VarChar(500)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  beneficiaryId String
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  enrollmentId String?
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  @@unique([beneficiaryId, activityId])
+  @@index([beneficiaryId])
+  @@index([activityId])
+  @@index([enrollmentId])
+  @@index([status])
+  @@map("participations")
+}
+
+enum ParticipationStatus {
+  REGISTERED // مسجّل
+  ATTENDED   // حضر
+  COMPLETED  // أتمّ
+  ABSENT     // غائب
+  CANCELLED  // ملغى
+}
+
+// ═══════════════════════════════════════════════════════════
+// رسائل التواصل (Contact Messages)
+// ═══════════════════════════════════════════════════════════
+
+model ContactMessage {
+  id        String    @id @default(cuid())
+  name      String    @db.VarChar(200)
+  email     String    @db.VarChar(255)
+  subject   String    @db.VarChar(500)
+  message   String    @db.Text
+  isRead    Boolean   @default(false)
+  repliedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
+// ═══════════════════════════════════════════════════════════
+// صفحات المحتوى (Content Pages)
+// ═══════════════════════════════════════════════════════════
+
+model ContentPage {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  content     String   @db.Text
+  metaDesc    String?  @db.VarChar(300)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+  @@map("content_pages")
+}
+
+// ═══════════════════════════════════════════════════════════
+// الأخبار والتحديثات (News Posts)
+// ═══════════════════════════════════════════════════════════
+
+model NewsPost {
+  id          String    @id @default(cuid())
+  title       String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  excerpt     String?   @db.Text
+  content     String    @db.Text
+  coverImage  String?   @db.VarChar(500)
+  category    String?   @db.VarChar(100)
+  tags        String?   @db.Text
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([publishedAt])
+  @@index([category])
+  @@map("news_posts")
+}
+
+// ═══════════════════════════════════════════════════════════
+// مستخدمو الإدارة (Admin Users)
+// ═══════════════════════════════════════════════════════════
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @db.VarChar(255)
+  fullName     String    @db.VarChar(200)
+  role         AdminRole @default(EDITOR)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
+  @@map("admin_users")
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+}
+
+// ═══════════════════════════════════════════════════════════
+// إعدادات الموقع (Site Settings)
+// ═══════════════════════════════════════════════════════════
+
+model SiteSetting {
+  id    String @id @default(cuid())
+  key   String @unique @db.VarChar(100)
+  value String @db.Text
+
+  @@map("site_settings")
+}
+
+// ═══════════════════════════════════════════════════════════
+// Webhooks (نقاط التكامل الخارجي)
+// ═══════════════════════════════════════════════════════════
+
+model Webhook {
+  id              String         @id @default(cuid())
+  name            String         @db.VarChar(255)
+  url             String         @db.VarChar(1000)
+  events          String         @db.Text
+  secret          String?        @db.VarChar(255)
+  isActive        Boolean        @default(true)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  webhookLogs     WebhookLog[]
+
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+model WebhookLog {
+  id         String    @id @default(cuid())
+  webhookId  String
+  webhook    Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event      String    @db.VarChar(255)
+  payload    String?   @db.Text
+  statusCode Int?
+  success    Boolean   @default(false)
+  error      String?   @db.Text
+  createdAt  DateTime  @default(now())
+
+  @@index([webhookId])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// المكتبة المعرفية (Knowledge Library)
+// ═══════════════════════════════════════════════════════════
+
+model KnowledgeItem {
+  id          String           @id @default(cuid())
+  title       String           @db.VarChar(500)
+  slug        String           @unique @db.VarChar(255)
+  description String?          @db.Text
+  content     String?          @db.Text
+  category    KnowledgeCategory @default(REPORT)
+  type        KnowledgeType    @default(DOCUMENT)
+  fileUrl     String?          @db.VarChar(1000)
+  thumbnailUrl String?         @db.VarChar(1000)
+  tags        String?          @db.Text
+  author      String?          @db.VarChar(200)
+  language    String           @default("ar") @db.VarChar(10)
+  viewCount   Int              @default(0)
+  downloadCount Int            @default(0)
+  isPublished Boolean          @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  platformId   String?
+  platform     Platform?       @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId    String?
+  program      Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
+  projectId    String?
+  project      Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([slug])
+  @@index([category])
+  @@index([type])
+  @@index([isPublished])
+  @@index([platformId])
+  @@index([programId])
+  @@index([projectId])
+  @@map("knowledge_library")
+}
+
+enum KnowledgeCategory {
+  REPORT     // تقرير
+  RESEARCH   // بحث
+  MANUAL     // دليل
+  TOOLKIT    // حقيبة أدوات
+  LESSON     // درس مستفاد
+  BEST_PRACTICE // ممارسة مثلى
+  OTHER
+}
+
+enum KnowledgeType {
+  DOCUMENT  // مستند
+  VIDEO     // فيديو
+  AUDIO     // صوتي
+  IMAGE     // صورة
+  PRESENTATION // عرض تقديمي
+  SPREADSHEET  // جدول بيانات
+  LINK      // رابط
+  OTHER
+}
+
+// ═══════════════════════════════════════════════════════════
+// قوالب التقارير والتقارير المرفوعة (Reports)
+// ═══════════════════════════════════════════════════════════
+
+model ReportTemplate {
+  id          String    @id @default(cuid())
+  title       String    @db.VarChar(500)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  category    String    @db.VarChar(100)
+  sections    String    @db.Text   // JSON: [{title, type, required, options}]
+  icon        String?   @db.VarChar(100)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  reports     SubmittedReport[]
+
+  @@index([slug])
+  @@index([category])
+  @@index([isActive])
+  @@map("report_templates")
+}
+
+model SubmittedReport {
+  id          String         @id @default(cuid())
+  templateId  String
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  data        String         @db.Text   // JSON: {sectionKey: value}
+  status      ReportStatus   @default(DRAFT)
+  submittedBy String?        @db.VarChar(200)
+  reviewedBy  String?        @db.VarChar(200)
+  reviewNotes String?        @db.Text
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  platformId  String?
+  platform    Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId   String?
+  program     Program?       @relation(fields: [programId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([templateId])
+  @@index([status])
+  @@index([platformId])
+  @@index([programId])
+  @@index([projectId])
+  @@map("submitted_reports")
+}
+
+enum ReportStatus {
+  DRAFT      // مسودة
+  SUBMITTED  // مرفوع
+  REVIEWED   // مراجع
+  APPROVED   // معتمد
+  REJECTED   // مرفوض
+}
+
+// ═══════════════════════════════════════════════════════════
+// التحليلات والمؤشرات (Analytics & KPIs)
+// ═══════════════════════════════════════════════════════════
+
+model PlatformIndicator {
+  id                String   @id @default(cuid())
+  platformId        String
+  platform          Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  indicatorKey      String   @db.VarChar(100)
+  indicatorName     String   @db.VarChar(255)
+  value             Float    @default(0)
+  target            Float?
+  unit              String?  @db.VarChar(50)
+  period            String   @default("monthly") @db.VarChar(50)  // monthly, quarterly, yearly
+  recordedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@unique([platformId, indicatorKey, recordedAt])
+  @@index([platformId])
+  @@index([indicatorKey])
+  @@map("platform_indicators")
+}
+
+model ProgramIndicator {
+  id                String   @id @default(cuid())
+  programId         String
+  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  indicatorKey      String   @db.VarChar(100)
+  indicatorName     String   @db.VarChar(255)
+  value             Float    @default(0)
+  target            Float?
+  unit              String?  @db.VarChar(50)
+  period            String   @default("monthly") @db.VarChar(50)
+  recordedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  @@unique([programId, indicatorKey, recordedAt])
+  @@index([programId])
+  @@index([indicatorKey])
+  @@map("program_indicators")
+}
+
+model AnalyticsSnapshot {
+  id            String   @id @default(cuid())
+  title         String   @db.VarChar(500)
+  period        String   @db.VarChar(50)
+  periodStart   DateTime
+  periodEnd     DateTime
+  data          String   @db.Text    // JSON: full analytics payload
+  summary       String?  @db.Text
+  generatedBy   String?  @db.VarChar(200)
+  createdAt     DateTime @default(now())
+
+  @@index([period])
+  @@index([periodStart])
+  @@index([periodEnd])
+  @@map("analytics_snapshots")
+}
+
+// ═══════════════════════════════════════════════════════════
+// التنسيق المؤسسي (Institutional Coordination)
+// ═══════════════════════════════════════════════════════════
+
+model CoordinationTask {
+  id            String      @id @default(cuid())
+  title         String      @db.VarChar(500)
+  description   String?     @db.Text
+  assignee      String?     @db.VarChar(200)
+  assigneeRole  String?     @db.VarChar(200)
+  status        TaskStatus  @default(PENDING)
+  priority      TaskPriority @default(MEDIUM)
+  dueDate       DateTime?
+  completedAt   DateTime?
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  platformId    String?
+  platform      Platform?   @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId     String?
+  program       Program?    @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([priority])
+  @@index([assignee])
+  @@index([platformId])
+  @@index([dueDate])
+  @@map("coordination_tasks")
+}
+
+enum TaskStatus {
+  PENDING     // قيد الانتظار
+  IN_PROGRESS // قيد التنفيذ
+  COMPLETED   // مكتمل
+  CANCELLED   // ملغى
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model DataStandard {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  description String?  @db.Text
+  scope       String   @db.VarChar(100)  // beneficiary, enrollment, activity, etc.
+  requiredFields String @db.Text         // JSON array of field names
+  validationRules  String? @db.Text     // JSON: validation rules
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([scope])
+  @@index([isActive])
+  @@map("data_standards")
+}
+
+// ═══════════════════════════════════════════════════════════
+// التقييم وضمان الجودة (Evaluation & Quality)
+// ═══════════════════════════════════════════════════════════
+
+model Evaluation {
+  id              String           @id @default(cuid())
+  title           String           @db.VarChar(500)
+  evaluator       String           @db.VarChar(200)
+  evaluatorRole   String?          @db.VarChar(200)  // INTERNAL, EXTERNAL, PEER
+  type            EvaluationType   @default(PROGRAM)
+  score           Float?
+  maxScore        Float            @default(100)
+  feedback        String?          @db.Text
+  recommendations String?          @db.Text
+  status          EvaluationStatus @default(DRAFT)
+  evaluatedAt     DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  platformId      String?
+  platform        Platform?        @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId       String?
+  program         Program?         @relation(fields: [programId], references: [id], onDelete: SetNull)
+  activityId      String?
+  activity        Activity?        @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  projectId       String?
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([status])
+  @@index([platformId])
+  @@index([programId])
+  @@map("evaluations")
+}
+
+enum EvaluationType {
+  PROGRAM   // تقييم برنامج
+  ACTIVITY  // تقييم نشاط
+  PROJECT   // تقييم مشروع
+  PLATFORM  // تقييم منصة
+  SELF      // تقييم ذاتي
+  PEER      // تقييم الأقران
+}
+
+enum EvaluationStatus {
+  DRAFT     // مسودة
+  FINAL     // نهائي
+  APPROVED  // معتمد
+}
+
+// ═══════════════════════════════════════════════════════════
+// مراحل رحلة المستفيد (Beneficiary Journey Stages)
+// ═══════════════════════════════════════════════════════════
+
+model BeneficiaryJourneyStage {
+  id             String   @id @default(cuid())
+  beneficiaryId  String
+  beneficiary    Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  stage          JourneyStage @default(DISCOVERY)
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([beneficiaryId])
+  @@index([stage])
+  @@map("beneficiary_journey_stages")
+}
+
+enum JourneyStage {
+  DISCOVERY     // اكتشاف
+  APPLICATION   // تقديم
+  ONBOARDING    // تأهيل
+  ACTIVE        // نشط
+  ADVANCED      // متقدم
+  GRADUATED     // متخرج
+  ALUMNI        // خريج/شبكة
+  CHAMPION      // سفير
+}
+
+// ═══════════════════════════════════════════════════════════
+// سجل النشاط العام (Audit & Activity Log)
+// ═══════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════
+// زوار الموقع (Page Visits / Analytics)
+// ═══════════════════════════════════════════════════════════
+
+model Visit {
+  id          String   @id @default(cuid())
+  path        String   @db.VarChar(500)
+  visitorId   String?  @db.VarChar(100)
+  ipAddress   String?  @db.VarChar(50)
+  country     String?  @db.VarChar(100)
+  city        String?  @db.VarChar(100)
+  region      String?  @db.VarChar(100)
+  latitude    Float?
+  longitude   Float?
+  deviceType  String?  @db.VarChar(50)   // mobile, desktop, tablet
+  browser     String?  @db.VarChar(100)
+  os          String?  @db.VarChar(100)
+  referrer    String?  @db.VarChar(1000)
+  userAgent   String?  @db.Text
+  screenSize  String?  @db.VarChar(30)
+  language    String?  @db.VarChar(20)
+  timestamp   DateTime @default(now())
+
+  @@index([timestamp])
+  @@index([path])
+  @@index([country])
+  @@index([visitorId])
+  @@map("visits")
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  entity      String   @db.VarChar(100)  // beneficiary, enrollment, platform, etc.
+  entityId    String   @db.VarChar(100)
+  action      String   @db.VarChar(50)   // CREATE, UPDATE, DELETE, etc.
+  actor       String?  @db.VarChar(200)
+  changes     String?  @db.Text          // JSON: {field: {old, new}}
+  metadata    String?  @db.Text          // JSON: additional context
+  createdAt   DateTime @default(now())
+
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

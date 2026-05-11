@@ -1,0 +1,339 @@
+# قواعد المشروع لـ Cursor AI
+## .cursorrules - وضع هذا الملف في جذر المشروع
+
+---
+
+## معلومات المشروع
+
+أنت تساعد في بناء المنصة الرقمية لشبكة الرواد الإلكترونية - منصة متكاملة تعرض رؤية الشبكة ومشاريعها وأعضاءها وتأثيرها في المنطقة العربية. المنصة ثنائية اللغة (عربي/إنجليزي) مع التركيز على العربية كلغة أساسية.
+
+---
+
+## التقنيات المستخدمة
+
+- **Framework**: Next.js 15 (App Router فقط - لا تستخدم Pages Router)
+- **Language**: TypeScript 5+ (strict mode)
+- **UI**: React 19 + Tailwind CSS 3.4 + shadcn/ui
+- **Database**: PostgreSQL 16 + Prisma 5
+- **Forms**: react-hook-form + zod
+- **i18n**: next-intl
+- **State**: zustand
+- **Animations**: framer-motion
+- **Icons**: lucide-react
+- **Auth**: NextAuth.js v5
+
+---
+
+## القواعد الأساسية
+
+### 1. اللغة العربية والـ RTL
+- الواجهة الأساسية بالعربية
+- استخدم خط `IBM Plex Sans Arabic` للعربية
+- استخدم classes منطقية: `ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-` بدلاً من `ml-`, `mr-` إلخ
+- للأسهم: استخدم `rtl:rotate-180` عند الحاجة
+- خط الأرقام (line-height) للعربية: 1.7-1.8
+- جميع النصوص يجب أن تأتي من ملفات الترجمة (`public/locales/ar.json` و `en.json`)
+
+### 2. TypeScript
+- استخدم `strict: true` دائماً
+- تجنب `any` تماماً - استخدم `unknown` إذا لزم
+- استخدم Zod للـ runtime validation وأنواعها للـ TypeScript
+- صدّر الأنواع من ملفات منفصلة في `src/types/`
+
+### 3. مكونات React
+- استخدم Function Components فقط (لا Class Components)
+- استخدم Server Components بشكل افتراضي (App Router)
+- أضف `"use client"` فقط عند الحاجة الفعلية (state, effects, browser APIs)
+- استخدم `forwardRef` للمكونات التي قد تحتاج ref
+- اكتب JSDoc للمكونات المعقدة
+
+### 4. التنسيق (Styling)
+- استخدم Tailwind CSS فقط - لا CSS Modules ولا styled-components
+- استخدم `cn()` helper من `@/lib/utils` لدمج classes
+- للـ variants المعقدة: استخدم `class-variance-authority`
+- ابتعد عن inline styles إلا للقيم الديناميكية فقط
+
+### 5. النماذج (Forms)
+- استخدم react-hook-form دائماً
+- استخدم Zod resolver للتحقق
+- أنشئ المخططات في `src/lib/validations/`
+- نفس مخطط Zod يُستخدم في الـ client والـ server
+- استخدم `mode: 'onBlur'` للتحقق
+
+### 6. APIs والـ Server Actions
+- استخدم App Router API routes في `src/app/api/`
+- للعمليات البسيطة: استخدم Server Actions
+- التحقق دائماً من المدخلات بـ Zod
+- استخدم Rate Limiting للـ public endpoints
+- أرجع responses منسقة: `{ success, data, error }`
+
+### 7. قاعدة البيانات
+- استخدم Prisma ORM فقط
+- لا تكتب raw SQL إلا للحالات النادرة
+- استخدم `select` لتحديد الحقول المطلوبة فقط
+- استخدم `include` بحذر (تجنب over-fetching)
+- جميع الاستعلامات الحساسة يجب أن تكون transactions
+
+### 8. الأمان
+- **لا تثق أبداً** بأي مدخل من المستخدم
+- تحقق من الصلاحيات في كل API route للإدارة
+- استخدم `bcryptjs` لكلمات المرور (12 rounds)
+- لا تكشف معلومات حساسة في رسائل الخطأ
+- استخدم `httpOnly cookies` للجلسات
+- طبق Rate Limiting على endpoints الحساسة
+
+### 9. الأداء
+- استخدم `next/image` للصور
+- استخدم `next/font` للخطوط
+- استخدم `loading="lazy"` للصور البعيدة
+- استخدم `Suspense` و `loading.tsx` للتحميل التدريجي
+- ابتعد عن client-side fetching في الصفحات (استخدم Server Components)
+
+### 10. الإمكانية (Accessibility)
+- استخدم HTML semantic (`<nav>`, `<main>`, `<article>`, إلخ)
+- جميع الصور يجب أن تحتوي على `alt`
+- جميع الحقول يجب أن تحتوي على `<label>` صريح
+- جميع الأزرار الأيقونية يجب أن تحتوي على `aria-label`
+- تأكد من تباين الألوان (4.5:1)
+- اختبر التنقل بلوحة المفاتيح
+
+---
+
+## أنماط الكود (Code Patterns)
+
+### بنية المكون النموذجية
+```typescript
+'use client'  // فقط إذا لزم
+
+import { type FC } from 'react'
+import { cn } from '@/lib/utils'
+
+interface ComponentProps {
+  className?: string
+  // باقي الـ props
+}
+
+export const Component: FC<ComponentProps> = ({ className, ...props }) => {
+  return (
+    <div className={cn('base-classes', className)} {...props}>
+      {/* المحتوى */}
+    </div>
+  )
+}
+```
+
+### بنية API Route النموذجية
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { rateLimit } from '@/lib/rate-limit'
+
+const Schema = z.object({
+  // الحقول
+})
+
+export async function POST(req: NextRequest) {
+  try {
+    // 1. Rate limiting
+    const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
+    const { success } = await rateLimit.limit(ip)
+    if (!success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests' },
+        { status: 429 }
+      )
+    }
+    
+    // 2. Validation
+    const body = await req.json()
+    const data = Schema.parse(body)
+    
+    // 3. Business logic
+    const result = await prisma.application.create({ data })
+    
+    // 4. Response
+    return NextResponse.json({ success: true, data: result })
+    
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, errors: error.flatten() },
+        { status: 400 }
+      )
+    }
+    
+    console.error('API Error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+### بنية Custom Hook النموذجية
+```typescript
+import { useState, useEffect, useCallback } from 'react'
+
+interface UseHookOptions {
+  // خيارات
+}
+
+export function useCustomHook(options: UseHookOptions) {
+  const [state, setState] = useState()
+  
+  const action = useCallback(() => {
+    // المنطق
+  }, [/* dependencies */])
+  
+  useEffect(() => {
+    // تأثيرات جانبية
+  }, [/* dependencies */])
+  
+  return { state, action }
+}
+```
+
+---
+
+## التسمية (Naming Conventions)
+
+### الملفات
+- مكونات React: `PascalCase.tsx` (مثل `ApplicationWizard.tsx`)
+- Hooks: `useNameInCamelCase.ts` (مثل `useAutoSave.ts`)
+- Utils: `kebab-case.ts` (مثل `format-date.ts`)
+- صفحات: `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`
+- Types: `kebab-case.ts` (مثل `application-types.ts`)
+
+### المتغيرات والدوال
+- متغيرات: `camelCase`
+- ثوابت: `UPPER_SNAKE_CASE`
+- دوال: `camelCase` تبدأ بفعل (`getUser`, `createApplication`)
+- مكونات: `PascalCase`
+- Types/Interfaces: `PascalCase`
+- Booleans: تبدأ بـ `is`, `has`, `can`, `should`
+
+---
+
+## ما لا تفعله (Don'ts)
+
+❌ **لا تستخدم**:
+- `any` في TypeScript
+- `var` (استخدم `const` أو `let`)
+- inline styles إلا للضرورة
+- jQuery أو مكتبات DOM قديمة
+- Class Components
+- `document.getElementById` (استخدم refs)
+- Pages Router (استخدم App Router)
+- `getStaticProps` / `getServerSideProps` (استخدم Server Components)
+- `localStorage` في Server Components
+- مكتبات UI ثقيلة مثل Material-UI أو Ant Design
+
+❌ **لا تنسَ**:
+- إضافة `key` للقوائم
+- معالجة حالة التحميل (loading)
+- معالجة الأخطاء (error states)
+- إضافة `aria-label` للأزرار الأيقونية
+- اختبار الـ responsive design
+- اختبار الـ RTL
+
+---
+
+## أوامر مفيدة (Useful Commands)
+
+```bash
+# بدء التطوير
+npm run dev
+
+# Prisma
+npx prisma migrate dev --name <name>
+npx prisma generate
+npx prisma studio
+
+# إضافة shadcn/ui component
+npx shadcn-ui@latest add button
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+---
+
+## ترتيب الأولويات عند الكتابة
+
+1. **يعمل**: الكود يحقق المطلوب
+2. **آمن**: محمي من الثغرات الشائعة
+3. **مقروء**: يفهمه مطور آخر بسهولة
+4. **متاح**: قابل للوصول لجميع المستخدمين
+5. **سريع**: محسّن للأداء
+6. **قابل للصيانة**: يسهل تعديله وتطويره
+
+---
+
+## أخطاء شائعة لتجنبها
+
+### في Next.js 15 + App Router
+```typescript
+// ❌ خطأ - استخدام useState في Server Component
+export default function Page() {
+  const [count, setCount] = useState(0)  // Error!
+  return <div>{count}</div>
+}
+
+// ✅ صحيح - فصل المكون التفاعلي
+'use client'
+export function Counter() {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount(c => c + 1)}>{count}</button>
+}
+```
+
+### في Forms
+```typescript
+// ❌ خطأ - تجاوز التحقق
+<input onChange={(e) => setData(e.target.value)} />
+
+// ✅ صحيح - استخدام react-hook-form + zod
+const form = useForm({ resolver: zodResolver(Schema) })
+<Input {...form.register('field')} />
+```
+
+### في API
+```typescript
+// ❌ خطأ - الثقة في المدخلات
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  await prisma.user.create({ data: body })  // خطر!
+}
+
+// ✅ صحيح - التحقق دائماً
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const data = UserSchema.parse(body)
+  await prisma.user.create({ data })
+}
+```
+
+---
+
+## ملاحظات نهائية
+
+- **اقرأ ملف PRD قبل أي تطوير**: `01-PRD.md`
+- **راجع نظام التصميم قبل بناء UI**: `04-Design-System.md`
+- **استخدم مواصفات المكونات كمرجع**: `05-UI-Components.md`
+- **اتبع مخطط قاعدة البيانات بدقة**: `03-Database-Schema.md`
+- **استخدم مخططات Zod الموحدة**: `06-Validation-Schemas.md`
+
+عند الشك، **اطلب التوضيح**. الجودة أهم من السرعة.
+
+---
+
+## كلمة أخيرة
+
+نحن نبني منصة رقمية تعكس قيم منظمة شبابية تخدم المنطقة العربية. كل سطر كود يكتب باحترافية وعناية، لأن هذه المنصة ستكون الواجهة الرقمية الرئيسية لشبكة الرواد ونافذتها إلى العالم.
+
+اجعل كل تفصيلة تستحق هذه الرسالة.

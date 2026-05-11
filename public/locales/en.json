@@ -1,0 +1,72 @@
+{
+  "common": {
+    "joinUs": "Join Us",
+    "learnMore": "Learn More",
+    "submit": "Submit",
+    "next": "Next",
+    "previous": "Previous",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "navbar": {
+    "home": "Home",
+    "about": "About",
+    "projects": "Projects",
+    "platforms": "Platforms",
+    "team": "Team",
+    "guide": "User Guide",
+    "contact": "Contact"
+  },
+  "hero": {
+    "title": "Rowad Electronic Network",
+    "subtitle": "A Digital Platform for Empowering Arab Youth",
+    "description": "Rowad Electronic Network is a youth platform aiming to build a digital community that connects Arab youth and empowers them to contribute to developing their region.",
+    "cta": "Discover More"
+  },
+  "about": {
+    "title": "About Rowad Network",
+    "values": {
+      "belonging": { "title": "Belonging", "desc": "We believe that belonging to a digital community enhances responsibility and active participation." },
+      "innovation": { "title": "Innovation", "desc": "We adopt the latest technical and intellectual methods to provide creative solutions." },
+      "impact": { "title": "Impact", "desc": "We measure our success by the real impact we leave in the lives of Arab youth." }
+    }
+  },
+  "projects": {
+    "title": "Our Projects",
+    "viewAll": "View All Projects",
+    "readMore": "Read More",
+    "status": { "active": "Active", "completed": "Completed", "onHold": "On Hold", "planning": "Planning" }
+  },
+  "stats": {
+    "platforms": "Platforms",
+    "projects": "Projects",
+    "beneficiaries": "Beneficiaries",
+    "partners": "Partners",
+    "years": "Years of Work"
+  },
+  "team": {
+    "title": "Our Team"
+  },
+  "partners": {
+    "title": "Our Partners"
+  },
+  "cta": {
+    "title": "Join Our Journey",
+    "desc": "Be part of building the digital future for Arab youth",
+    "button": "Contact Us"
+  },
+  "footer": {
+    "about": "About Rowad Network",
+    "quickLinks": "Quick Links",
+    "home": "Home",
+    "platforms": "Platforms",
+    "projects": "Projects",
+    "team": "Team",
+    "guide": "User Guide",
+    "contact": "Contact Us",
+    "rights": "All rights reserved © 2026 Rowad Electronic Network"
+  }
+}

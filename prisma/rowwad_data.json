@@ -1,0 +1,1240 @@
+{
+  "source": "https://www.rowwad.net/home/courses",
+  "scrape_date": "2026-05-02",
+  "platforms": [
+    {
+      "name": "منصة ساند الإعلامية",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/6e6a2a08087b3888022d98dc492d0ff2.jpg",
+      "description": "منصة تفاعلية تهتم بالإعلام وتسعى للاستثمار النوعي للوسائل الإعلامية الرقمية، وتوظيفها للمساهمة في التغيير والتوجيه نحو القيم الحضارية للأمة.",
+      "diplomas": [
+        {
+          "name": "دبلوم الإعلام الرقمي - الدفعة الأولى",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/6e6a2a08087b3888022d98dc492d0ff2.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-الإعلام-الرقمي-الدفعة-الأولى",
+          "courses": [
+            {
+              "title": "التحرير الصحفي",
+              "instructor": "نورس العرفي",
+              "lessons": 8,
+              "duration": "08:22 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722131-course_thumbnail_default_10.jpg"
+            },
+            {
+              "title": "الاتصال الجماهيري",
+              "instructor": "جمال سلطان",
+              "lessons": 8,
+              "duration": "07:02 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722257-course_thumbnail_default_11.jpg"
+            },
+            {
+              "title": "الضوابط الشرعية لوسائل الإعلام",
+              "instructor": "صخر الغزالي",
+              "lessons": 6,
+              "duration": "04:47 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722507-course_thumbnail_default_20.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم التربية الإعلامية",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-التربية-الإعلامية",
+          "courses": [
+            {
+              "title": "مدخل في التربية الإعلامية",
+              "instructor": "صخر الغزالي",
+              "lessons": 3,
+              "duration": "04:16 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1625648664-course_thumbnail_default_98.jpg"
+            },
+            {
+              "title": "الصحافة الإلكترونية",
+              "instructor": "د. ياسر عبد التواب",
+              "lessons": 4,
+              "duration": "06:44 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1627459973-course_thumbnail_default_103.jpg"
+            },
+            {
+              "title": "فن إدارة الحملات الإعلامية",
+              "instructor": "الأستاذ حسين أبو شمالة",
+              "lessons": 5,
+              "duration": "08:52 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1628672104-course_thumbnail_default_105.jpg"
+            },
+            {
+              "title": "مهارات الإبداع والانتاج",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 3,
+              "duration": "03:45 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1631425156-course_thumbnail_default_116.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم الإعلام الرقمي - الدفعة الثالثة",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-الإعلام-الرقمي-الدفعة-الثالثة",
+          "courses": [
+            {
+              "title": "مهارات الإنتاج والإبداع",
+              "instructor": "أ. الحسن حسون",
+              "lessons": 3,
+              "duration": "04:53 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1673107852-course_thumbnail_default_263.jpg"
+            },
+            {
+              "title": "التربية الإعلامية",
+              "instructor": "صخر الغزالي",
+              "lessons": 4,
+              "duration": "04:31 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1669417460-course_thumbnail_default_264.jpg"
+            },
+            {
+              "title": "العلاقات العامة",
+              "instructor": "د. عقبة العلي",
+              "lessons": 4,
+              "duration": "05:49 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1676371790-course_thumbnail_default_265.jpg"
+            },
+            {
+              "title": "إعداد وإدارة الحملات الإعلامية",
+              "instructor": "أ. علي العجمي",
+              "lessons": 3,
+              "duration": "02:28 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1672377441-course_thumbnail_default_266.jpg"
+            },
+            {
+              "title": "الصحافة الإلكترونية",
+              "instructor": "الدكتور خالد زعرور",
+              "lessons": 4,
+              "duration": "04:32 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1671556216-course_thumbnail_default_267.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "الندوات والأنشطة الإعلامية", "url": "https://www.rowwad.net/home/courses?category=الندوات-و-الأنشطة-الإعلامية" },
+        { "name": "الصالون الإعلامي", "url": "https://www.rowwad.net/home/courses?category=الصالون-الإعلامي" },
+        { "name": "التريند الإعلامي", "url": "https://www.rowwad.net/home/courses?category=التريند-الإعلامي" }
+      ]
+    },
+    {
+      "name": "المنصة العالمية للدفاع عن حقوق الإنسان",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/f6ae53a86e33d4dcfa379909b41d3253.jpg",
+      "description": "منصة حقوقية متخصصة في مجال حقوق الإنسان والدفاع عنها وإشاعة ثقافة حقوق الإنسان على مستوى الأمة الإسلامية.",
+      "diplomas": [
+        {
+          "name": "دبلوم حقوق الإنسان - الدفعة الأولى",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/7ddcd106d7dceb8514d44cc2588ca533.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-حقوق-الإنسان-الدفعة-الأولى",
+          "courses": [
+            {
+              "title": "حرية التعبير وخطاب الكراهية",
+              "instructor": "حسن سعيد المجمر",
+              "lessons": 4,
+              "duration": "03:41 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722331-course_thumbnail_default_16.jpg"
+            },
+            {
+              "title": "آليات ووسائل رصد الانتهاكات الحقوقية",
+              "instructor": "الدكتور عيسى العنزي",
+              "lessons": 4,
+              "duration": "03:45 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722377-course_thumbnail_default_17.jpg"
+            },
+            {
+              "title": "المدافع عن حقوق الإنسان ماله وما عليه",
+              "instructor": "الدكتور خالد المحجوبي",
+              "lessons": 2,
+              "duration": "01:49 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722419-course_thumbnail_default_18.jpg"
+            },
+            {
+              "title": "حقوق الإنسان في الإسلام",
+              "instructor": "الحسن الكتاني",
+              "lessons": 4,
+              "duration": "02:51 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608722461-course_thumbnail_default_19.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم حقوق الإنسان والقانون الدولي",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/e523166a79a2fd27fbd6909dccef005f.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-حقوق-الإنسان-والقانون-الدولي",
+          "courses": [
+            {
+              "title": "القانون الدولي لحقوق الإنسان",
+              "instructor": "الأستاذ توفيق الحميدي",
+              "lessons": 3,
+              "duration": "03:45 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1645958969-course_thumbnail_default_174.jpg"
+            },
+            {
+              "title": "آليات ووسائل رصد الانتهاكات الحقوقية وتوثيقها",
+              "instructor": "الدكتورة شيماء كامل فؤاد محمد",
+              "lessons": 3,
+              "duration": "03:15 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1647163183-course_thumbnail_default_175.jpg"
+            },
+            {
+              "title": "حرية التعبير بين الشريعة والقانون",
+              "instructor": "الدكتور عبد الله محمد عبده محمد الوصابي",
+              "lessons": 3,
+              "duration": "03:58 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1647689381-course_thumbnail_default_177.jpg"
+            },
+            {
+              "title": "الحريات العامة وخطاب الكراهية",
+              "instructor": "الدكتور حسن المجمر",
+              "lessons": 3,
+              "duration": "03:05 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1654591471-course_thumbnail_default_178.jpg"
+            },
+            {
+              "title": "حماية العاملين في حقوق الإنسان",
+              "instructor": "الدكتور خالد إبراهيم حمد محمد المحجوبي",
+              "lessons": 3,
+              "duration": "02:50 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1653123350-course_thumbnail_default_179.jpg"
+            },
+            {
+              "title": "الإعلام والعمل الإلكتروني الحقوقي ودوره الفعال",
+              "instructor": "أ. وديع عطا",
+              "lessons": 3,
+              "duration": "02:38 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1652885354-course_thumbnail_default_180.jpg"
+            },
+            {
+              "title": "المنظمات الحقوقية العالمية",
+              "instructor": "الدكتور منجد الصادق",
+              "lessons": 3,
+              "duration": "02:31 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1653811752-course_thumbnail_default_181.jpg"
+            },
+            {
+              "title": "المنظمات الحقوقية تجارب ودروس",
+              "instructor": "دكتور غسان عبدالقادر",
+              "lessons": 3,
+              "duration": "03:04 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1647947527-course_thumbnail_default_194.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم القانون الدولي الإنساني والمواثيق الدولية",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/dbdccfc3465e627abe656ae13dddcd19.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-القانون-الدولي-الإنساني-والمواثيق-الدولية",
+          "courses": [
+            {
+              "title": "القانون الدولي لحقوق الإنسان",
+              "instructor": "أ. عبد الناصر حوشان",
+              "lessons": 3,
+              "duration": "04:05 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1682407802-course_thumbnail_default_311.jpg"
+            },
+            {
+              "title": "أليات ووسائل رصد الانتهاكات الحقوقية وتوثيقها",
+              "instructor": "أ. عبد الناصر حوشان",
+              "lessons": 3,
+              "duration": "04:41 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1683017205-course_thumbnail_default_312.jpg"
+            },
+            {
+              "title": "الإعلام والعمل الإلكتروني الحقوقي ودوره الفعال",
+              "instructor": "د. رانية نصر",
+              "lessons": 3,
+              "duration": "04:08 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1684925650-course_thumbnail_default_313.jpg"
+            },
+            {
+              "title": "حرية التعبير بين الشريعة والقانون",
+              "instructor": "د. رانية نصر",
+              "lessons": 3,
+              "duration": "03:39 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1684925747-course_thumbnail_default_314.jpg"
+            },
+            {
+              "title": "المنظمات الحقوقية العالمية",
+              "instructor": "د. صباح العمراني",
+              "lessons": 3,
+              "duration": "03:56 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1686819665-course_thumbnail_default_315.jpg"
+            },
+            {
+              "title": "المنظمات الدولية (تجارب ودروس)",
+              "instructor": "د. صباح العمراني",
+              "lessons": 3,
+              "duration": "03:47 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1686819594-course_thumbnail_default_316.jpg"
+            },
+            {
+              "title": "حماية العاملين في حقوق الإنسان",
+              "instructor": "الدكتور خالد إبراهيم حمد محمد المحجوبي",
+              "lessons": 3,
+              "duration": "03:46 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1686473258-course_thumbnail_default_317.jpg"
+            },
+            {
+              "title": "الحريات العامة وخطاب الكراهية",
+              "instructor": "د. عبداللطيف مشرف",
+              "lessons": 3,
+              "duration": "03:45 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1686819819-course_thumbnail_default_318.jpg"
+            }
+          ]
+        },
+        {
+          "name": "الدبلوم الاستراتيجي في حقوق الإنسان والدبلوماسية",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/e22d6e6b5fd0de85ec2e8c6bd61dc903.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=الدبلوم-الاستراتيجي-في-حقوق-الإنسان-والدبلوماسية",
+          "courses": [
+            {
+              "title": "المدخل المفاهيمي والتاريخي لحقوق الإنسان",
+              "instructor": "ياسر قطب",
+              "lessons": null,
+              "duration": null,
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1761824017-course_thumbnail_default_419.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "ندوات حقوقية عالمية", "url": "https://www.rowwad.net/home/courses?category=ندوات-حقوقية-عالمية" },
+        { "name": "دورة إعداد الناشطين بمجال حقوق الإنسان", "url": "https://www.rowwad.net/home/courses?category=دورة-إعداد-الناشطين-بمجال-حقوق-الإنسان" },
+        { "name": "دورة جوانب من القانون الدولي", "url": "https://www.rowwad.net/home/courses?category=دورة-جوانب-من-القانون-الدولي" },
+        { "name": "دورة الحملات المجتمعية لدعم القضايا الحقوقية", "instructor": "الدكتورة أروى سامح محمد أحمد", "duration": "4 جلسات", "url": "https://www.rowwad.net/home/courses?category=دورة-الحملات-المجتمعية-لدعم-القضايا-الحقوقية" },
+        { "name": "التنمية المستدامة لتعزيز الحقوق الإنسانية", "url": "https://www.rowwad.net/home/courses?category=التنمية-المستدامة-لتعزيز-الحقوق-الإنسانية" },
+        { "name": "دورة استراتيجيات الإعلام السياسي في تعزيز الوعي الحقوقي", "url": "https://www.rowwad.net/home/courses?category=دورة-استراتيجيات-الإعلام-السياسي-في-تعزيز-الوعي-الحقوقي" },
+        { "name": "دورة الحقوق الاقتصادية دعامة أساسية لحقوق الإنسان", "url": "https://www.rowwad.net/home/courses?category=دورة-الحقوق-الاقتصادية-دعامة-أساسية-لحقوق-الإنسان" }
+      ]
+    },
+    {
+      "name": "منصة المرأة المسلمة",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/1e7a56eea9d35b6734d77f30ac6f6199.jpg",
+      "description": "منصة تهتم بقضايا المرأة المسلمة وتسعى لتمكينها في المجتمع.",
+      "diplomas": [
+        {
+          "name": "دبلوم القيادات النسائية - الدفعة الأولى",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-القيادات-النسائية-الدفعة-الأولى",
+          "courses": [
+            {
+              "title": "المرأة بين الشريعة والتوجهات المعاصرة",
+              "instructor": "أ.إيناس بلال",
+              "lessons": null,
+              "duration": null,
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603448248-course_thumbnail_default_21.jpg"
+            },
+            {
+              "title": "الإدارة الأسرية والمجتمعية للمرأة المسلمة",
+              "instructor": "أ.سحر يسري",
+              "lessons": 6,
+              "duration": "06:42 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1604409601-course_thumbnail_default_22.jpg"
+            },
+            {
+              "title": "القيادة النسائية في القرآن الكريم",
+              "instructor": "أ.فوزية وخي",
+              "lessons": 5,
+              "duration": "06:03 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603446227-course_thumbnail_default_24.jpg"
+            },
+            {
+              "title": "مادة الإعلام ووسائل التواصل الاجتماعي",
+              "instructor": "أ.إعتماد الطرشاوي",
+              "lessons": 8,
+              "duration": "14:30 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603439111-course_thumbnail_default_25.jpg"
+            },
+            {
+              "title": "أسس ومنهج البحث العلمي في العمليات الإدارية",
+              "instructor": "أ.صفاء صقر",
+              "lessons": 4,
+              "duration": "04:35 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603446319-course_thumbnail_default_26.jpg"
+            },
+            {
+              "title": "العادات السبع",
+              "instructor": "أ.ملك الأصفهاني",
+              "lessons": 4,
+              "duration": "05:43 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603439396-course_thumbnail_default_47.jpg"
+            },
+            {
+              "title": "الإدارة المجتمعية",
+              "instructor": "أ.صفاء صقر",
+              "lessons": 6,
+              "duration": "05:27 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603438788-course_thumbnail_default_49.jpg"
+            },
+            {
+              "title": "تحديات تربوية تواجه الإدارية",
+              "instructor": "أ.مها فنري",
+              "lessons": 4,
+              "duration": "05:25 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603438189-course_thumbnail_default_50.jpg"
+            },
+            {
+              "title": "المنظمات الدولية",
+              "instructor": "د. رغداء زيدان",
+              "lessons": 1,
+              "duration": "00:58 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1603447202-course_thumbnail_default_51.jpg"
+            },
+            {
+              "title": "إدارة مواقع التواصل الاجتماعي",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 1,
+              "duration": "01:15 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608814053-course_thumbnail_default_67.jpg"
+            },
+            {
+              "title": "إدارة مواقع التواصل الاجتماعي",
+              "instructor": "م.ريما القاضي",
+              "lessons": 1,
+              "duration": "01:15 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608813977-course_thumbnail_default_71.jpg"
+            },
+            {
+              "title": "نصرة الرسول عليه الصلاة والسلام (الرسول قائد وقدوة)",
+              "instructor": "أ.سحر يسري",
+              "lessons": 1,
+              "duration": "01:11 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608813785-course_thumbnail_default_72.jpg"
+            },
+            {
+              "title": "نصرة الرسول عليه الصلاة والسلام (الرسول قائد وقدوة)",
+              "instructor": "أ.سحر يسري",
+              "lessons": 1,
+              "duration": "00:55 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608813933-course_thumbnail_default_73.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم القيادات المجتمعية النسائي (الدفعة الثانية)",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-القيادات-المجتمعية-النسائي-دفعته-الثانية",
+          "courses": [
+            {
+              "title": "التخطيط الاستراتيجي والتشغيلي",
+              "instructor": "أ.إعتماد الطرشاوي",
+              "lessons": 9,
+              "duration": "09:04 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1622787443-course_thumbnail_default_88.jpg"
+            },
+            {
+              "title": "مهارات التواصل الفعال",
+              "instructor": "ا.فطوم السمر",
+              "lessons": 3,
+              "duration": "03:32 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1624251929-course_thumbnail_default_95.jpg"
+            },
+            {
+              "title": "الإعلام المعاصر (٣)",
+              "instructor": "الأستاذة فداء المدهون",
+              "lessons": 4,
+              "duration": "04:28 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1625642715-course_thumbnail_default_97.jpg"
+            },
+            {
+              "title": "الأسس النفسية لتنمية الشخصية الإيجابية",
+              "instructor": "د. دعوة الأحدب",
+              "lessons": 4,
+              "duration": "07:01 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1627804985-course_thumbnail_default_104.jpg"
+            },
+            {
+              "title": "المرأة في الإسلام (منطلقات ومفاهيم)",
+              "instructor": "الأستاذة زهرة سليمان اوشن",
+              "lessons": 4,
+              "duration": "07:46 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1630922936-course_thumbnail_default_113.jpg"
+            },
+            {
+              "title": "مهارات الحياة للمرأة المسلمة",
+              "instructor": "الأستاذة نجوى بنوت",
+              "lessons": 4,
+              "duration": "05:35 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1632574459-course_thumbnail_default_119.jpg"
+            },
+            {
+              "title": "إدارة المشاريع",
+              "instructor": "أ.صفاء صقر",
+              "lessons": 4,
+              "duration": "03:11 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1634030406-course_thumbnail_default_124.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم القيادات المجتمعية النسائية (الدفعة الثالثة)",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-القيادات-المجتمعية-النسائية-الدفعة-الثالثة",
+          "courses": [
+            {
+              "title": "مادة التخطيط المؤسساتي",
+              "instructor": "أ.إعتماد الطرشاوي",
+              "lessons": 5,
+              "duration": "07:25 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1671087548-course_thumbnail_default_275.jpg"
+            },
+            {
+              "title": "مادة إضاءات حقوقية للمرأة المسلمة",
+              "instructor": "د. رغداء زيدان",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة أساسيات البحث العلمي",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة دعوة فكرية معاصرة",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة تقنيات التكنولوجيا الدعوية",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة مصطلحات ومفاهيم",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة جوانب تربوية ونفسية في واقع الأسرة المسلمة المعاصرة",
+              "instructor": "الأستاذة نجوى بنوت",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "محاضرة عامة", "url": "https://www.rowwad.net/home/courses?category=محاضرة-عامة" },
+        { "name": "معهد المرأة العلمي", "url": "https://www.rowwad.net/home/courses?category=م-ع-ه-د-الم-ر-أ-ة-الع-ل-م-ي" },
+        { "name": "برنامج مسلمات رائدات", "url": "https://www.rowwad.net/home/courses?category=برنامج-مسلمات-رائدات" }
+      ]
+    },
+    {
+      "name": "المنصة التربوية الشاملة",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/ca1e7b285c33a2a8aa4e28cdbba3e497.jpg",
+      "description": "منصة تربوية شاملة تهدف إلى بناء المربي وتطوير العملية التعليمية.",
+      "diplomas": [
+        {
+          "name": "الدبلوم التربوي الشامل (النسخة الثانية - فصل أول)",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=الدبلوم-التربوي-الشامل-النسخة-الثانية-الفصل-الأول",
+          "courses": [
+            {
+              "title": "ممارسات القيادة التربوية",
+              "instructor": "الدكتور وليد الرفاعي",
+              "lessons": 4,
+              "duration": "07:18 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1625767885-course_thumbnail_default_99.jpg"
+            },
+            {
+              "title": "قوانين التأثير",
+              "instructor": "حمود ناصر العتيبي",
+              "lessons": 2,
+              "duration": "02:41 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1625778509-course_thumbnail_default_100.jpg"
+            },
+            {
+              "title": "فن الاستشارة وأهميتها",
+              "instructor": "د. أحمد عبد القادر محمد الفرجابي",
+              "lessons": 5,
+              "duration": "08:29 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1625782680-course_thumbnail_default_101.jpg"
+            }
+          ]
+        },
+        {
+          "name": "الدبلوم التربوي الشامل (النسخة الثانية - فصل ثاني)",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=الدبلوم-التربوي-الشامل-النسخة-الثانية-الفصل-الثاني",
+          "courses": [
+            {
+              "title": "قواعد التربية النبوية",
+              "instructor": "د. أحمد عبد القادر محمد الفرجابي",
+              "lessons": 6,
+              "duration": "10:26 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1622785974-course_thumbnail_default_87.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم التربية العملية",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-التربية-العملية",
+          "courses": [
+            {
+              "title": "أصول ومهارات المربي",
+              "instructor": "الدكتور محمد سعيد الهجري",
+              "lessons": 5,
+              "duration": "11:08 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1631427724-course_thumbnail_default_117.jpg"
+            },
+            {
+              "title": "رسالة القيم - غرسا وتطبيقا",
+              "instructor": "الأستاذ الشيخ سامح قنديل",
+              "lessons": 6,
+              "duration": "08:24 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1633513970-course_thumbnail_default_120.jpg"
+            },
+            {
+              "title": "التربية بالأحداث والوقائع في القرآن الكريم",
+              "instructor": "د. محمد مفتاح",
+              "lessons": 5,
+              "duration": "08:08 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1634567111-course_thumbnail_default_126.jpg"
+            },
+            {
+              "title": "البناء النفسي للمسلم",
+              "instructor": "د. غازي التوبة",
+              "lessons": 4,
+              "duration": "06:02 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1636738151-course_thumbnail_default_139.jpg"
+            },
+            {
+              "title": "الاتجاهات التربوية الحديثة",
+              "instructor": "د. حسان نقرش",
+              "lessons": 5,
+              "duration": "10:35 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1636739442-course_thumbnail_default_140.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم المعلم القدوة",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-المعلم-القدوة",
+          "courses": [
+            {
+              "title": "محاضرا دبلوم المعلم القدوة",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 11,
+              "duration": "15:35 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1775041417-course_thumbnail_default_420.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "القيادات التربوية - الدفعة الأولى", "url": "https://www.rowwad.net/home/courses?category=القيادات-التربوية-الدفعة-الأولى" },
+        { "name": "استشارات تربوية", "url": "https://www.rowwad.net/home/courses?category=استشارات-تربوية" },
+        { "name": "فن إدارة خلافات الحياة الزوجية", "url": "https://www.rowwad.net/home/courses?category=فن-إدارة-خلافات-الحياة-الزوجية" },
+        { "name": "محاضرات عامة", "url": "https://www.rowwad.net/home/courses?category=محاضرات-عامة" },
+        { "name": "محطات إيمانية رمضانية", "url": "https://www.rowwad.net/home/courses?category=محطات-إيمانية-رمضانية" },
+        { "name": "برنامج المربي الرسالي", "url": "https://www.rowwad.net/home/courses?category=برنامج-المربي-الرسالي" },
+        { "name": "دورة تخطي الصدمات", "url": "https://www.rowwad.net/home/courses?category=دورة-تخطي-الصدمات" }
+      ]
+    },
+    {
+      "name": "منصة مفكر",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/d958e33bad2981fc4fb9d96ff6042671.jpg",
+      "description": "منصة فكرية تهتم ببناء المفكر وتنمية مهارات التفكير والإبداع.",
+      "diplomas": [
+        {
+          "name": "الدبلوم الفكري - بناء المفكر",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/a96c33e84f3cb2cd01c14f636dbf7790.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=الدبلوم-الفكري-بناء-المفكر",
+          "courses": [
+            {
+              "title": "المرجعية والتاريخ 1",
+              "instructor": "أ. موفق العمر",
+              "lessons": 1,
+              "duration": "02:01 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1655275220-course_thumbnail_default_207.jpg"
+            },
+            {
+              "title": "المرجعية والتاريخ 2",
+              "instructor": "د. عبد الله معروف",
+              "lessons": 1,
+              "duration": "00:58 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1655755559-course_thumbnail_default_208.jpg"
+            },
+            {
+              "title": "علم المقاصد النظرية والتطبيقات",
+              "instructor": "د. أحمد غانم الأسدي",
+              "lessons": 1,
+              "duration": "01:19 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1656318328-course_thumbnail_default_210.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم التفكير الإبداعي وحل المشكلات",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/bba24f07a99b10de19f84aefaa60763f.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-التفكير-الإبداعي-وحل-المشكلات",
+          "courses": [
+            {
+              "title": "التفكير المبدع",
+              "instructor": "الدكتور صالح بن طاهر مشوش",
+              "lessons": 5,
+              "duration": "07:29 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1674681497-course_thumbnail_default_291.jpg"
+            },
+            {
+              "title": "التفكير النقدي للمجتمعات",
+              "instructor": "د. شريف قوعيش",
+              "lessons": 2,
+              "duration": "00:40 ساعات",
+              "image": null
+            },
+            {
+              "title": "مادة التفكير السوي وأثره على التربية والسلوك",
+              "instructor": "د. أحمد عبد القادر محمد الفرجابي",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "مادة الفكر الأخلاقي وأثره على المجتمع",
+              "instructor": "د. حسن عبد الودود",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            },
+            {
+              "title": "منهجية الفكر الإسلامي وعوامل تعطيلها",
+              "instructor": "أ. د. عماد الدين الرشيد",
+              "lessons": null,
+              "duration": null,
+              "image": null
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "القيادات الفكرية (الدفعة الأولى)", "url": "https://www.rowwad.net/home/courses?category=القيادات-الفكرية-الدفعة-الأولى" },
+        { "name": "القيادات الفكرية (الدفعة الثانية)", "url": "https://www.rowwad.net/home/courses?category=القيادات-الفكرية-الدفعة-الثانية" },
+        { "name": "مدرسة المجدد (الدفعة الثانية)", "url": "https://www.rowwad.net/home/courses?category=مدرسة-المجدد-الدفعة-الثانية" },
+        { "name": "مدرسة المجدد (الدفعة الثالثة)", "url": "https://www.rowwad.net/home/courses?category=مدرسة-المجدد-الدفعة-الثالثة" },
+        { "name": "منهجيات بناء المفكر المسلم", "url": "https://www.rowwad.net/home/courses?category=منهجيات-بناء-المفكر-المسلم" },
+        { "name": "محاضرات فكرية", "url": "https://www.rowwad.net/home/courses?category=محاضرات-فكرية" }
+      ]
+    },
+    {
+      "name": "منصة تمكين العمل الإنساني",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/ae9b120d383f6931bdd43d61c5f28f32.jpg",
+      "description": "منصة متخصصة في العمل الخيري والإنساني تهدف لبناء القدرات وتعزيز الخبرات.",
+      "diplomas": [
+        {
+          "name": "دبلوم العمل الخيري والإنساني (الثاني)",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/3eee6d579e6d085d240517b26fdb21b5.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-العمل-الخيري-و-الإنساني-الثاني",
+          "courses": [
+            {
+              "title": "الجودة الشاملة في العمل الخيري",
+              "instructor": "الأستاذ عبدالحميد صقر",
+              "lessons": 6,
+              "duration": "11:11 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1631270449-course_thumbnail_default_114.jpg"
+            },
+            {
+              "title": "إدارة الكوارث والأزمات",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 6,
+              "duration": "09:05 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1633516962-course_thumbnail_default_121.jpg"
+            },
+            {
+              "title": "العمل الإنساني الدولي",
+              "instructor": "د.زايد حماد غيث",
+              "lessons": 6,
+              "duration": "07:03 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1634567051-course_thumbnail_default_127.jpg"
+            },
+            {
+              "title": "تجارب ومؤسسات خيرية وإنسانية",
+              "instructor": "الدكتور هاني عبد الجواد البنا",
+              "lessons": 6,
+              "duration": "08:26 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1637307434-course_thumbnail_default_141.jpg"
+            },
+            {
+              "title": "بناء وتطوير الوقف",
+              "instructor": "أ.د.علاءالدين الأمين الزاكي",
+              "lessons": 5,
+              "duration": "03:51 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1638823050-course_thumbnail_default_144.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم العمل الخيري والإنساني (الدفعة الثالثة)",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/3c2d877c84a9f9e5bcaad1fbf7550ef5.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-العمل-الخيري-والإنساني-الدفعة-الثالثة",
+          "courses": [
+            {
+              "title": "بناء وتطوير الوقف",
+              "instructor": "أ.د.علاء الدين الزاكي",
+              "lessons": null,
+              "duration": "04:05 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1657797349-course_thumbnail_default_221.jpg"
+            },
+            {
+              "title": "الجودة الشاملة في العمل الخيري",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": "07:01 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1661011952-course_thumbnail_default_222.jpg"
+            },
+            {
+              "title": "تجارب مؤسسات خيرية وإنسانية",
+              "instructor": "الدكتور هاني عبد الجواد البنا",
+              "lessons": null,
+              "duration": "05:42 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1662659401-course_thumbnail_default_224.jpg"
+            },
+            {
+              "title": "إدارة الكوارث والأزمات",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": "04:29 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1665249835-course_thumbnail_default_225.jpg"
+            },
+            {
+              "title": "العمل الإنساني الدولي وعمل المنظمات الخيرية الإسلامية",
+              "instructor": "د.زايد حماد غيث",
+              "lessons": null,
+              "duration": "04:43 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1667129939-course_thumbnail_default_249.jpg"
+            },
+            {
+              "title": "التنمية المستدامة",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": "03:40 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1668606371-course_thumbnail_default_256.jpg"
+            },
+            {
+              "title": "إدارة المشاريع pmd",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": null,
+              "duration": "04:27 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1669812368-course_thumbnail_default_271.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم العمل الخيري والإنساني (الدفعة الرابعة)",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/68f7bbea41aeab5e9ad42d64528c54e9.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-العمل-الخيري-والإنساني-الدفعة-4",
+          "courses": [
+            {
+              "title": "بناء وتطوير الوقف",
+              "instructor": "د. وهيب خوج التيمي",
+              "lessons": 3,
+              "duration": "02:17 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1720489123-course_thumbnail_default_363.jpg"
+            },
+            {
+              "title": "العمل الإنساني الدولي",
+              "instructor": "أ.د.علاءالدين الأمين الزاكي",
+              "lessons": 3,
+              "duration": "03:25 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1720491133-course_thumbnail_default_365.jpg"
+            },
+            {
+              "title": "الجودة الشاملة في العمل الخيري",
+              "instructor": "د.زايد حماد غيث",
+              "lessons": 3,
+              "duration": "01:59 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1720491890-course_thumbnail_default_367.jpg"
+            },
+            {
+              "title": "تجارب مؤسسات خيرية وإنسانية",
+              "instructor": "الدكتور هاني عبد الجواد البنا",
+              "lessons": 4,
+              "duration": "02:50 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1720493289-course_thumbnail_default_370.jpg"
+            },
+            {
+              "title": "ادارة الأزمات والكوارث",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 4,
+              "duration": "04:06 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1720529101-course_thumbnail_default_371.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "القيادات الإنسانية - الدفعة الأولى", "url": "https://www.rowwad.net/home/courses?category=القيادات-الإنسانية-الدفعة-الأولى" },
+        { "name": "ورش وندوات", "url": "https://www.rowwad.net/home/courses?category=ورش-و-ندوات" }
+      ]
+    },
+    {
+      "name": "منصة كلنا دعاة",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/8d49d8f81d1764d3e37695665d6bb253.jpg",
+      "description": "منصة دعوية تهدف إلى تأهيل الدعاة وتمكينهم في زمن الفتن.",
+      "diplomas": [
+        {
+          "name": "دبلوم الدعوة في زمن الفتنة",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-الدعوة-في-زمن-الفتنة",
+          "courses": [
+            {
+              "title": "القواعد الفقهية المتعلقة بالدعوة",
+              "instructor": "الدكتور البشير بن محمد عصام المراكشي",
+              "lessons": 2,
+              "duration": "03:48 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1644995102-course_thumbnail_default_169.jpg"
+            },
+            {
+              "title": "ضوابط الأمر بالمعروف والنهي عن المنكر في زمن الفتنة",
+              "instructor": "الشيخ جلال الدين بن عمر بن جلال بن عبد الرزاق الحمصي",
+              "lessons": 3,
+              "duration": "03:13 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1645877014-course_thumbnail_default_170.jpg"
+            },
+            {
+              "title": "مفاهيم إيمانية وعلمية للدعوة",
+              "instructor": "الشيخ أمين بن عبد الله جعفر",
+              "lessons": null,
+              "duration": null,
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1648286173-course_thumbnail_default_172.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "منهجية الدعوة (الدفعة الأولى)", "url": "https://www.rowwad.net/home/courses?category=منهجية-الدعوة-الدفعة-الأولى" },
+        { "name": "منهجية الدعوة (الدفعة الثانية)", "url": "https://www.rowwad.net/home/courses?category=منهجية-الدعوة-الدفعة-الثانية" },
+        { "name": "الدورة الفقهية والدعوية في أحكام الجرحى والمرضى", "url": "https://www.rowwad.net/home/courses?category=الدورة-الفقهية-والدعوية-في-أحكام-الجرحى-والمرضى" },
+        { "name": "وقفات تدبرية مع دعوة أولي العزم من الرسل", "url": "https://www.rowwad.net/home/courses?category=وقفات-تدبرية-مع-دعوة-أولي-العزم-من-الرسل-عليهم-السلام" },
+        { "name": "محاضرات توعوية", "url": "https://www.rowwad.net/home/courses?category=محاضرات-توعوية" }
+      ]
+    },
+    {
+      "name": "منصة أفق السياسة",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/338adfbda3fe5a7e53ec23c01039bb1d.jpg",
+      "description": "منصة سياسية متخصصة في الشؤون السياسية والعلاقات الدولية.",
+      "diplomas": [
+        {
+          "name": "دبلوم السياسة الإسلامية - الدفعة الأولى",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/cb97483771f2aa52dc4de750bd16f913.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-السياسة-الإسلامية-الدفعة-الأولى",
+          "courses": [
+            {
+              "title": "إدارة المشاريع السياسية",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 4,
+              "duration": "07:20 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608723620-course_thumbnail_default_52.jpg"
+            },
+            {
+              "title": "النظرية السياسية بمنظور إسلامي",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 10,
+              "duration": "09:18 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608813537-course_thumbnail_default_53.jpg"
+            },
+            {
+              "title": "النظم السياسية",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 7,
+              "duration": "12:58 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608723921-course_thumbnail_default_54.jpg"
+            },
+            {
+              "title": "منهج البحث العلمي في العلوم السياسية",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 2,
+              "duration": "03:37 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608723992-course_thumbnail_default_55.jpg"
+            },
+            {
+              "title": "السياسة الشرعية ومسالك التجديد السياسي",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 3,
+              "duration": "03:56 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608724038-course_thumbnail_default_56.jpg"
+            },
+            {
+              "title": "مقدمة في السياسة",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 5,
+              "duration": "02:47 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608724159-course_thumbnail_default_57.jpg"
+            },
+            {
+              "title": "مناهج الاجتهاد",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 9,
+              "duration": "07:03 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608724211-course_thumbnail_default_58.jpg"
+            },
+            {
+              "title": "توازن القوة",
+              "instructor": "أكاديمية الرواد الإلكترونية",
+              "lessons": 3,
+              "duration": "03:03 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1608725466-course_thumbnail_default_59.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم فلسطين الأمة",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/50766863932558615c83134c23659bf5.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-فلسطين-الأمة",
+          "courses": [
+            {
+              "title": "تاريخ فلسطين القديم والوسيط",
+              "instructor": "الدكتور عبد الحميد الفراني",
+              "lessons": 4,
+              "duration": "01:56 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1620982304-course_thumbnail_default_79.jpg"
+            },
+            {
+              "title": "تاريخ فلسطين الحديث والمعاصر",
+              "instructor": "الدكتور أشرف ابراهيم قصاص",
+              "lessons": 3,
+              "duration": "02:32 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1620590046-course_thumbnail_default_80.jpg"
+            },
+            {
+              "title": "القضية الفلسطينية وعقيدة المسلمين",
+              "instructor": "د. غازي التوبة",
+              "lessons": 3,
+              "duration": "04:15 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1620600607-course_thumbnail_default_81.jpg"
+            },
+            {
+              "title": "تاريخ اليهود والحركة الصهيونية",
+              "instructor": "د. غازي التوبة",
+              "lessons": 5,
+              "duration": "05:16 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1620602041-course_thumbnail_default_82.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم العلاقات الدولية",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/b2fc18270d9b1737f890ab581ab7c0f6.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-العلاقات-الدولية",
+          "courses": [
+            {
+              "title": "مدخل في العلاقات الدولية",
+              "instructor": "د. بشار نرش",
+              "lessons": 6,
+              "duration": "09:11 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1665727558-course_thumbnail_default_241.jpg"
+            },
+            {
+              "title": "العلاقات الدولية في الإسلام",
+              "instructor": "د. هشام برغش",
+              "lessons": 6,
+              "duration": "09:19 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1665728984-course_thumbnail_default_242.jpg"
+            },
+            {
+              "title": "المنظمات الدولية",
+              "instructor": "د. عبداللطيف مشرف",
+              "lessons": 6,
+              "duration": "08:24 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1665729651-course_thumbnail_default_243.jpg"
+            },
+            {
+              "title": "الاقتصاد الدولي",
+              "instructor": "د. محمد سليمان حسنين",
+              "lessons": 6,
+              "duration": "10:05 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1673125717-course_thumbnail_default_245.jpg"
+            },
+            {
+              "title": "الجيوبولتيك",
+              "instructor": "أ. محمد أيمن سيف الدين",
+              "lessons": 7,
+              "duration": "11:45 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1668279470-course_thumbnail_default_255.jpg"
+            },
+            {
+              "title": "القانون الدولي",
+              "instructor": "أ. عبد الناصر حوشان",
+              "lessons": 6,
+              "duration": "07:24 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1676984880-course_thumbnail_default_303.jpg"
+            }
+          ]
+        },
+        {
+          "name": "دبلوم فلسطين الأمة - دفعة طوفان الأمة",
+          "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/a389f44fbb680e73c319c21b2c214e35.jpg",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-فلسطين-الأمة-دفعة-طوفان-الأمة",
+          "courses": [
+            {
+              "title": "تاريخ وجغرافيا فلسطين - قاعة بحث ومصادر",
+              "instructor": "د. عبداللطيف مشرف",
+              "lessons": null,
+              "duration": "05:43 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1722130722-course_thumbnail_default_372.jpg"
+            },
+            {
+              "title": "مستقبل بيت المقدس في القرآن والسنة",
+              "instructor": "د. محمد همام ملحم",
+              "lessons": null,
+              "duration": "03:56 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723749658-course_thumbnail_default_376.jpg"
+            },
+            {
+              "title": "طوفان الأقصى ومستقبليات القضية الفلسطينية - رؤية استشراقية",
+              "instructor": "د. سامي العريان",
+              "lessons": null,
+              "duration": "05:57 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723770750-course_thumbnail_default_377.jpg"
+            },
+            {
+              "title": "القضية الفلسطينية وعقيدة المسلمين",
+              "instructor": "د. نواف التكروري",
+              "lessons": null,
+              "duration": null,
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723771168-course_thumbnail_default_378.jpg"
+            },
+            {
+              "title": "الحركات السياسية والشخصيات المؤثرة في تاريخ القضية الفلسطينية",
+              "instructor": "د. محمود سعيد الشجراوي",
+              "lessons": null,
+              "duration": "06:52 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723773038-course_thumbnail_default_379.jpg"
+            },
+            {
+              "title": "المشروع الصهيوني في فلسطين",
+              "instructor": "د. مأمون عامر خميس",
+              "lessons": null,
+              "duration": "06:03 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723773924-course_thumbnail_default_380.jpg"
+            },
+            {
+              "title": "محطات هامة في قضية الصراع الفلسطيني الإسرائيلي",
+              "instructor": "د. عبد العزيز محمود أبو عليان",
+              "lessons": null,
+              "duration": "05:36 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723775246-course_thumbnail_default_381.jpg"
+            },
+            {
+              "title": "القانون الدولي والقضية الفلسطينية",
+              "instructor": "أ. عبد الناصر حوشان",
+              "lessons": null,
+              "duration": "05:47 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723775557-course_thumbnail_default_382.jpg"
+            },
+            {
+              "title": "اليهود واليهودية: التاريخ والمصادر والقدس",
+              "instructor": "أ. فتحي عبد القادر",
+              "lessons": null,
+              "duration": "06:11 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1723776039-course_thumbnail_default_383.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "برنامج قضايا سياسية", "url": "https://www.rowwad.net/home/courses?category=برنامج-قضايا-سياسية" },
+        { "name": "ندوات سياسية", "url": "https://www.rowwad.net/home/courses?category=ندوات-سياسية" }
+      ]
+    },
+    {
+      "name": "منصة الإدارة والاقتصاد الإسلامي",
+      "image": "https://www.rowwad.net/uploads/thumbnails/category_thumbnails/e604973f2b1ae83cf1dc18d4ac0d4a15.jpg",
+      "description": "منصة متخصصة في الإدارة والاقتصاد الإسلامي تهدف لبناء القدرات.",
+      "diplomas": [
+        {
+          "name": "دبلوم الإدارة والاقتصاد الإسلامي",
+          "image": "",
+          "url": "https://www.rowwad.net/home/courses?category=دبلوم-الإدارة-و-الاقتصاد-الإسلامي",
+          "courses": [
+            {
+              "title": "مبادئ الاقتصاد الإسلامي",
+              "instructor": "الدكتور محمد قطان",
+              "lessons": 7,
+              "duration": "10:17 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1630757116-course_thumbnail_default_112.jpg"
+            },
+            {
+              "title": "دراسة الجدوى الاقتصادية للمشاريع",
+              "instructor": "د. عبد الكريم محمد حسين الروضي",
+              "lessons": 6,
+              "duration": "09:32 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1632400443-course_thumbnail_default_118.jpg"
+            },
+            {
+              "title": "مبادئ الإدارة في الإسلام",
+              "instructor": "دكتور جاسم محمد الفهاد",
+              "lessons": 7,
+              "duration": "10:21 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1633963518-course_thumbnail_default_123.jpg"
+            },
+            {
+              "title": "الصيرفة والمصارف الإسلامية",
+              "instructor": "الدكتور عماد بركات",
+              "lessons": 5,
+              "duration": "05:41 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1636793135-course_thumbnail_default_130.jpg"
+            },
+            {
+              "title": "المالية العامة في الدولة الإسلامية",
+              "instructor": "الدكتور بشر محمد موفق لطفي",
+              "lessons": 5,
+              "duration": "07:52 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1638427509-course_thumbnail_default_132.jpg"
+            },
+            {
+              "title": "إدارة الاقتصاد",
+              "instructor": "دكتور غسان عبدالقادر",
+              "lessons": 5,
+              "duration": "05:09 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1640368202-course_thumbnail_default_133.jpg"
+            },
+            {
+              "title": "التنمية في الإسلام",
+              "instructor": "الدكتور بشر محمد موفق لطفي",
+              "lessons": 3,
+              "duration": "03:48 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1646640491-course_thumbnail_default_134.jpg"
+            },
+            {
+              "title": "معالم التجديد في صناعة الزكاة المعاصرة",
+              "instructor": "الدكتور رياض منصور الخليفي",
+              "lessons": 4,
+              "duration": "04:31 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1644667604-course_thumbnail_default_137.jpg"
+            },
+            {
+              "title": "المعاملات المالية المحرمة في الديانات",
+              "instructor": "الدكتور يوسف بن حمد بن صالة",
+              "lessons": 3,
+              "duration": "03:07 ساعات",
+              "image": "https://www.rowwad.net/uploads/thumbnails/course_thumbnails/1646561792-course_thumbnail_default_186.jpg"
+            }
+          ]
+        }
+      ],
+      "activities": [
+        { "name": "برنامج قضايا معاصرة في الاقتصاد والإدارة", "url": "https://www.rowwad.net/home/courses?category=برنامج-قضايا-معاصرة-في-الاقتصاد-و-الإدارة" },
+        { "name": "برنامج تجربة باحث", "url": "https://www.rowwad.net/home/courses?category=برنامج-تجربة-باحث" },
+        { "name": "نادي رواد التميز", "url": "https://www.rowwad.net/home/courses?category=نادي-رواد-التميز" },
+        { "name": "برنامج الإدارة الحديثة", "url": "https://www.rowwad.net/home/courses?category=برنامج-الإدارة-الحديثة" },
+        { "name": "دورة البراند الشخص", "instructor": "الدكتورة ولاء حلمي", "url": "https://www.rowwad.net/home/courses?category=دورة-البراند-الشخص" }
+      ]
+    }
+  ]
+}

@@ -879,6 +879,89 @@ async function main() {
   console.log("✅ نقاط التكامل (" + webhooksData.length + ")");
 
   // ═══════════════════════════════════════════════════════════
+  // 23. IMPACT ACTIONS CATALOG (لوحة أثر الرواد)
+  // ═══════════════════════════════════════════════════════════
+  const impactActionsData = [
+    // النشاط الرقمي
+    { name: "منشور احترافي (مقال/تصميم/فيديو)", points: 5, category: "DIGITAL_ACTIVITY", note: "محتوى أصيل عالي القيمة" },
+    { name: "منشور قصير أو مشاركة", points: 2, category: "DIGITAL_ACTIVITY", note: "" },
+    { name: "التفاعل على الواتساب / الجروبات", points: 2, category: "DIGITAL_ACTIVITY", note: "مشاركة يومية فعالة" },
+    { name: "إعادة نشر محتوى الشبكة", points: 1, category: "DIGITAL_ACTIVITY", note: "" },
+    { name: "بونص: منشور حقّق وصولًا لافتًا", points: 3, category: "DIGITAL_ACTIVITY", note: "لكل منشور تجاوز عتبة تفاعل" },
+    { name: "التفاعل مع حملة من حملات الشبكة", points: 3, category: "DIGITAL_ACTIVITY", note: "" },
+    { name: "جذب عضو/متابع جديد", points: 10, category: "DIGITAL_ACTIVITY", note: "إحالة موثّقة" },
+    // المشاركة العلمية والفعاليات
+    { name: "كتابة مقال قصير", points: 30, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "كتابة مقال تحليلي طويل", points: 60, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "إعداد ورقة بحثية", points: 100, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "تقديم محاضرة داخلية", points: 50, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "تقديم محاضرة عامة", points: 80, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "المشاركة في ندوة/مؤتمر افتراضي", points: 40, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "إدارة جلسة حوارية", points: 35, category: "SCIENTIFIC_EVENTS", note: "" },
+    { name: "حضور ورشة عمل", points: 15, category: "SCIENTIFIC_EVENTS", note: "مشاركة فعالة" },
+    // المبادرات والإنتاج
+    { name: "تصميم منشور/إنفوجرافيك", points: 15, category: "INITIATIVES", note: "" },
+    { name: "تصميم عرض تقديمي", points: 25, category: "INITIATIVES", note: "" },
+    { name: "مونتاج فيديو قصير", points: 25, category: "INITIATIVES", note: "" },
+    { name: "مونتاج محاضرة كاملة", points: 50, category: "INITIATIVES", note: "" },
+    { name: "تفريغ محاضرة", points: 30, category: "INITIATIVES", note: "" },
+    { name: "ترجمة محتوى قصير", points: 25, category: "INITIATIVES", note: "" },
+    { name: "إدارة مجموعة واتساب يوميًا", points: 10, category: "INITIATIVES", note: "" },
+    { name: "تنظيم لقاء افتراضي", points: 40, category: "INITIATIVES", note: "" },
+    // الالتزام والانضباط
+    { name: "إنجاز مهمة في وقتها", points: 20, category: "DISCIPLINE", note: "" },
+    { name: "إنجاز مهمة قبل الوقت", points: 30, category: "DISCIPLINE", note: "" },
+    { name: "الالتزام بالحضور الأسبوعي", points: 15, category: "DISCIPLINE", note: "" },
+    { name: "حضور اجتماع إداري", points: 10, category: "DISCIPLINE", note: "" },
+    { name: "تسليم التقرير في وقته", points: 20, category: "DISCIPLINE", note: "" },
+    { name: "المبادرة دون تكليف", points: 30, category: "DISCIPLINE", note: "مبادرة استراتيجية أو تنظيمية" },
+    { name: "مساعدة عضو جديد", points: 20, category: "DISCIPLINE", note: "" },
+    { name: "قيادة مبادرة أو فريق", points: 30, category: "DISCIPLINE", note: "" },
+    // خصومات
+    { name: "خصم: تأخر متكرر عن التسليم", points: -10, category: "DISCIPLINE", note: "قيمة سالبة" },
+    { name: "خصم: إدخال نشاط غير دقيق", points: -20, category: "DISCIPLINE", note: "قيمة سالبة" },
+    { name: "خصم: غياب دون عذر عن مهمة", points: -15, category: "DISCIPLINE", note: "قيمة سالبة" },
+  ]
+
+  let impactActionCount = 0
+  for (const a of impactActionsData) {
+    const existing = await prisma.impactAction.findFirst({ where: { name: a.name } })
+    if (!existing) {
+      await prisma.impactAction.create({ data: a as any })
+      impactActionCount++
+    }
+  }
+  console.log("✅ كتالوج أنشطة الأثر (" + impactActionCount + ")")
+
+  // Impact Settings defaults
+  const existingSettings = await prisma.impactSettings.findUnique({ where: { id: 1 } })
+  if (!existingSettings) {
+    await prisma.impactSettings.create({
+      data: {
+        id: 1,
+        qualityBonus: JSON.stringify({ "WEAK": -3, "ACCEPTABLE": 0, "GOOD": 3, "EXCELLENT": 6, "EXCEPTIONAL": 10 }),
+        levels: JSON.stringify([
+          { "name": "عضو جديد", "from": 0, "to": 99, "desc": "في بداية الرحلة" },
+          { "name": "عضو نشط", "from": 100, "to": 299, "desc": "يشارك بشكل مقبول" },
+          { "name": "عضو مؤثر", "from": 300, "to": 599, "desc": "له حضور واضح" },
+          { "name": "عضو متميز", "from": 600, "to": 999, "desc": "من أصحاب الأداء العالي" },
+          { "name": "رائد ذهبي", "from": 1000, "to": 1999, "desc": "من أعمدة الشبكة" },
+          { "name": "سفير الرواد", "from": 2000, "to": 9999999, "desc": "عضو استراتيجي ومؤثر جدًا" },
+        ]),
+        rewardTiers: JSON.stringify([
+          { "name": "لا مكافأة", "from": 0, "to": 99 },
+          { "name": "رمزية", "from": 100, "to": 149 },
+          { "name": "أساسية", "from": 150, "to": 249 },
+          { "name": "متوسطة", "from": 250, "to": 399 },
+          { "name": "كاملة + درع", "from": 400, "to": 9999999 },
+        ]),
+        umrah: JSON.stringify({ "minYearly": 3000, "minMonths": 9, "minInitiatives": 1, "requireExcellent": true, "noViolations": true }),
+      },
+    })
+    console.log("✅ إعدادات لوحة الأثر الافتراضية")
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // FINAL SUMMARY
   // ═══════════════════════════════════════════════════════════
   const summaries = {

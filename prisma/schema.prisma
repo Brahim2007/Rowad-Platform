@@ -76,9 +76,17 @@ model Beneficiary {
   sortOrder    Int          @default(0)
   interests    String?      @db.Text   // JSON: تحليل الاهتمامات
 
+  // ─── حقول نظام «لوحة أثر الرواد» (Impact Dashboard) ───
+  networkRole  String?      @db.VarChar(200)  // الصفة داخل الشبكة: باحث ومفكر، مؤثر رقمي...
+  joinDate     DateTime?                      // تاريخ الانضمام للشبكة
+  impactNote   String?      @db.Text          // ملاحظات خاصة بلوحة الأثر
+
   enrollments             Enrollment[]
   participations          Participation[]
   beneficiaryJourneyStages BeneficiaryJourneyStage[]
+  impactLogs              ImpactLog[]
+  impactAwards            ImpactAward[]
+  impactGates             ImpactGate[]
 
   @@index([code])
   @@index([email])
@@ -856,4 +864,137 @@ model ActivityLog {
   @@index([action])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+// ═══════════════════════════════════════════════════════════
+// لوحة أثر الرواد (Impact Dashboard)
+// نظام النقاط والمستويات والمكافآت والدروع وبوابة العمرة
+// ═══════════════════════════════════════════════════════════
+
+// ─── كتالوج أنواع الأنشطة (Activity Types Catalog) ───
+// قائمة قابلة للتعديل من الإعدادات، كل نوع له نقاط ومحور
+
+model ImpactAction {
+  id          String           @id @default(cuid())
+  name        String           @db.VarChar(500)   // اسم النشاط
+  points       Int                                      // النقاط (قد تكون سالبة للخصومات)
+  category    ImpactCategory   @default(DIGITAL_ACTIVITY)  // المحور
+  note        String?          @db.Text
+  isActive    Boolean          @default(true)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  impactLogs  ImpactLog[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([category, isActive, sortOrder])
+  @@map("impact_actions")
+}
+
+enum ImpactCategory {
+  DIGITAL_ACTIVITY   // النشاط الرقمي
+  SCIENTIFIC_EVENTS  // المشاركة العلمية والفعاليات
+  INITIATIVES        // المبادرات والإنتاج
+  DISCIPLINE         // الالتزام والانضباط
+}
+
+// ─── سجل الأنشطة/المساهمات المُدخلة (Impact Log) ───
+// كل صف يمثل مساهمة فعلية لعضو
+
+model ImpactLog {
+  id              String         @id @default(cuid())
+  beneficiaryId   String
+  beneficiary     Beneficiary    @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  actionId        String
+  action          ImpactAction   @relation(fields: [actionId], references: [id], onDelete: Restrict)
+  count           Float          @default(1)        // العدد (مثلاً 3 منشورات)
+  quality         ImpactQuality  @default(ACCEPTABLE) // مستوى الجودة
+  status          ImpactApprovalStatus @default(PENDING_REVIEW) // حالة الاعتماد
+  date            DateTime       @default(now())
+  link            String?        @db.Text           // رابط النشاط (تغريدة، مقال...)
+  note            String?        @db.Text
+  createdBy       String?        @db.VarChar(200)   // من أدخل النشاط
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([beneficiaryId])
+  @@index([actionId])
+  @@index([status])
+  @@index([date])
+  @@index([beneficiaryId, date])
+  @@index([beneficiaryId, status, date])
+  @@map("impact_logs")
+}
+
+enum ImpactQuality {
+  WEAK        // ضعيف (-3)
+  ACCEPTABLE  // مقبول (0)
+  GOOD        // جيد (+3)
+  EXCELLENT   // ممتاز (+6)
+  EXCEPTIONAL // استثنائي (+10)
+}
+
+enum ImpactApprovalStatus {
+  APPROVED         // معتمد
+  PENDING_REVIEW   // قيد المراجعة
+  REJECTED         // مرفوض
+}
+
+// ─── الدروع والمكافآت (Awards & Rewards) ───
+
+model ImpactAward {
+  id            String        @id @default(cuid())
+  beneficiaryId String
+  beneficiary   Beneficiary   @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  type          ImpactAwardType // درع | مكافأة
+  title         String        @db.VarChar(500)  // اسم الدرع أو وصف المكافأة
+  value         Float         @default(0)        // قيمة المكافأة المالية إن وُجدت
+  date          DateTime      @default(now())
+  note          String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([beneficiaryId])
+  @@index([type])
+  @@index([date])
+  @@map("impact_awards")
+}
+
+enum ImpactAwardType {
+  SHIELD   // درع
+  REWARD   // مكافأة مالية
+}
+
+// ─── البوابات الشهرية (Monthly Gates) ───
+// لكل عضو، لكل شهر: هل اجتاز المهام الإلزامية؟
+
+model ImpactGate {
+  id            String    @id @default(cuid())
+  beneficiaryId String
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  year          Int
+  month         Int       // 1-12
+  passed        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  @@unique([beneficiaryId, year, month])
+  @@index([beneficiaryId])
+  @@index([year, month])
+  @@map("impact_gates")
+}
+
+// ─── إعدادات لوحة الأثر (Impact Settings) ───
+// صف واحد (id=1) يحوي كل إعدادات النظام بصيغة JSON
+
+model ImpactSettings {
+  id            Int      @id @default(1)
+  qualityBonus  String   @db.Text   // JSON: {"WEAK": -3, "ACCEPTABLE": 0, ...}
+  levels        String   @db.Text   // JSON: [{"name":"عضو جديد","from":0,"to":99}, ...]
+  rewardTiers   String   @db.Text   // JSON: [{"name":"لا مكافأة","from":0,"to":99}, ...]
+  umrah         String   @db.Text   // JSON: {"minYearly":3000,"minMonths":9,...}
+  updatedAt     DateTime @default(now())
+
+  @@map("impact_settings")
 }

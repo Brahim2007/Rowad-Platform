@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   LayoutDashboard, FolderKanban, Blocks, Users, FileText,
-  LogOut, Menu, ChevronLeft, TrendingUp,
+  LogOut, Menu, ChevronLeft, TrendingUp, Shield,
   Library, ClipboardList, CalendarCheck, ClipboardCheck, Activity, BookOpen
 } from 'lucide-react'
 
@@ -20,6 +20,7 @@ const sidebarLinks = [
   { href: '/admin/analytics', label: 'التحليلات', icon: TrendingUp },
   { href: '/admin/reports', label: 'التقارير', icon: ClipboardList },
   { href: '/admin/evaluations', label: 'التقييم', icon: ClipboardCheck },
+  { href: '/admin/impact', label: 'لوحة الأثر', icon: Shield },
   { href: '/admin/coordination', label: 'التنسيق', icon: CalendarCheck },
   { href: '/admin/activity-log', label: 'سجل النشاط', icon: Activity },
   { href: '/admin/content', label: 'المحتوى', icon: FileText },

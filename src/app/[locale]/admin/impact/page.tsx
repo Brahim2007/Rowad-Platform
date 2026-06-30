@@ -407,9 +407,20 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [editing, setEditing] = useState<BeneficiaryInfo | null>(null)
   const [form, setForm] = useState({ networkRole: '', platformId: '', impactNote: '' })
+  const [createForm, setCreateForm] = useState({
+    firstName: '', lastName: '', code: '', email: '', phone: '',
+    networkRole: '', platformId: '', joinDate: today(), impactNote: '',
+  })
   const [submitting, setSubmitting] = useState(false)
+
+  /** فتح نافذة إضافة عضو جديد */
+  const openCreate = () => {
+    setCreateForm({ firstName: '', lastName: '', code: `R-${String(beneficiaries.length + 1).padStart(3, '0')}`, email: '', phone: '', networkRole: '', platformId: '', joinDate: today(), impactNote: '' })
+    setShowCreateModal(true)
+  }
 
   const filtered = useMemo(() => {
     return beneficiaries.filter(b => {
@@ -455,7 +466,6 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
           ...editing,
           networkRole: form.networkRole,
           impactNote: form.impactNote,
-          // platform assignment handled by existing admin API
         }),
       })
       const data = await res.json()
@@ -465,9 +475,49 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
     finally { setSubmitting(false) }
   }
 
+  /** إنشاء عضو جديد */
+  const handleCreate = async (e: FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/admin/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: createForm.firstName,
+          lastName: createForm.lastName,
+          code: createForm.code,
+          email: createForm.email || null,
+          phone: createForm.phone || null,
+          networkRole: createForm.networkRole || null,
+          impactNote: createForm.impactNote || null,
+          status: 'ACTIVE',
+          type: 'BENEFICIARY',
+          joinDate: createForm.joinDate || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success('تم إضافة العضو بنجاح')
+        setShowCreateModal(false)
+        fetchAll()
+      } else {
+        toast.error(data.message || 'فشل إضافة العضو')
+      }
+    } catch { toast.error('فشل إضافة العضو') }
+    finally { setSubmitting(false) }
+  }
+
   return (
     <div>
       <div className="card">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Users size={18} className="text-primary-600" /> سجل الأعضاء</h2>
+          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+            <Plus size={14} />
+            إضافة عضو
+          </button>
+        </div>
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
             <input
@@ -517,6 +567,7 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
         ) : <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء مطابقون</p>}
       </div>
 
+      {/* Edit modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -539,6 +590,71 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
                 <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="font-bold text-neutral-900 flex items-center gap-2"><UserCheck size={20} className="text-primary-600" /> إضافة عضو جديد</h2>
+              <button onClick={() => setShowCreateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleCreate} className="p-5 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الاسم الأول *</label>
+                  <input required value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="input-field" placeholder="مثال: أحمد" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم العائلة *</label>
+                  <input required value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="input-field" placeholder="مثال: العمري" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رمز العضو</label>
+                  <input value={createForm.code} onChange={e => setCreateForm({ ...createForm, code: e.target.value })} className="input-field" placeholder="R-001" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
+                  <input type="date" value={createForm.joinDate} onChange={e => setCreateForm({ ...createForm, joinDate: e.target.value })} className="input-field" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني</label>
+                  <input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
+                  <input type="tel" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
+                <select value={createForm.networkRole} onChange={e => setCreateForm({ ...createForm, networkRole: e.target.value })} className="input-field">
+                  <option value="">— اختر الصفة —</option>
+                  {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
+                <textarea rows={2} value={createForm.impactNote} onChange={e => setCreateForm({ ...createForm, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات أولية..." />
+              </div>
+
+              <div className="rounded-xl bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 flex items-start gap-2">
+                <Info size={14} className="mt-0.5 flex-shrink-0" />
+                <span>بعد إضافة العضو، يمكنك تسجيل أنشطته من تبويب <b>الأنشطة</b> لبدء احتساب نقاطه.</span>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-ghost btn-sm">إلغاء</button>
+                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</button>
               </div>
             </form>
           </div>

@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Activity, Bell, Book, Calculator, ChartBar, TrendingUp, PieChart,
   CheckCircle, ClipboardCheck, Clock, Crown, Download, Eye,
@@ -152,17 +153,6 @@ const BADGE_CATALOG = [
 ]
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
-const TABS = [
-  { id: 'dashboard', label: 'الرئيسية', icon: LayoutGrid },
-  { id: 'members', label: 'الأعضاء', icon: Users },
-  { id: 'activities', label: 'الأنشطة', icon: Activity },
-  { id: 'pulse', label: 'المتابعة', icon: TrendingUp },
-  { id: 'card', label: 'بطاقة الرائد', icon: IdCard },
-  { id: 'rewards', label: 'المكافآت', icon: Medal },
-  { id: 'reports', label: 'التقارير', icon: FileText },
-  { id: 'settings', label: 'الإعدادات', icon: Settings },
-]
-
 // ═══════════════════════════════════════════════
 // Helpers
 // ═══════════════════════════════════════════════
@@ -196,8 +186,29 @@ const scopeLabel = (sc: { type: string; year?: number; month?: number; ref?: str
 // ═══════════════════════════════════════════════
 
 export default function ImpactDashboardPage() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tabParam = searchParams.get('tab') || 'dashboard'
+  const [activeTab, setActiveTab] = useState(tabParam)
   const [loading, setLoading] = useState(true)
+
+  // Sync tab state with URL
+  useEffect(() => {
+    setActiveTab(tabParam)
+  }, [tabParam])
+
+  /** تغيير التبويب مع تحديث الرابط */
+  const switchTab = (tab: string) => {
+    setActiveTab(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === 'dashboard') {
+      params.delete('tab')
+    } else {
+      params.set('tab', tab)
+    }
+    const qs = params.toString()
+    router.replace(`/ar/admin/impact${qs ? `?${qs}` : ''}`, { scroll: false })
+  }
 
   // Data states
   const [beneficiaries, setBeneficiaries] = useState<BeneficiaryInfo[]>([])
@@ -250,40 +261,26 @@ export default function ImpactDashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-4 gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
-            <Shield className="text-primary-600" size={28} />
-            لوحة أثر الرواد
-          </h1>
-          <p className="text-neutral-500 max-w-2xl text-sm">
-            شبكة الرواد الإلكترونية · نظام النقاط والمستويات والمكافآت والدروع
-          </p>
+    <div className="p-3 md:p-5 lg:p-6 max-w-7xl mx-auto">
+      {/* Compact header — التبويبات في شريط الـLayout العلوي */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Shield className="text-primary-600" size={22} />
+          <span className="text-lg font-bold text-neutral-900">
+            {activeTab === 'dashboard' ? 'لوحة الأثر — الرئيسية' :
+             activeTab === 'members' ? 'سجل الأعضاء' :
+             activeTab === 'activities' ? 'سجل الأنشطة والمساهمات' :
+             activeTab === 'pulse' ? 'المتابعة الدورية' :
+             activeTab === 'card' ? 'بطاقة الرائد' :
+             activeTab === 'rewards' ? 'المكافآت والدروع' :
+             activeTab === 'reports' ? 'التقارير' :
+             activeTab === 'settings' ? 'الإعدادات' : ''}
+          </span>
         </div>
         <button onClick={fetchAll} className="btn-ghost btn-sm flex items-center gap-1.5">
-          <Download size={15} />
-          تحديث البيانات
+          <Download size={14} />
+          تحديث
         </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 flex-wrap border-b border-neutral-200 mb-6 overflow-x-auto">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
-          >
-            <tab.icon size={16} />
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Tab Content */}

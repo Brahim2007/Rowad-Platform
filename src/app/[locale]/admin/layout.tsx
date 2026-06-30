@@ -17,7 +17,7 @@ import {
   LayoutDashboard, FolderKanban, Blocks, Users, FileText, Shield,
   LogOut, Menu, TrendingUp, Activity, Star,
   Library, ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
-  Medal, Settings, IdCard,
+  Medal, Settings, IdCard, UserCog,
 } from 'lucide-react'
 
 /** تبويبات لوحة أثر الرواد — الشريط العلوي الرئيسي */
@@ -37,6 +37,7 @@ const sidebarSections = [
   {
     title: 'إدارة المحتوى',
     links: [
+      { href: '/admin/members',      label: 'الأعضاء والمستفيدون', icon: Users },
       { href: '/admin/platforms',    label: 'المنصات والبرامج',  icon: Blocks },
       { href: '/admin/projects',     label: 'المشاريع',           icon: FolderKanban },
       { href: '/admin/knowledge-library', label: 'المكتبة المعرفية', icon: Library },
@@ -55,6 +56,7 @@ const sidebarSections = [
   {
     title: 'أدوات',
     links: [
+      { href: '/admin/users', label: 'مستخدمو النظام', icon: UserCog },
       { href: '/guide', label: 'دليل المستخدم', icon: BookOpen },
     ],
   },

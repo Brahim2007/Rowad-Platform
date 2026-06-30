@@ -35,6 +35,7 @@ const ENTITY_LABELS: Record<string, string> = {
   knowledge: 'مكتبة معرفية',
   coordination_task: 'مهمة تنسيق',
   beneficiary: 'عضو',
+  admin_user: 'مستخدم نظام',
 }
 
 const ACTION_LABELS: Record<string, string> = {

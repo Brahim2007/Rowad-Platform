@@ -124,7 +124,7 @@ async function main() {
   console.log('📝 إنشاء سجلات الأثر للمستفيدين...')
   let logCount = 0
 
-  type LogDef = [string, string, number, string, string, number?] // [code, actionName, count, quality, status, daysAgo]
+  type LogDef = [string, number, string, string, number] // [actionName, count, quality, status, daysAgo]
 
   // تعريف أنشطة كل عضو — توزيع واقعي
   const memberActivities: Record<string, LogDef[]> = {
@@ -280,7 +280,7 @@ async function main() {
     if (!ben) { console.log(`  ⚠️ عضو غير موجود: ${code}`); continue }
 
     for (const def of defs) {
-      const [actionName, count, quality, status, daysAgoVal, extraDays] = def
+      const [actionName, count, quality, status, daysAgoVal] = def
       const action = actionByName.get(actionName)
       if (!action) { console.log(`  ⚠️ نشاط غير موجود: ${actionName}`); continue }
 

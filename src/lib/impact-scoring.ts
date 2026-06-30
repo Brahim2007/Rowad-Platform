@@ -25,6 +25,7 @@ export type ImpactQuality = 'WEAK' | 'ACCEPTABLE' | 'GOOD' | 'EXCELLENT' | 'EXCE
 export type ImpactApprovalStatus = 'APPROVED' | 'PENDING_REVIEW' | 'REJECTED'
 export type ImpactAwardType = 'SHIELD' | 'REWARD'
 export type ScopeType = 'week' | 'month' | 'all'
+export type ImpactSourceType = 'MANUAL' | 'PARTICIPATION' | 'ENROLLMENT' | 'REPORT' | 'EVALUATION' | 'EXTERNAL'
 
 export interface ImpactActionItem {
   id: string
@@ -41,6 +42,16 @@ export interface ImpactLogEntry {
   beneficiaryId: string
   actionId: string
   action?: ImpactActionItem
+  sourceType?: ImpactSourceType
+  sourceId?: string | null
+  platformId?: string | null
+  platformName?: string | null
+  programId?: string | null
+  activityId?: string | null
+  enrollmentId?: string | null
+  participationId?: string | null
+  reportId?: string | null
+  evaluationId?: string | null
   count: number
   quality: ImpactQuality
   status: ImpactApprovalStatus
@@ -195,6 +206,36 @@ export const BADGE_CATALOG = [
   'درع القيادة', 'درع العضو الصاعد', 'درع الوفاء',
   'جائزة رائد السنة', 'جائزة المؤثر الأول', 'جائزة الباحث الملهم',
   'جائزة المتطوع الذهبي', 'جائزة القيادة', 'جائزة العمرة',
+]
+
+export const OPERATIONAL_IMPACT_ACTIONS: ImpactActionItem[] = [
+  {
+    id: '__participation_attended',
+    name: 'حضور نشاط داخل منصة',
+    points: 10,
+    category: 'SCIENTIFIC_EVENTS',
+    note: 'يحتسب تلقائياً من سجل المشاركة عند حالة الحضور',
+    isActive: true,
+    sortOrder: -30,
+  },
+  {
+    id: '__participation_completed',
+    name: 'إكمال نشاط داخل منصة',
+    points: 20,
+    category: 'SCIENTIFIC_EVENTS',
+    note: 'يحتسب تلقائياً من سجل المشاركة عند حالة الإكمال',
+    isActive: true,
+    sortOrder: -20,
+  },
+  {
+    id: '__enrollment_completed',
+    name: 'إكمال برنامج',
+    points: 75,
+    category: 'DISCIPLINE',
+    note: 'يحتسب تلقائياً من سجل التسجيل عند إكمال البرنامج',
+    isActive: true,
+    sortOrder: -10,
+  },
 ]
 
 // ═══════════════════════════════════════════════════════════
@@ -490,49 +531,44 @@ export function platformAggregation(
   actionMap: Map<string, ImpactActionItem>,
   scope?: Scope,
 ): PlatformAggregation[] {
-  // تجميع الأعضاء حسب المنصة
-  const platformMap = new Map<string, Array<BeneficiaryInfo & { entries: ImpactLogEntry[] }>>()
+  const platformMap = new Map<string, {
+    members: Set<string>
+    memberPoints: Map<string, { name: string; points: number }>
+    acts: number
+    points: number
+  }>()
 
   for (const m of members) {
-    const plat = m.platformName || 'غير محدد'
-    if (!platformMap.has(plat)) platformMap.set(plat, [])
-    platformMap.get(plat)!.push(m)
-  }
-
-  const result: PlatformAggregation[] = []
-
-  for (const [platform, ms] of platformMap) {
-    let points = 0
-    let acts = 0
-    let best = '—'
-    let bestVal = -Infinity
-
-    for (const m of ms) {
-      const filtered = scope ? filterByScope(m.entries, scope) : m.entries
-      const p = filtered.reduce((sum, e) => sum + finalPoints(e, actionMap), 0)
-      points += p
-      acts += filtered.length
-
-      if (p > bestVal) {
-        bestVal = p
-        best = m.firstName
-          ? `${m.firstName} ${m.lastName || ''}`
-          : (m.name || '—')
+    const filtered = scope ? filterByScope(m.entries, scope) : m.entries
+    for (const entry of filtered) {
+      const platform = entry.platformName || m.platformName || 'غير محدد'
+      if (!platformMap.has(platform)) {
+        platformMap.set(platform, { members: new Set(), memberPoints: new Map(), acts: 0, points: 0 })
       }
+      const bucket = platformMap.get(platform)!
+      const pts = finalPoints(entry, actionMap)
+      const name = m.firstName ? `${m.firstName} ${m.lastName || ''}` : (m.name || '—')
+      const current = bucket.memberPoints.get(m.id) || { name, points: 0 }
+      current.points += pts
+      bucket.memberPoints.set(m.id, current)
+      bucket.members.add(m.id)
+      bucket.acts += 1
+      bucket.points += pts
     }
-
-    result.push({
-      platform,
-      count: ms.length,
-      acts,
-      points,
-      best,
-      bestVal: Math.max(0, bestVal),
-      avg: ms.length ? Math.round(points / ms.length) : 0,
-    })
   }
 
-  return result.sort((a, b) => b.points - a.points)
+  return Array.from(platformMap.entries()).map(([platform, bucket]) => {
+    const bestEntry = Array.from(bucket.memberPoints.values()).sort((a, b) => b.points - a.points)[0]
+    return {
+      platform,
+      count: bucket.members.size,
+      acts: bucket.acts,
+      points: bucket.points,
+      best: bestEntry?.name || '—',
+      bestVal: bestEntry?.points || 0,
+      avg: bucket.members.size ? Math.round(bucket.points / bucket.members.size) : 0,
+    }
+  }).sort((a, b) => b.points - a.points)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -683,6 +719,9 @@ export function summarizeMembers(
 /** بناء actionMap من قائمة ImpactAction */
 export function buildActionMap(items: ImpactActionItem[]): Map<string, ImpactActionItem> {
   const map = new Map<string, ImpactActionItem>()
+  for (const item of OPERATIONAL_IMPACT_ACTIONS) {
+    map.set(item.id, item)
+  }
   for (const item of items) {
     map.set(item.id, item)
   }

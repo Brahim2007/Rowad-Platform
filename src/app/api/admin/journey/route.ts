@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import {
+  buildActionMap,
+  memberTotal,
+  type ImpactActionItem,
+  type ImpactLogEntry,
+} from '@/lib/impact-scoring'
 
 async function checkAuth() {
   const session = await auth()
@@ -26,6 +32,9 @@ function determineStage(beneficiary: {
   completedEnrollments: number
   participationsCount: number
   attendedParticipations: number
+  impactTotal: number
+  impactActiveMonths: number
+  hasExcellentImpact: boolean
   hasChampionRole: boolean
 }): { stage: string; notes: string } {
   if (beneficiary.status === 'INACTIVE' || beneficiary.status === 'SUSPENDED') {
@@ -33,13 +42,19 @@ function determineStage(beneficiary: {
   }
 
   // Champion (أعلى مرحلة)
-  if (beneficiary.hasChampionRole) {
-    return { stage: 'CHAMPION', notes: 'سفير معتمد — يمثل الشبكة في الفعاليات' }
+  if (
+    beneficiary.hasChampionRole ||
+    (beneficiary.impactTotal >= 2000 && beneficiary.impactActiveMonths >= 6 && beneficiary.hasExcellentImpact)
+  ) {
+    return { stage: 'CHAMPION', notes: `سفير معتمد — أثر تراكمي ${beneficiary.impactTotal} نقطة` }
   }
 
   // Alumni (خريج نشط في شبكة الخريجين)
-  if (beneficiary.completedEnrollments >= 2 && beneficiary.participationsCount >= 10 && beneficiary.attendedParticipations >= 8) {
-    return { stage: 'ALUMNI', notes: 'خريج نشط — مشارك في شبكة الخريجين' }
+  if (
+    (beneficiary.completedEnrollments >= 2 && beneficiary.participationsCount >= 10 && beneficiary.attendedParticipations >= 8) ||
+    (beneficiary.completedEnrollments >= 1 && beneficiary.impactTotal >= 1000 && beneficiary.impactActiveMonths >= 4)
+  ) {
+    return { stage: 'ALUMNI', notes: `خريج نشط — أثر مستمر عبر ${beneficiary.impactActiveMonths} أشهر` }
   }
 
   // Graduated (أكمل برنامجين على الأقل)
@@ -48,8 +63,8 @@ function determineStage(beneficiary: {
   }
 
   // Advanced (أكمل برنامجاً واحداً أو مشاركات كثيرة)
-  if (beneficiary.completedEnrollments >= 1 || beneficiary.participationsCount >= 5) {
-    return { stage: 'ADVANCED', notes: `متقدم — ${beneficiary.participationsCount} مشاركات مسجلة` }
+  if (beneficiary.completedEnrollments >= 1 || beneficiary.participationsCount >= 5 || beneficiary.impactTotal >= 300) {
+    return { stage: 'ADVANCED', notes: `متقدم — ${beneficiary.participationsCount} مشاركات و${beneficiary.impactTotal} نقطة أثر` }
   }
 
   // Active (مسجل في برنامج ولديه مشاركات)
@@ -64,6 +79,17 @@ function determineStage(beneficiary: {
 
   // Application (مسجل كعضو)
   return { stage: 'APPLICATION', notes: 'قدّم طلباً — بانتظار التسجيل في برنامج' }
+}
+
+function activeImpactMonths(entries: ImpactLogEntry[]) {
+  const months = new Set<string>()
+  for (const entry of entries) {
+    if (entry.status !== 'APPROVED') continue
+    const d = new Date(entry.date)
+    if (Number.isNaN(d.getTime())) continue
+    months.add(`${d.getFullYear()}-${d.getMonth() + 1}`)
+  }
+  return months.size
 }
 
 // ─── GET: Fetch journey for a beneficiary ───
@@ -109,31 +135,59 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch beneficiary with activity counts
-    const beneficiary = await prisma.beneficiary.findUnique({
-      where: { id: beneficiaryId },
-      include: {
-        _count: {
-          select: {
-            enrollments: true,
-            participations: true,
+    const [beneficiary, actions] = await Promise.all([
+      prisma.beneficiary.findUnique({
+        where: { id: beneficiaryId },
+        include: {
+          _count: {
+            select: {
+              enrollments: true,
+              participations: true,
+            },
+          },
+          enrollments: {
+            where: { status: 'COMPLETED' },
+            select: { id: true },
+          },
+          participations: {
+            where: { status: { in: ['ATTENDED', 'COMPLETED'] } },
+            select: { id: true, status: true },
+          },
+          impactLogs: {
+            where: { status: 'APPROVED' },
+            include: { action: true },
           },
         },
-        enrollments: {
-          where: { status: 'COMPLETED' },
-          select: { id: true },
-        },
-        participations: {
-          where: { status: { in: ['ATTENDED', 'COMPLETED'] } },
-          select: { id: true },
-        },
-      },
-    })
+      }),
+      prisma.impactAction.findMany({ where: { isActive: true } }),
+    ])
 
     if (!beneficiary) {
       return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
     }
 
     const hasChampionRole = false // Could be extended with a champion flag
+    const actionMap = buildActionMap(actions as ImpactActionItem[])
+    const impactEntries = beneficiary.impactLogs.map(log => ({
+      ...log,
+      action: log.action as ImpactActionItem,
+    })) as ImpactLogEntry[]
+    const persistedImpactSources = new Set(
+      impactEntries
+        .filter(e => e.sourceType && e.sourceId)
+        .map(e => `${e.sourceType}:${e.sourceId}:${e.actionId}`)
+    )
+    const operationalImpactTotal =
+      beneficiary.participations.reduce((sum, p) => {
+        const actionId = p.status === 'COMPLETED' ? '__participation_completed' : '__participation_attended'
+        return persistedImpactSources.has(`PARTICIPATION:${p.id}:${actionId}`)
+          ? sum
+          : sum + (p.status === 'COMPLETED' ? 20 : 10)
+      }, 0) +
+      beneficiary.enrollments.reduce((sum, e) => (
+        persistedImpactSources.has(`ENROLLMENT:${e.id}:__enrollment_completed`) ? sum : sum + 75
+      ), 0)
+    const impactTotal = memberTotal(impactEntries, actionMap) + operationalImpactTotal
 
     const { stage: newStage, notes } = determineStage({
       status: beneficiary.status,
@@ -141,6 +195,9 @@ export async function POST(request: NextRequest) {
       completedEnrollments: beneficiary.enrollments.length,
       participationsCount: beneficiary._count.participations,
       attendedParticipations: beneficiary.participations.length,
+      impactTotal,
+      impactActiveMonths: activeImpactMonths(impactEntries),
+      hasExcellentImpact: impactEntries.some(e => e.quality === 'EXCELLENT' || e.quality === 'EXCEPTIONAL'),
       hasChampionRole,
     })
 

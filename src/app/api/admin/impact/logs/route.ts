@@ -40,6 +40,13 @@ export async function GET(request: NextRequest) {
       take: limit,
       include: {
         action: true,
+        platform: { select: { id: true, name: true, slug: true } },
+        program: { select: { id: true, name: true, slug: true } },
+        activity: { select: { id: true, name: true, slug: true } },
+        enrollment: { select: { id: true, status: true } },
+        participation: { select: { id: true, status: true } },
+        report: { select: { id: true, status: true } },
+        evaluation: { select: { id: true, title: true, status: true } },
         beneficiary: {
           select: {
             id: true,
@@ -76,13 +83,25 @@ export async function POST(request: NextRequest) {
       data: {
         beneficiaryId,
         actionId,
+        sourceType: String(body.sourceType || 'MANUAL') as any,
+        sourceId: body.sourceId ? String(body.sourceId).trim() : null,
         count: Number(body.count) || 1,
         quality: String(body.quality || 'ACCEPTABLE') as any,
         status: String(body.status || 'PENDING_REVIEW') as any,
         date: body.date ? new Date(String(body.date)) : new Date(),
         link: body.link?.trim() || null,
         note: body.note?.trim() || null,
+        pointsSnapshot: body.pointsSnapshot === undefined || body.pointsSnapshot === null || body.pointsSnapshot === ''
+          ? null
+          : Number(body.pointsSnapshot),
         createdBy: body.createdBy?.trim() || null,
+        platformId: body.platformId || null,
+        programId: body.programId || null,
+        activityId: body.activityId || null,
+        enrollmentId: body.enrollmentId || null,
+        participationId: body.participationId || null,
+        reportId: body.reportId || null,
+        evaluationId: body.evaluationId || null,
       },
       include: { action: true, beneficiary: { select: { firstName: true, lastName: true } } },
     })
@@ -116,12 +135,24 @@ export async function PUT(request: NextRequest) {
       where: { id },
       data: {
         actionId: body.actionId || undefined,
+        sourceType: body.sourceType || undefined,
+        sourceId: body.sourceId !== undefined ? (body.sourceId ? String(body.sourceId).trim() : null) : undefined,
         count: body.count !== undefined ? Number(body.count) : undefined,
         quality: body.quality || undefined,
         status: body.status || undefined,
         date: body.date ? new Date(String(body.date)) : undefined,
         link: body.link?.trim() ?? undefined,
         note: body.note?.trim() ?? undefined,
+        pointsSnapshot: body.pointsSnapshot !== undefined
+          ? (body.pointsSnapshot === null || body.pointsSnapshot === '' ? null : Number(body.pointsSnapshot))
+          : undefined,
+        platformId: body.platformId !== undefined ? body.platformId || null : undefined,
+        programId: body.programId !== undefined ? body.programId || null : undefined,
+        activityId: body.activityId !== undefined ? body.activityId || null : undefined,
+        enrollmentId: body.enrollmentId !== undefined ? body.enrollmentId || null : undefined,
+        participationId: body.participationId !== undefined ? body.participationId || null : undefined,
+        reportId: body.reportId !== undefined ? body.reportId || null : undefined,
+        evaluationId: body.evaluationId !== undefined ? body.evaluationId || null : undefined,
       },
       include: { action: true, beneficiary: { select: { firstName: true, lastName: true } } },
     })

@@ -192,6 +192,7 @@ model Platform {
   platformIndicators    PlatformIndicator[]
   coordinationTasks     CoordinationTask[]
   evaluations           Evaluation[]
+  impactLogs            ImpactLog[]
 
   @@index([slug])
   @@index([isActive])
@@ -225,6 +226,7 @@ model Program {
   programIndicators   ProgramIndicator[]
   coordinationTasks   CoordinationTask[]
   evaluations         Evaluation[]
+  impactLogs          ImpactLog[]
 
   @@index([slug])
   @@index([platformId])
@@ -255,6 +257,7 @@ model Activity {
 
   participations Participation[]
   evaluations     Evaluation[]
+  impactLogs      ImpactLog[]
 
   @@index([slug])
   @@index([programId])
@@ -296,6 +299,7 @@ model Enrollment {
   program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   participations Participation[]
+  impactLogs      ImpactLog[]
 
   @@unique([beneficiaryId, programId])
   @@index([beneficiaryId])
@@ -334,6 +338,8 @@ model Participation {
 
   enrollmentId String?
   enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  impactLogs ImpactLog[]
 
   @@unique([beneficiaryId, activityId])
   @@index([beneficiaryId])
@@ -596,6 +602,8 @@ model SubmittedReport {
   projectId   String?
   project     Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  impactLogs  ImpactLog[]
+
   @@index([templateId])
   @@index([status])
   @@index([platformId])
@@ -762,6 +770,8 @@ model Evaluation {
   projectId       String?
   project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  impactLogs      ImpactLog[]
+
   @@index([type])
   @@index([status])
   @@index([platformId])
@@ -909,22 +919,56 @@ model ImpactLog {
   beneficiary     Beneficiary    @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   actionId        String
   action          ImpactAction   @relation(fields: [actionId], references: [id], onDelete: Restrict)
+  sourceType      ImpactSourceType @default(MANUAL)
+  sourceId        String?        @db.VarChar(100)
   count           Float          @default(1)        // العدد (مثلاً 3 منشورات)
   quality         ImpactQuality  @default(ACCEPTABLE) // مستوى الجودة
   status          ImpactApprovalStatus @default(PENDING_REVIEW) // حالة الاعتماد
   date            DateTime       @default(now())
   link            String?        @db.Text           // رابط النشاط (تغريدة، مقال...)
   note            String?        @db.Text
+  pointsSnapshot  Int?                               // النقاط وقت الاعتماد/الاحتساب للتقارير التاريخية
   createdBy       String?        @db.VarChar(200)   // من أدخل النشاط
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  platformId      String?
+  platform        Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
+
+  programId       String?
+  program         Program?       @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  activityId      String?
+  activity        Activity?      @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  enrollmentId    String?
+  enrollment      Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  participationId String?
+  participation   Participation? @relation(fields: [participationId], references: [id], onDelete: SetNull)
+
+  reportId        String?
+  report          SubmittedReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  evaluationId    String?
+  evaluation      Evaluation?    @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
+
   @@index([beneficiaryId])
   @@index([actionId])
+  @@index([sourceType])
+  @@index([sourceType, sourceId])
   @@index([status])
   @@index([date])
+  @@index([platformId])
+  @@index([programId])
+  @@index([activityId])
+  @@index([enrollmentId])
+  @@index([participationId])
+  @@index([reportId])
+  @@index([evaluationId])
   @@index([beneficiaryId, date])
   @@index([beneficiaryId, status, date])
+  @@unique([sourceType, sourceId, actionId])
   @@map("impact_logs")
 }
 
@@ -940,6 +984,15 @@ enum ImpactApprovalStatus {
   APPROVED         // معتمد
   PENDING_REVIEW   // قيد المراجعة
   REJECTED         // مرفوض
+}
+
+enum ImpactSourceType {
+  MANUAL
+  PARTICIPATION
+  ENROLLMENT
+  REPORT
+  EVALUATION
+  EXTERNAL
 }
 
 // ─── الدروع والمكافآت (Awards & Rewards) ───

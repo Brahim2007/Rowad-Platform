@@ -15,35 +15,13 @@ import {
   memberScopedPoints,
   memberByCategory,
   memberMonthlyPoints,
-  memberYearlyPoints,
-  memberMonthlyTrend,
-  memberJourney,
-  levelOf,
-  nextLevelGap,
-  levelProgress,
-  rewardEligibility,
-  umrahEligible,
-  filterByScope,
-  finalPoints,
   summarizeMembers,
   platformAggregation,
-  activityStatus,
   computeAlerts,
   type Scope,
   type ImpactActionItem,
   type ImpactLogEntry,
-  type MemberSummary,
-  type Alert,
 } from '@/lib/impact-scoring'
-import type { Prisma } from '@prisma/client'
-
-type BeneficiaryWithRelations = Prisma.BeneficiaryGetPayload<{
-  include: {
-    impactLogs: { include: { action: true } }
-    impactAwards: true
-    platform: { select: { name: true } }
-  }
-}>
 
 async function checkAuth() {
   const session = await auth()
@@ -51,6 +29,10 @@ async function checkAuth() {
     return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
   }
   return null
+}
+
+function sourceKey(sourceType?: string | null, sourceId?: string | null, actionId?: string | null) {
+  return sourceType && sourceId && actionId ? `${sourceType}:${sourceId}:${actionId}` : ''
 }
 
 export async function GET(request: NextRequest) {
@@ -76,8 +58,46 @@ export async function GET(request: NextRequest) {
       prisma.beneficiary.findMany({
         where: { status: 'ACTIVE', type: { in: ['BENEFICIARY', 'BOTH'] } },
         include: {
-          impactLogs: { include: { action: true } },
+          impactLogs: {
+            include: {
+              action: true,
+              platform: { select: { id: true, name: true } },
+              program: { select: { id: true, name: true } },
+              activity: { select: { id: true, name: true } },
+            },
+          },
           impactAwards: true,
+          enrollments: {
+            where: { status: 'COMPLETED' },
+            include: {
+              program: {
+                select: {
+                  id: true,
+                  name: true,
+                  platform: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          participations: {
+            where: { status: { in: ['ATTENDED', 'COMPLETED'] } },
+            include: {
+              activity: {
+                select: {
+                  id: true,
+                  name: true,
+                  startDate: true,
+                  program: {
+                    select: {
+                      id: true,
+                      name: true,
+                      platform: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
       prisma.impactAward.findMany({ orderBy: { date: 'desc' } }),
@@ -87,34 +107,93 @@ export async function GET(request: NextRequest) {
 
     const actionMap = buildActionMap(actions as ImpactActionItem[])
 
-    // لكل مستفيد: حساب نقاطه
-    const membersData = beneficiaries.map(b => ({
-      id: b.id,
-      name: `${b.firstName} ${b.lastName}`,
-      firstName: b.firstName,
-      lastName: b.lastName,
-      networkRole: b.networkRole,
-      platformName: 'منصة الرواد',
-      code: b.code,
-      joinDate: b.joinDate || (b.memberSince ? new Date(b.memberSince) : null),
-      status: b.status,
-      entries: b.impactLogs.map(log => ({
+    const membersData = beneficiaries.map(b => {
+      const persistedKeys = new Set(
+        b.impactLogs
+          .map(log => sourceKey(log.sourceType, log.sourceId, log.actionId))
+          .filter(Boolean)
+      )
+
+      const persistedEntries = b.impactLogs.map(log => ({
         ...log,
         action: log.action as ImpactActionItem,
-      })) as ImpactLogEntry[],
-    }))
+        platformName: log.platform?.name || null,
+      })) as ImpactLogEntry[]
+
+      const operationalEntries: ImpactLogEntry[] = []
+      for (const participation of b.participations) {
+        const actionId = participation.status === 'COMPLETED'
+          ? '__participation_completed'
+          : '__participation_attended'
+        const key = sourceKey('PARTICIPATION', participation.id, actionId)
+        if (persistedKeys.has(key)) continue
+
+        operationalEntries.push({
+          id: `virtual:${key}`,
+          beneficiaryId: b.id,
+          actionId,
+          action: actionMap.get(actionId),
+          sourceType: 'PARTICIPATION',
+          sourceId: participation.id,
+          platformId: participation.activity.program.platform.id,
+          platformName: participation.activity.program.platform.name,
+          programId: participation.activity.program.id,
+          activityId: participation.activity.id,
+          participationId: participation.id,
+          count: 1,
+          quality: 'ACCEPTABLE',
+          status: 'APPROVED',
+          date: participation.attendedAt || participation.activity.startDate || participation.createdAt,
+          note: participation.activity.name,
+        })
+      }
+
+      for (const enrollment of b.enrollments) {
+        const actionId = '__enrollment_completed'
+        const key = sourceKey('ENROLLMENT', enrollment.id, actionId)
+        if (persistedKeys.has(key)) continue
+
+        operationalEntries.push({
+          id: `virtual:${key}`,
+          beneficiaryId: b.id,
+          actionId,
+          action: actionMap.get(actionId),
+          sourceType: 'ENROLLMENT',
+          sourceId: enrollment.id,
+          platformId: enrollment.program.platform.id,
+          platformName: enrollment.program.platform.name,
+          programId: enrollment.program.id,
+          enrollmentId: enrollment.id,
+          count: 1,
+          quality: 'GOOD',
+          status: 'APPROVED',
+          date: enrollment.completedAt || enrollment.updatedAt,
+          note: enrollment.program.name,
+        })
+      }
+
+      const platformName = [...persistedEntries, ...operationalEntries].find(e => e.platformName)?.platformName || 'غير محدد'
+
+      return {
+        id: b.id,
+        name: `${b.firstName} ${b.lastName}`,
+        firstName: b.firstName,
+        lastName: b.lastName,
+        networkRole: b.networkRole,
+        platformName,
+        code: b.code,
+        joinDate: b.joinDate || (b.memberSince ? new Date(b.memberSince) : null),
+        status: b.status,
+        entries: [...persistedEntries, ...operationalEntries],
+      }
+    })
 
     // تجميع
     const summary = summarizeMembers(membersData, actionMap, scope)
     const totalPoints = summary.reduce((s, m) => s + m.total, 0)
 
     // إجمالي كل الأنشطة بدون نطاق
-    const allEntries = beneficiaries.flatMap(b =>
-      b.impactLogs.map(log => ({
-        ...log,
-        action: log.action as ImpactActionItem,
-      }))
-    ) as ImpactLogEntry[]
+    const allEntries = membersData.flatMap(m => m.entries)
 
     const activeNow = membersData.filter(m => memberMonthlyPoints(m.entries, actionMap, new Date().getFullYear(), new Date().getMonth() + 1) > 0).length
 

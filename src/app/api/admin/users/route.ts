@@ -33,6 +33,8 @@ function toSafeUser(user: {
   role: string
   isActive: boolean
   lastLoginAt: Date | null
+  platformId?: string | null
+  platform?: { id: string; name: string } | null
   createdAt: Date
   updatedAt: Date
 }) {
@@ -43,6 +45,8 @@ function toSafeUser(user: {
     role: user.role,
     isActive: user.isActive,
     lastLoginAt: user.lastLoginAt,
+    platformId: user.platformId ?? null,
+    platformName: user.platform?.name ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   }
@@ -55,6 +59,7 @@ export async function GET() {
   try {
     const users = await prisma.adminUser.findMany({
       orderBy: [{ role: 'asc' }, { createdAt: 'desc' }],
+      include: { platform: { select: { id: true, name: true } } },
     })
 
     return NextResponse.json({ success: true, data: users.map(toSafeUser) })
@@ -73,6 +78,11 @@ export async function POST(request: NextRequest) {
       password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'),
     }).parse(await request.json())
 
+    // التحقق من وجود platformId عند دور PLATFORM_MANAGER
+    if (input.role === 'PLATFORM_MANAGER' && !input.platformId) {
+      return NextResponse.json({ success: false, message: 'يجب اختيار منصة لمدير المنصة' }, { status: 400 })
+    }
+
     const user = await prisma.adminUser.create({
       data: {
         email: input.email,
@@ -80,7 +90,9 @@ export async function POST(request: NextRequest) {
         role: input.role,
         isActive: input.isActive,
         passwordHash: await bcrypt.hash(input.password, 12),
+        platformId: input.role === 'PLATFORM_MANAGER' ? (input.platformId || null) : null,
       },
+      include: { platform: { select: { id: true, name: true } } },
     })
 
     await recordActivityLog({
@@ -134,6 +146,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'لا يمكن تعطيل أو تغيير آخر مدير عام نشط' }, { status: 400 })
     }
 
+    // التحقق من platformId عند PLATFORM_MANAGER
+    if (input.role === 'PLATFORM_MANAGER' && !input.platformId) {
+      return NextResponse.json({ success: false, message: 'يجب اختيار منصة لمدير المنصة' }, { status: 400 })
+    }
+
     const user = await prisma.adminUser.update({
       where: { id },
       data: {
@@ -141,8 +158,10 @@ export async function PUT(request: NextRequest) {
         fullName: input.fullName,
         role: input.role,
         isActive: input.isActive,
+        platformId: input.role === 'PLATFORM_MANAGER' ? (input.platformId || null) : null,
         ...(input.password ? { passwordHash: await bcrypt.hash(input.password, 12) } : {}),
       },
+      include: { platform: { select: { id: true, name: true } } },
     })
 
     await recordActivityLog({

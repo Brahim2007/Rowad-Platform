@@ -242,10 +242,13 @@ export const OPERATIONAL_IMPACT_ACTIONS: ImpactActionItem[] = [
 // 1. النقاط النهائية لنشاط واحد
 // ═══════════════════════════════════════════════════════════
 
-/** حساب النقاط النهائية لسجل نشاط واحد */
+/** حساب النقاط النهائية لسجل نشاط واحد
+ * @param qualityBonus - بونص الجودة الديناميكي من ImpactSettings (اختياري، يستخدم الثوابت الافتراضية إن لم يُمرّر)
+ */
 export function finalPoints(
   entry: ImpactLogEntry,
   actionMap: Map<string, ImpactActionItem>,
+  qualityBonus?: Record<ImpactQuality, number>,
 ): number {
   // غير المعتمد أو المرفوض = 0 نقطة
   if (entry.status === 'REJECTED' || entry.status === 'PENDING_REVIEW') return 0
@@ -255,7 +258,7 @@ export function finalPoints(
 
   const count = entry.count || 1
   const basePoints = count * action.points
-  const bonus = QUALITY_BONUS[entry.quality] ?? 0
+  const bonus = (qualityBonus ?? QUALITY_BONUS)[entry.quality] ?? 0
 
   return basePoints + bonus
 }

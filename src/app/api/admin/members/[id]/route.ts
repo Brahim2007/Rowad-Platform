@@ -202,3 +202,44 @@ export async function GET(
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
+
+/** تحديث حقول أثر العضو: networkRole, joinDate, impactNote, platformId */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authError = await checkAuth()
+  if (authError) return authError
+
+  try {
+    const { id } = await params
+    const body = await request.json()
+
+    // السماح بتحديث الحقول الأساسية للعضو + حقول الأثر
+    const updated = await prisma.beneficiary.update({
+      where: { id },
+      data: {
+        ...(body.firstName !== undefined && { firstName: body.firstName }),
+        ...(body.lastName !== undefined && { lastName: body.lastName }),
+        ...(body.email !== undefined && { email: body.email || null }),
+        ...(body.phone !== undefined && { phone: body.phone || null }),
+        ...(body.code !== undefined && { code: body.code }),
+        ...(body.status !== undefined && { status: body.status }),
+        // حقول الأثر
+        ...(body.networkRole !== undefined && { networkRole: body.networkRole || null }),
+        ...(body.joinDate !== undefined && { joinDate: body.joinDate ? new Date(body.joinDate) : null }),
+        ...(body.impactNote !== undefined && { impactNote: body.impactNote || null }),
+        ...(body.platformId !== undefined && { platformId: body.platformId || null }),
+      },
+    })
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    const e = error as { code?: string }
+    if (e.code === 'P2002') {
+      return NextResponse.json({ success: false, message: 'الكود أو البريد مستخدم مسبقاً' }, { status: 409 })
+    }
+    console.error('Member PUT error:', error)
+    return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
+  }
+}

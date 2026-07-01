@@ -18,6 +18,9 @@ import {
   Search, ChevronDown, ChevronUp
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useSession } from 'next-auth/react'
+import { finalPoints, buildActionMap, type ImpactCategory } from '@/lib/impact-scoring'
+import { exportMembersCSV, exportActivitiesCSV } from '@/lib/export-csv'
 
 // ═══════════════════════════════════════════════
 // Types
@@ -27,7 +30,7 @@ interface ImpactActionItem {
   id: string
   name: string
   points: number
-  category: string
+  category: ImpactCategory
   note?: string | null
   isActive: boolean
   sortOrder: number
@@ -45,6 +48,7 @@ interface ImpactLogFull {
   link?: string | null
   note?: string | null
   createdBy?: string | null
+  platformId?: string | null
   beneficiary?: { id: string; firstName: string; lastName: string; code: string; networkRole?: string | null }
 }
 
@@ -217,6 +221,77 @@ export default function ImpactDashboardPage() {
   const [awards, setAwards] = useState<ImpactAwardFull[]>([])
   const [gates, setGates] = useState<ImpactGateItem[]>([])
   const [dashData, setDashData] = useState<DashboardData | null>(null)
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['dashboard']))
+  const [tabLoading, setTabLoading] = useState(false)
+
+  /** التحميل الأولي — Dashboard فقط */
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true)
+      try {
+        const [dashRes] = await Promise.all([
+          fetch('/api/admin/impact/dashboard').then(r => r.json()),
+        ])
+        if (dashRes.success) setDashData(dashRes.data || null)
+      } catch (e) {
+        console.error('Failed to load dashboard:', e)
+        toast.error('فشل تحميل لوحة الأثر')
+      } finally {
+        setLoading(false)
+      }
+    }
+    init()
+  }, [])
+
+  /** تحميل بيانات التبويب عند أول زيارة */
+  const ensureTabData = useCallback(async (tab: string) => {
+    if (loadedTabs.has(tab)) return
+    setTabLoading(true)
+    try {
+      const newLoaded = new Set(loadedTabs)
+      if (tab === 'members' || tab === 'card' || tab === 'pulse') {
+        if (!loadedTabs.has('members')) {
+          const [benRes, actRes] = await Promise.all([
+            fetch('/api/admin/members?limit=500').then(r => r.json()),
+            fetch('/api/admin/impact/actions').then(r => r.json()),
+          ])
+          if (benRes.success) setBeneficiaries(benRes.data?.members || benRes.data || [])
+          if (actRes.success) setActions(actRes.data || [])
+          newLoaded.add('members')
+        }
+      }
+      if (tab === 'activities' || tab === 'card' || tab === 'pulse' || tab === 'rewards' || tab === 'reports' || tab === 'dashboard') {
+        if (!loadedTabs.has('logs')) {
+          const [logRes] = await Promise.all([
+            fetch('/api/admin/impact/logs?limit=2000').then(r => r.json()),
+          ])
+          if (logRes.success) setLogs(logRes.data || [])
+          newLoaded.add('logs')
+        }
+      }
+      if (tab === 'rewards' || tab === 'card') {
+        if (!loadedTabs.has('awards_gates')) {
+          const [awdRes, gateRes] = await Promise.all([
+            fetch('/api/admin/impact/awards').then(r => r.json()),
+            fetch('/api/admin/impact/gates').then(r => r.json()),
+          ])
+          if (awdRes.success) setAwards(awdRes.data || [])
+          if (gateRes.success) setGates(gateRes.data || [])
+          newLoaded.add('awards_gates')
+        }
+      }
+      setLoadedTabs(newLoaded)
+    } catch (e) {
+      console.error('Failed to load tab data:', e)
+    } finally {
+      setTabLoading(false)
+    }
+  }, [loadedTabs])
+
+  /** عند تبديل التبويب، حمّل بياناته */
+  useEffect(() => {
+    ensureTabData(activeTab)
+  }, [activeTab, ensureTabData])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -236,6 +311,7 @@ export default function ImpactDashboardPage() {
       if (awdRes.success) setAwards(awdRes.data || [])
       if (gateRes.success) setGates(gateRes.data || [])
       if (dashRes.success) setDashData(dashRes.data || null)
+      setLoadedTabs(new Set(['dashboard', 'members', 'logs', 'awards_gates']))
     } catch (e) {
       console.error('Failed to load impact data:', e)
       toast.error('فشل تحميل بيانات لوحة الأثر')
@@ -244,10 +320,11 @@ export default function ImpactDashboardPage() {
     }
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
-
   // Compute member card data
   const [cardMemberId, setCardMemberId] = useState<string>('')
+
+  /** إعدادات الجودة الديناميكية من ImpactSettings — إن لم تكن محفوظة، نستخدم الافتراضية */
+  const qualityBonus: Record<string, number> = dashData?.settings?.qualityBonus ?? { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
 
   if (loading) {
     return (
@@ -277,25 +354,31 @@ export default function ImpactDashboardPage() {
              activeTab === 'settings' ? 'الإعدادات' : ''}
           </span>
         </div>
-        <button onClick={fetchAll} className="btn-ghost btn-sm flex items-center gap-1.5">
-          <Download size={14} />
-          تحديث
-        </button>
+        <div className="flex items-center gap-2">
+          {tabLoading && (
+            <div className="w-5 h-5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          )}
+          <button onClick={fetchAll} className="btn-ghost btn-sm flex items-center gap-1.5" title="تحديث كل البيانات">
+            <Download size={14} />
+            تحديث
+          </button>
+        </div>
       </div>
 
       {/* Tab Content */}
       {activeTab === 'dashboard' && <DashboardTab dashData={dashData} actions={actions} logs={logs} />}
-      {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} />}
-      {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} />}
-      {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} />}
+      {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} />}
+      {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} qualityBonus={qualityBonus} />}
+      {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
       {activeTab === 'card' && (
         <CardTab
           beneficiaries={beneficiaries} logs={logs} actions={actions} awards={awards}
           cardMemberId={cardMemberId} setCardMemberId={setCardMemberId}
+          qualityBonus={qualityBonus}
         />
       )}
-      {activeTab === 'rewards' && <RewardsTab beneficiaries={beneficiaries} logs={logs} actions={actions} awards={awards} gates={gates} fetchAll={fetchAll} />}
-      {activeTab === 'reports' && <ReportsTab beneficiaries={beneficiaries} logs={logs} actions={actions} />}
+      {activeTab === 'rewards' && <RewardsTab beneficiaries={beneficiaries} logs={logs} actions={actions} awards={awards} gates={gates} fetchAll={fetchAll} qualityBonus={qualityBonus} />}
+      {activeTab === 'reports' && <ReportsTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
       {activeTab === 'settings' && <SettingsTab actions={actions} fetchAll={fetchAll} />}
     </div>
   )
@@ -403,13 +486,14 @@ function KpiCard({ icon: Icon, label, value, color, isText }: { icon: any; label
 // Tab: Members (الأعضاء)
 // ═══════════════════════════════════════════════
 
-function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; fetchAll: () => void }) {
+function MembersTab({ beneficiaries, logs, actions, fetchAll, qualityBonus, setCardMemberId, switchTab }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; fetchAll: () => void; qualityBonus: Record<string, number>; setCardMemberId: (id: string) => void; switchTab: (tab: string) => void }) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editing, setEditing] = useState<BeneficiaryInfo | null>(null)
-  const [form, setForm] = useState({ networkRole: '', platformId: '', impactNote: '' })
+  const [form, setForm] = useState({ networkRole: '', platformId: '', impactNote: '', joinDate: '' })
   const [createForm, setCreateForm] = useState({
     firstName: '', lastName: '', code: '', email: '', phone: '',
     networkRole: '', platformId: '', joinDate: today(), impactNote: '',
@@ -437,20 +521,23 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
     const actionMap = new Map(actions.map(a => [a.id, a]))
     for (const b of beneficiaries) {
       const pts = logs
-        .filter(l => l.beneficiaryId === b.id && l.status === 'APPROVED')
+        .filter(l => l.beneficiaryId === b.id)
         .reduce((sum, l) => {
-          const act = actionMap.get(l.actionId)
-          const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
-          return sum + (l.count || 1) * (act?.points || 0) + (bonus[l.quality] || 0)
+          return sum + finalPoints(l as any, actionMap as any, qualityBonus as any)
         }, 0)
       map.set(b.id, pts)
     }
     return map
-  }, [beneficiaries, logs, actions])
+  }, [beneficiaries, logs, actions, qualityBonus])
 
   const openEdit = (b: BeneficiaryInfo) => {
     setEditing(b)
-    setForm({ networkRole: b.networkRole || '', platformId: b.platformId || '', impactNote: b.impactNote || '' })
+    setForm({
+      networkRole: b.networkRole || '',
+      platformId: b.platformId || '',
+      impactNote: b.impactNote || '',
+      joinDate: b.joinDate ? new Date(b.joinDate).toISOString().slice(0, 10) : '',
+    })
     setShowModal(true)
   }
 
@@ -463,13 +550,14 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editing,
-          networkRole: form.networkRole,
-          impactNote: form.impactNote,
+          networkRole: form.networkRole || null,
+          impactNote: form.impactNote || null,
+          joinDate: form.joinDate || null,
+          platformId: form.platformId || null,
         }),
       })
       const data = await res.json()
-      if (data.success) { toast.success('تم تحديث العضو'); setShowModal(false); fetchAll() }
+      if (data.success) { toast.success('تم تحديث بيانات أثر العضو'); setShowModal(false); fetchAll() }
       else toast.error(data.message || 'فشل الحفظ')
     } catch { toast.error('فشل الحفظ') }
     finally { setSubmitting(false) }
@@ -513,10 +601,30 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Users size={18} className="text-primary-600" /> سجل الأعضاء</h2>
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
-            <Plus size={14} />
-            إضافة عضو
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const data = filtered.map(b => ({
+                  name: fullName(b.firstName, b.lastName),
+                  code: b.code,
+                  networkRole: b.networkRole || '',
+                  platformName: b.platformName || '',
+                  points: memberPoints.get(b.id) || 0,
+                  status: b.status,
+                }))
+                exportMembersCSV(data)
+              }}
+              className="btn-ghost btn-sm flex items-center gap-1.5"
+              title="تصدير CSV"
+            >
+              <Download size={14} />
+              تصدير
+            </button>
+            <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+              <Plus size={14} />
+              إضافة عضو
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
@@ -552,12 +660,28 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
                     <td className="p-3 font-mono text-xs">{b.code}</td>
                     <td className="p-3 font-semibold">{fullName(b.firstName, b.lastName)}</td>
                     <td className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{b.networkRole || '—'}</Badge></td>
-                    <td className="p-3 text-xs">{b.platformId || '—'}</td>
+                    <td className="p-3 text-xs">{b.platformName || b.platformId || '—'}</td>
                     <td className="p-3 text-center font-mono font-bold">{memberPoints.get(b.id) || 0}</td>
                     <td className="p-3 text-center">
-                      <button onClick={() => openEdit(b)} className="p-1.5 text-neutral-400 hover:text-primary-600">
-                        <Pencil size={14} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => { setCardMemberId(b.id); switchTab('card') }}
+                          className="p-1.5 text-neutral-400 hover:text-teal-600"
+                          title="بطاقة الرائد"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          onClick={() => router.push('/ar/admin/impact?tab=activities')}
+                          className="p-1.5 text-neutral-400 hover:text-primary-600"
+                          title="تسجيل نشاط سريع"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button onClick={() => openEdit(b)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل">
+                          <Pencil size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -576,12 +700,18 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
               <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                <select value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
-                  <option value="">— اختر الصفة —</option>
-                  {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
+                  <select value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
+                    <option value="">— اختر الصفة —</option>
+                    {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
+                  <input type="date" value={form.joinDate} onChange={e => setForm({ ...form, joinDate: e.target.value })} className="input-field" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
@@ -668,24 +798,26 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll }: { beneficiaries:
 // Tab: Activities (الأنشطة)
 // ═══════════════════════════════════════════════
 
-function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: ImpactLogFull[]; actions: ImpactActionItem[]; beneficiaries: BeneficiaryInfo[]; fetchAll: () => void }) {
+function ActivitiesTab({ logs, actions, beneficiaries, fetchAll, qualityBonus }: { logs: ImpactLogFull[]; actions: ImpactActionItem[]; beneficiaries: BeneficiaryInfo[]; fetchAll: () => void; qualityBonus: Record<string, number> }) {
   const [filterMember, setFilterMember] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<ImpactLogFull | null>(null)
-  const [form, setForm] = useState({ beneficiaryId: '', actionId: '', count: '1', quality: 'ACCEPTABLE', status: 'PENDING_REVIEW', date: today(), link: '', note: '' })
+  const [form, setForm] = useState({ beneficiaryId: '', actionId: '', count: '1', quality: 'ACCEPTABLE', status: 'PENDING_REVIEW', date: today(), link: '', note: '', rejectionReason: '', sourceType: 'MANUAL' })
   const [submitting, setSubmitting] = useState(false)
 
   const filtered = useMemo(() => {
     let result = [...logs].reverse()
     if (filterMember) result = result.filter(l => l.beneficiaryId === filterMember)
     if (filterCategory) result = result.filter(l => l.action?.category === filterCategory)
+    if (filterStatus) result = result.filter(l => l.status === filterStatus)
     return result
-  }, [logs, filterMember, filterCategory])
+  }, [logs, filterMember, filterCategory, filterStatus])
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ beneficiaryId: beneficiaries[0]?.id || '', actionId: actions[0]?.id || '', count: '1', quality: 'ACCEPTABLE', status: 'PENDING_REVIEW', date: today(), link: '', note: '' })
+    setForm({ beneficiaryId: beneficiaries[0]?.id || '', actionId: actions[0]?.id || '', count: '1', quality: 'ACCEPTABLE', status: 'PENDING_REVIEW', date: today(), link: '', note: '', rejectionReason: '', sourceType: 'MANUAL' })
     setShowModal(true)
   }
 
@@ -700,6 +832,8 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
       date: log.date ? log.date.slice(0, 10) : today(),
       link: log.link || '',
       note: log.note || '',
+      rejectionReason: (log as any).rejectionReason || '',
+      sourceType: (log as any).sourceType || 'MANUAL',
     })
     setShowModal(true)
   }
@@ -712,7 +846,11 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
       const res = await fetch('/api/admin/impact/logs', {
         method: editing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          ...body,
+          rejectionReason: form.rejectionReason || undefined,
+          sourceType: form.sourceType,
+        }),
       })
       const data = await res.json()
       if (data.success) { toast.success(editing ? 'تم تحديث النشاط' : 'تم تسجيل النشاط'); setShowModal(false); fetchAll() }
@@ -730,20 +868,38 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
     } catch { toast.error('فشل') }
   }
 
-  const actionMap = useMemo(() => new Map(actions.map(a => [a.id, a])), [actions])
-  const calcPts = (log: ImpactLogFull) => {
-    if (log.status === 'REJECTED' || log.status === 'PENDING_REVIEW') return 0
-    const act = actionMap.get(log.actionId)
-    const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
-    return (Number(log.count) || 1) * (act?.points || 0) + (bonus[log.quality] || 0)
-  }
+  const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
+  const calcPts = (log: ImpactLogFull) => finalPoints(log as any, actionMap, qualityBonus as any)
 
   return (
     <div>
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><ClipboardCheck size={18} className="text-primary-600" /> سجل الأنشطة</h2>
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> تسجيل نشاط</button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const data = filtered.map(l => ({
+                  date: dateLabel(l.date),
+                  beneficiaryName: l.beneficiary ? fullName(l.beneficiary.firstName, l.beneficiary.lastName) : '—',
+                  beneficiaryCode: l.beneficiary?.code || '—',
+                  actionName: l.action?.name || '—',
+                  category: l.action?.category || '',
+                  count: l.count,
+                  quality: QUALITY_LABELS[l.quality] || l.quality,
+                  status: STATUS_LABELS[l.status] || l.status,
+                  note: l.note ?? null,
+                }))
+                exportActivitiesCSV(data as any)
+              }}
+              className="btn-ghost btn-sm flex items-center gap-1.5"
+              title="تصدير CSV"
+            >
+              <Download size={14} />
+              تصدير
+            </button>
+            <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> تسجيل نشاط</button>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -755,10 +911,20 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
             <option value="">كل المحاور</option>
             {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field max-w-[160px]">
+            <option value="">كل الحالات</option>
+            {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
+          </select>
         </div>
 
         {filtered.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+            <div className="flex items-center gap-4 mb-3 p-3 bg-neutral-50 rounded-lg text-sm">
+              <span className="text-neutral-500">عدد الأنشطة: <b className="text-neutral-800">{filtered.length}</b></span>
+              <span className="text-neutral-500">إجمالي النقاط (المعتمدة): <b className="text-primary-700 font-mono">{filtered.filter(l => l.status === 'APPROVED').reduce((s, l) => s + calcPts(l), 0)}</b></span>
+              <span className="text-neutral-500">قيد المراجعة: <b className="text-amber-700">{filtered.filter(l => l.status === 'PENDING_REVIEW').length}</b></span>
+            </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-neutral-200">
@@ -797,6 +963,7 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
               </tbody>
             </table>
           </div>
+          </>
         ) : <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>}
       </div>
 
@@ -838,12 +1005,31 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">حالة الاعتماد</label>
-                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
-                  {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
-                </select>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">حالة الاعتماد</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
+                    {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المصدر</label>
+                  <select value={form.sourceType} onChange={e => setForm({ ...form, sourceType: e.target.value })} className="input-field">
+                    <option value="MANUAL">يدوي</option>
+                    <option value="PARTICIPATION">مشاركة</option>
+                    <option value="ENROLLMENT">تسجيل</option>
+                    <option value="REPORT">تقرير</option>
+                    <option value="EVALUATION">تقييم</option>
+                    <option value="EXTERNAL">خارجي</option>
+                  </select>
+                </div>
               </div>
+              {form.status === 'REJECTED' && (
+                <div>
+                  <label className="block text-sm font-semibold text-red-700 mb-1">سبب الرفض *</label>
+                  <textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الدليل</label>
                 <input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
@@ -868,14 +1054,13 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll }: { logs: Impac
 // Tab: Pulse (المتابعة الدورية)
 // ═══════════════════════════════════════════════
 
-function PulseTab({ beneficiaries, logs, actions }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[] }) {
+function PulseTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number> }) {
   const now = new Date()
   const curMonth = now.getMonth() + 1
   const curYear = now.getFullYear()
 
   const memberStatuses = useMemo(() => {
-    const actionMap = new Map(actions.map(a => [a.id, a]))
-    const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
+    const actionMap = buildActionMap(actions as any)
 
     return beneficiaries.map(b => {
       const myLogs = logs.filter(l => l.beneficiaryId === b.id)
@@ -889,11 +1074,11 @@ function PulseTab({ beneficiaries, logs, actions }: { beneficiaries: Beneficiary
 
       const curPts = myLogs
         .filter(l => new Date(l.date).getFullYear() === curYear && new Date(l.date).getMonth() + 1 === curMonth)
-        .reduce((s, l) => s + ((Number(l.count) || 1) * (actionMap.get(l.actionId)?.points || 0) + (bonus[l.quality] || 0)), 0)
+        .reduce((s, l) => s + finalPoints(l as any, actionMap, qualityBonus as any), 0)
 
       return { ...b, myLogs, approved, lastDate, daysSince, status, curPts }
     })
-  }, [beneficiaries, logs, actions, curMonth, curYear])
+  }, [beneficiaries, logs, actions, curMonth, curYear, qualityBonus])
 
   const idleMembers = memberStatuses.filter(m => m.status.key === 'idle' || m.status.key === 'dormant')
   const activeMembers = memberStatuses.filter(m => m.status.key === 'active' || m.status.key === 'month').sort((a, b) => b.curPts - a.curPts)
@@ -966,9 +1151,10 @@ function PulseTab({ beneficiaries, logs, actions }: { beneficiaries: Beneficiary
 // Tab: Card (بطاقة الرائد)
 // ═══════════════════════════════════════════════
 
-function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMemberId }: {
+function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMemberId, qualityBonus }: {
   beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[];
   awards: ImpactAwardFull[]; cardMemberId: string; setCardMemberId: (id: string) => void
+  qualityBonus: Record<string, number>
 }) {
   const [cardYear, setCardYear] = useState(new Date().getFullYear())
   const [cardMonth, setCardMonth] = useState(new Date().getMonth() + 1)
@@ -985,13 +1171,9 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
 
   const myLogs = logs.filter(l => l.beneficiaryId === memberId)
   const myAwards = awards.filter(a => a.beneficiaryId === memberId)
-  const actionMap = new Map(actions.map(a => [a.id, a]))
-  const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
+  const actionMap = buildActionMap(actions as any)
 
-  const calcPts = (l: ImpactLogFull) => {
-    if (l.status !== 'APPROVED') return 0
-    return (Number(l.count) || 1) * (actionMap.get(l.actionId)?.points || 0) + (bonus[l.quality] || 0)
-  }
+  const calcPts = (l: ImpactLogFull) => finalPoints(l as any, actionMap, qualityBonus as any)
 
   const total = myLogs.reduce((s, l) => s + calcPts(l), 0)
   const byCat: Record<string, number> = {}
@@ -1034,7 +1216,7 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
             <h3 className="text-2xl font-bold text-neutral-900">{fullName(b.firstName, b.lastName)} <Badge className="bg-primary-100 text-primary-700 text-sm">{b.code}</Badge></h3>
             <div className="flex flex-wrap gap-4 mt-2 text-sm text-neutral-500">
               <span>🛡️ {b.networkRole || '—'}</span>
-              <span>📋 {b.platformId || '—'}</span>
+              <span>📋 {b.platformName || b.platformId || '—'}</span>
               <span>📅 انضم: {b.joinDate ? dateLabel(b.joinDate) : '—'}</span>
             </div>
           </div>
@@ -1102,8 +1284,9 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
 // Tab: Rewards (المكافآت)
 // ═══════════════════════════════════════════════
 
-function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll }: {
+function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qualityBonus }: {
   beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; awards: ImpactAwardFull[]; gates: ImpactGateItem[]; fetchAll: () => void
+  qualityBonus: Record<string, number>
 }) {
   const [rYear, setRYear] = useState(new Date().getFullYear())
   const [rMonth, setRMonth] = useState(new Date().getMonth() + 1)
@@ -1111,14 +1294,13 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll }: {
   const [awardForm, setAwardForm] = useState({ beneficiaryId: '', type: 'SHIELD', title: '', date: today(), value: '0', note: '' })
   const [submitting, setSubmitting] = useState(false)
 
-  const actionMap = useMemo(() => new Map(actions.map(a => [a.id, a])), [actions])
-  const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
+  const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
 
   const rewardRows = useMemo(() => {
     return beneficiaries.map(b => {
       const pts = logs
-        .filter(l => l.beneficiaryId === b.id && l.status === 'APPROVED' && new Date(l.date).getFullYear() === rYear && new Date(l.date).getMonth() + 1 === rMonth)
-        .reduce((s, l) => s + (Number(l.count) || 1) * (actionMap.get(l.actionId)?.points || 0) + (bonus[l.quality] || 0), 0)
+        .filter(l => l.beneficiaryId === b.id && new Date(l.date).getFullYear() === rYear && new Date(l.date).getMonth() + 1 === rMonth)
+        .reduce((s, l) => s + finalPoints(l as any, actionMap, qualityBonus as any), 0)
 
       const gatePassed = gates.find(g => g.beneficiaryId === b.id && g.year === rYear && g.month === rMonth)?.passed ?? true
       let tier = 'لا مكافأة'
@@ -1130,7 +1312,7 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll }: {
       }
       return { ...b, pts, gatePassed, tier, eligible: gatePassed && pts > 0 }
     }).sort((a, b) => b.pts - a.pts)
-  }, [beneficiaries, logs, actionMap, bonus, gates, rYear, rMonth])
+  }, [beneficiaries, logs, actionMap, gates, rYear, rMonth, qualityBonus])
 
   const toggleGate = async (beneficiaryId: string, year: number, month: number, currentPassed: boolean) => {
     try {
@@ -1299,19 +1481,106 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll }: {
 // Tab: Reports (التقارير)
 // ═══════════════════════════════════════════════
 
-function ReportsTab({ beneficiaries, logs, actions }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[] }) {
+function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number> }) {
+  const { data: session } = useSession()
+  const userRole = (session?.user as any)?.role || ''
+  const isSuperAdmin = userRole === 'SUPER_ADMIN'
+
   const [repType, setRepType] = useState<'monthly' | 'weekly' | 'yearly'>('monthly')
   const [repYear, setRepYear] = useState(new Date().getFullYear())
   const [repMonth, setRepMonth] = useState(new Date().getMonth() + 1)
   const [repPlat, setRepPlat] = useState('')
   const [repRole, setRepRole] = useState('')
 
-  const actionMap = useMemo(() => new Map(actions.map(a => [a.id, a])), [actions])
-  const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
+  // AI state
+  const [aiSummary, setAiSummary] = useState('')
+  const [aiAnalysis, setAiAnalysis] = useState<{ comparison: string; trends: string[] } | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
 
-  const calcPts = (l: ImpactLogFull) => {
-    if (l.status !== 'APPROVED') return 0
-    return (Number(l.count) || 1) * (actionMap.get(l.actionId)?.points || 0) + (bonus[l.quality] || 0)
+  const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
+
+  const calcPts = (l: ImpactLogFull) => finalPoints(l as any, actionMap, qualityBonus as any)
+
+  // AI handlers
+  const handleGenerateSummary = async () => {
+    if (!isSuperAdmin) { toast.error('الإدارة العليا فقط'); return }
+    setAiLoading(true)
+    try {
+      const periodName = repType === 'monthly'
+        ? `${MONTHS[repMonth - 1]} ${repYear}`
+        : repType === 'yearly' ? `السنة ${repYear}` : 'الأسبوع الحالي'
+
+      const totalPts = reportRows.reduce((s, r) => s + r.pts, 0)
+      const activeCount = reportRows.filter(r => r.pts > 0).length
+      const totalActs = reportRows.reduce((s, r) => s + r.actCount, 0)
+      const top = reportRows[0]
+      // المنصة الأنشط
+      const platMap = new Map<string, number>()
+      reportRows.filter(r => r.platformId).forEach(r => { const k = r.platformName || r.platformId!; platMap.set(k, (platMap.get(k) || 0) + r.actCount) })
+      let topPlat = '—', topPlatCnt = 0
+      for (const [k, v] of platMap) { if (v > topPlatCnt) { topPlatCnt = v; topPlat = k } }
+
+      const res = await fetch('/api/admin/ai/report-summary', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          periodName,
+          totalPoints: totalPts, activeMembers: activeCount, totalActivities: totalActs,
+          topMember: top ? fullName(top.firstName, top.lastName) : '—',
+          topMemberPoints: top?.pts || 0,
+          topPlatform: topPlat, topPlatformApproved: topPlatCnt,
+          memberCount: reportRows.length, platformCount: platMap.size,
+          pendingCount: logs.filter(l => l.status === 'PENDING_REVIEW').length,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) { setAiSummary(data.data.text); toast.success('تم توليد الملخص') }
+      else toast.error(data.message || 'فشل')
+    } catch { toast.error('فشل الاتصال بـ DeepSeek') }
+    finally { setAiLoading(false) }
+  }
+
+  const handleAnalyze = async () => {
+    if (!isSuperAdmin) { toast.error('الإدارة العليا فقط'); return }
+    setAiLoading(true)
+    try {
+      const periodName = `${MONTHS[repMonth - 1]} ${repYear}`
+      // بيانات الشهر الحالي
+      const curPts = reportRows.reduce((s, r) => s + r.pts, 0)
+      const curActive = reportRows.filter(r => r.pts > 0).length
+      const curActs = reportRows.reduce((s, r) => s + r.actCount, 0)
+      // الشهر السابق
+      const prevMonth = repMonth === 1 ? 12 : repMonth - 1
+      const prevYear = repMonth === 1 ? repYear - 1 : repYear
+      const prevRows = beneficiaries.map(b => {
+        const prevLogs = logs.filter(l => l.beneficiaryId === b.id && new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth)
+        return prevLogs.reduce((s, l) => s + calcPts(l), 0)
+      })
+      const prevPts = prevRows.reduce((s, r) => s + r, 0)
+      const prevActive = prevRows.filter(r => r > 0).length
+      const prevActs = logs.filter(l => new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth).length
+      // platforms
+      const platData: Array<{ name: string; current: number; previous: number }> = []
+      const platSet = new Set(beneficiaries.map(b => b.platformName || b.platformId).filter(Boolean) as string[])
+      for (const p of platSet) {
+        const cur = reportRows.filter(r => (r.platformName || r.platformId) === p).reduce((s, r) => s + r.actCount, 0)
+        const prev = logs.filter(l => (l.platformId === p) && new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth).length
+        platData.push({ name: p, current: cur, previous: prev })
+      }
+
+      const res = await fetch('/api/admin/ai/report-analysis', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          periodName,
+          current: { totalPoints: curPts, activeMembers: curActive, totalActivities: curActs },
+          previous: { totalPoints: prevPts, activeMembers: prevActive, totalActivities: prevActs },
+          platforms: platData.slice(0, 10),
+        }),
+      })
+      const data = await res.json()
+      if (data.success) { setAiAnalysis(data.data); toast.success('تم التحليل') }
+      else toast.error(data.message || 'فشل')
+    } catch { toast.error('فشل الاتصال بـ DeepSeek') }
+    finally { setAiLoading(false) }
   }
 
   // Filter
@@ -1350,7 +1619,15 @@ function ReportsTab({ beneficiaries, logs, actions }: { beneficiaries: Beneficia
           )}
           <select value={repPlat} onChange={e => setRepPlat(e.target.value)} className="input-field max-w-[180px]">
             <option value="">كل المنصات</option>
-            {[...new Set(beneficiaries.map(b => b.platformId).filter(Boolean))].map(p => <option key={p} value={p!}>{p}</option>)}
+            {(() => {
+              const platforms = new Map<string, string>() // id -> name
+              for (const b of beneficiaries) {
+                if (b.platformId && !platforms.has(b.platformId)) {
+                  platforms.set(b.platformId, b.platformName || b.platformId)
+                }
+              }
+              return Array.from(platforms.entries()).map(([id, name]) => <option key={id} value={id}>{name}</option>)
+            })()}
           </select>
           <select value={repRole} onChange={e => setRepRole(e.target.value)} className="input-field max-w-[150px]">
             <option value="">كل الصفات</option>
@@ -1358,6 +1635,85 @@ function ReportsTab({ beneficiaries, logs, actions }: { beneficiaries: Beneficia
           </select>
         </div>
       </div>
+
+      {/* طباعة + التقرير */}
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => {
+            const printArea = document.getElementById('reportPrintArea')
+            if (!printArea) return
+            const win = window.open('', '_blank', 'width=800,height=600')
+            if (!win) return
+            win.document.write(`
+              <html dir="rtl"><head><meta charset="utf-8"><title>تقرير لوحة الأثر</title>
+              <style>body{font-family:sans-serif;padding:30px;color:#222}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:right}th{background:#f5f5f5}.text-center{text-align:center}.text-xs{font-size:12px;color:#666}</style>
+              </head><body>${printArea.innerHTML}</body></html>
+            `)
+            win.document.close()
+            win.focus()
+            setTimeout(() => win.print(), 300)
+          }}
+          className="btn-ghost btn-sm flex items-center gap-1.5"
+        >
+          <Printer size={14} />
+          طباعة التقرير
+        </button>
+        {isSuperAdmin && (
+          <>
+            <button
+              onClick={handleGenerateSummary}
+              disabled={aiLoading}
+              className="btn-ghost btn-sm flex items-center gap-1.5 text-primary-600"
+            >
+              {aiLoading ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <Star size={14} />}
+              توليد ملخص ذكي
+            </button>
+            <button
+              onClick={handleAnalyze}
+              disabled={aiLoading}
+              className="btn-ghost btn-sm flex items-center gap-1.5 text-teal-600"
+            >
+              <TrendingUp size={14} />
+              تحليل الاتجاهات
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* AI Summary */}
+      {aiSummary && (
+        <div className="card p-5 mb-4 border-2 border-primary-200 bg-gradient-to-l from-primary-50/50 to-white">
+          <div className="flex items-center gap-2 mb-3">
+            <Star size={16} className="text-primary-600" />
+            <h3 className="font-bold text-primary-800 text-sm">الملخص الذكي</h3>
+            <span className="text-[10px] bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
+          </div>
+          <p className="text-neutral-700 text-sm leading-relaxed">{aiSummary}</p>
+          <button onClick={() => setAiSummary('')} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</button>
+        </div>
+      )}
+
+      {/* AI Analysis */}
+      {aiAnalysis && (
+        <div className="card p-5 mb-4 border-2 border-teal-200 bg-gradient-to-l from-teal-50/50 to-white">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp size={16} className="text-teal-600" />
+            <h3 className="font-bold text-teal-800 text-sm">التحليل الذكي</h3>
+            <span className="text-[10px] bg-teal-100 text-teal-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
+          </div>
+          <p className="text-neutral-700 text-sm leading-relaxed mb-3">{aiAnalysis.comparison}</p>
+          {aiAnalysis.trends.length > 0 && (
+            <ul className="space-y-1">
+              {aiAnalysis.trends.map((t, i) => (
+                <li key={i} className="text-sm text-neutral-600 flex items-start gap-2">
+                  <span className="text-teal-500 mt-1">•</span> {t}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button onClick={() => setAiAnalysis(null)} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</button>
+        </div>
+      )}
 
       {/* Report Content */}
       <div className="card p-8" id="reportPrintArea">
@@ -1372,6 +1728,32 @@ function ReportsTab({ beneficiaries, logs, actions }: { beneficiaries: Beneficia
           <div className="bg-teal-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-teal-700">{activeCount}</div><div className="text-xs text-teal-600">الأعضاء المتفاعلون</div></div>
           <div className="bg-purple-50 rounded-xl p-4 text-center"><div className="text-2xl font-bold text-purple-700">{totalActs}</div><div className="text-xs text-purple-600">إجمالي الأنشطة</div></div>
         </div>
+
+        {/* فائزو الفترة */}
+        {reportRows.filter(r => r.pts > 0).length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            {(() => {
+              const top = reportRows.filter(r => r.pts > 0)
+              const leader = top[0]
+              const influencer = top.filter(r => r.networkRole === 'مؤثر رقمي').sort((a, b) => b.pts - a.pts)[0]
+              const researcher = top.filter(r => r.networkRole === 'باحث ومفكر').sort((a, b) => b.pts - a.pts)[0]
+              const volunteer = top.filter(r => r.networkRole === 'متطوع').sort((a, b) => b.pts - a.pts)[0]
+              const winners = [
+                { title: '🏆 رائد الفترة', name: leader ? fullName(leader.firstName, leader.lastName) : '—', pts: leader?.pts || 0, color: 'from-amber-400 to-amber-600' },
+                { title: '📱 مؤثر الفترة', name: influencer ? fullName(influencer.firstName, influencer.lastName) : '—', pts: influencer?.pts || 0, color: 'from-cyan-400 to-teal-600' },
+                { title: '🔬 باحث الفترة', name: researcher ? fullName(researcher.firstName, researcher.lastName) : '—', pts: researcher?.pts || 0, color: 'from-green-400 to-emerald-600' },
+                { title: '🤝 متطوع الفترة', name: volunteer ? fullName(volunteer.firstName, volunteer.lastName) : '—', pts: volunteer?.pts || 0, color: 'from-purple-400 to-indigo-600' },
+              ]
+              return winners.map((w, i) => (
+                <div key={i} className={`bg-gradient-to-br ${w.color} rounded-xl p-4 text-white`}>
+                  <div className="text-xs opacity-80 font-semibold mb-1">{w.title}</div>
+                  <div className="font-bold text-base truncate">{w.name}</div>
+                  {w.pts > 0 && <div className="text-xs opacity-80 mt-1 font-mono">{w.pts} نقطة</div>}
+                </div>
+              ))
+            })()}
+          </div>
+        )}
 
         <h3 className="font-bold text-neutral-800 mb-3">أعلى الأعضاء أداءً</h3>
         {reportRows.filter(r => r.pts > 0).length > 0 ? (
@@ -1402,16 +1784,33 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [section, setSection] = useState<'catalog' | 'quality' | 'levels' | 'tiers'>('catalog')
+  const [settings, setSettings] = useState<any>(null)
 
   useEffect(() => { setLocalActions(initialActions) }, [initialActions])
 
+  useEffect(() => {
+    fetch('/api/admin/impact/settings').then(r => r.json()).then(d => {
+      if (d.success) setSettings(d.data)
+    }).catch(() => {})
+  }, [])
+
+  const saveSettings = async (key: string, value: any) => {
+    try {
+      const res = await fetch('/api/admin/impact/settings', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: JSON.stringify(value) }),
+      })
+      if ((await res.json()).success) toast.success('تم حفظ الإعدادات')
+    } catch { toast.error('فشل') }
+    finally { fetchAll() }
+  }
+
   const handleAdd = async (e: FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
+    e.preventDefault(); setSubmitting(true)
     try {
       const res = await fetch('/api/admin/impact/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, points: Number(form.points) }),
       })
       if ((await res.json()).success) { toast.success('تمت إضافة النشاط'); setShowModal(false); fetchAll() }
@@ -1420,84 +1819,140 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
   }
 
   const delAction = async (id: string) => {
-    if (!confirm('حذف هذا النوع من الكتالوج؟')) return
-    try {
-      if ((await (await fetch(`/api/admin/impact/actions?id=${id}`, { method: 'DELETE' })).json()).success) { toast.success('تم الحذف'); fetchAll() }
-    } catch { toast.error('فشل') }
+    if (!confirm('تعطيل/حذف هذا النوع؟')) return
+    try { if ((await (await fetch('/api/admin/impact/actions?id=' + id, { method: 'DELETE' })).json()).success) { toast.success('تم'); fetchAll() } } catch { toast.error('فشل') }
   }
 
   const grouped = useMemo(() => {
     const groups: Record<string, ImpactActionItem[]> = {}
-    for (const a of localActions) {
-      const cat = a.category || 'OTHER'
-      if (!groups[cat]) groups[cat] = []
-      groups[cat].push(a)
-    }
+    for (const a of localActions) { const cat = a.category || 'OTHER'; if (!groups[cat]) groups[cat] = []; groups[cat].push(a) }
     return groups
   }, [localActions])
 
+  const sectionOpts = [
+    { key: 'catalog' as const, label: 'كتالوج الأنشطة', icon: Settings },
+    { key: 'quality' as const, label: 'بونص الجودة', icon: Star },
+    { key: 'levels' as const, label: 'المستويات', icon: TrendingUp },
+    { key: 'tiers' as const, label: 'شرائح المكافآت', icon: Medal },
+  ]
+
   return (
     <div>
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={18} className="text-primary-600" /> كتالوج الأنشطة ومعايير التقييم</h2>
-          <button onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> إضافة نشاط</button>
-        </div>
-
-        {Object.entries(grouped).map(([cat, items]) => (
-          <div key={cat} className="mb-6">
-            <h3 className="font-semibold text-neutral-700 mb-2 bg-neutral-50 p-2 rounded-lg">{CATEGORY_LABELS[cat] || cat}</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-neutral-100"><th className="text-right p-2 text-neutral-500">اسم النشاط</th><th className="text-center p-2 text-neutral-500">النقاط</th><th className="text-right p-2 text-neutral-500">ملاحظات</th><th className="text-center p-2 text-neutral-500">حذف</th></tr></thead>
-                <tbody>
-                  {items.map(a => (
-                    <tr key={a.id} className="border-b border-neutral-50 hover:bg-neutral-50">
-                      <td className="p-2 font-semibold">{a.name}</td>
-                      <td className="p-2 text-center font-mono font-bold">{a.points}</td>
-                      <td className="p-2 text-xs text-neutral-500">{a.note || '—'}</td>
-                      <td className="p-2 text-center"><button onClick={() => delAction(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto">
+        {sectionOpts.map(s => (
+          <button key={s.key} onClick={() => setSection(s.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${section === s.key ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+            <s.icon size={14} /> {s.label}
+          </button>
         ))}
       </div>
+
+      {section === 'catalog' && (
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={18} className="text-primary-600" /> كتالوج الأنشطة</h2>
+            {showModal ? null : <button onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> إضافة نشاط</button>}
+          </div>
+          {Object.entries(grouped).map(([cat, items]) => (
+            <div key={cat} className="mb-6">
+              <h3 className="font-semibold text-neutral-700 mb-2 bg-neutral-50 p-2 rounded-lg">{CATEGORY_LABELS[cat] || cat}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-neutral-100"><th className="text-right p-2 text-neutral-500">اسم النشاط</th><th className="text-center p-2 text-neutral-500">النقاط</th><th className="text-right p-2 text-neutral-500">ملاحظات</th><th className="text-center p-2 text-neutral-500">حذف</th></tr></thead>
+                  <tbody>{items.map(a => (<tr key={a.id} className="border-b border-neutral-50 hover:bg-neutral-50"><td className="p-2 font-semibold">{a.name}</td><td className="p-2 text-center font-mono font-bold">{a.points}</td><td className="p-2 text-xs text-neutral-500">{a.note || '—'}</td><td className="p-2 text-center"><button onClick={() => delAction(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></button></td></tr>))}</tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {section === 'quality' && settings && (
+        <div className="card p-5">
+          <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Star size={18} className="text-primary-600" /> بونص الجودة</h2>
+          <p className="text-sm text-neutral-500 mb-4">النقاط الإضافية (أو المخصومة) حسب مستوى جودة النشاط</p>
+          <div className="space-y-3 max-w-md">
+            {Object.entries(settings.qualityBonus as Record<string, number>).map(([key, val]) => (
+              <div key={key} className="flex items-center gap-3">
+                <span className="w-24 text-sm font-semibold text-neutral-700">{QUALITY_LABELS[key] || key}</span>
+                <input type="number" defaultValue={val} onBlur={e => {
+                  const newVal = Number(e.target.value)
+                  if (!isNaN(newVal) && newVal !== val) {
+                    const updated = { ...settings.qualityBonus, [key]: newVal }
+                    setSettings({ ...settings, qualityBonus: updated })
+                    saveSettings('qualityBonus', updated)
+                  }
+                }} className="input-field max-w-[100px] text-center" />
+                <span className="text-xs text-neutral-400">نقطة</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {section === 'levels' && settings && (
+        <div className="card p-5">
+          <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-primary-600" /> المستويات</h2>
+          <div className="space-y-3 max-w-lg">
+            {(settings.levels as any[]).map((lv: any, i: number) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-32 text-sm font-semibold text-neutral-700">{lv.name}</span>
+                <span className="text-xs text-neutral-400">من</span>
+                <input type="number" defaultValue={lv.from} onBlur={e => {
+                  const n = Number(e.target.value); if (!isNaN(n)) {
+                    const u = settings.levels.map((l: any, j: number) => j === i ? { ...l, from: n } : l)
+                    setSettings({ ...settings, levels: u }); saveSettings('levels', u)
+                  }
+                }} className="input-field max-w-[90px] text-center" />
+                <span className="text-xs text-neutral-400">إلى</span>
+                <input type="number" defaultValue={lv.to} onBlur={e => {
+                  const n = Number(e.target.value); if (!isNaN(n)) {
+                    const u = settings.levels.map((l: any, j: number) => j === i ? { ...l, to: n } : l)
+                    setSettings({ ...settings, levels: u }); saveSettings('levels', u)
+                  }
+                }} className="input-field max-w-[90px] text-center" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {section === 'tiers' && settings && (
+        <div className="card p-5">
+          <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Medal size={18} className="text-primary-600" /> شرائح المكافآت</h2>
+          <div className="space-y-3 max-w-lg">
+            {(settings.rewardTiers as any[]).map((tier: any, i: number) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-24 text-sm font-semibold text-neutral-700">{tier.name}</span>
+                <span className="text-xs text-neutral-400">من</span>
+                <input type="number" defaultValue={tier.from} onBlur={e => {
+                  const n = Number(e.target.value); if (!isNaN(n)) {
+                    const u = settings.rewardTiers.map((t: any, j: number) => j === i ? { ...t, from: n } : t)
+                    setSettings({ ...settings, rewardTiers: u }); saveSettings('rewardTiers', u)
+                  }
+                }} className="input-field max-w-[90px] text-center" />
+                <span className="text-xs text-neutral-400">إلى</span>
+                <input type="number" defaultValue={tier.to} onBlur={e => {
+                  const n = Number(e.target.value); if (!isNaN(n)) {
+                    const u = settings.rewardTiers.map((t: any, j: number) => j === i ? { ...t, to: n } : t)
+                    setSettings({ ...settings, rewardTiers: u }); saveSettings('rewardTiers', u)
+                  }
+                }} className="input-field max-w-[90px] text-center" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b">
-              <h2 className="font-bold text-neutral-900">إضافة نشاط جديد</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
-            </div>
+            <div className="flex items-center justify-between p-5 border-b"><h2 className="font-bold text-neutral-900">إضافة نشاط جديد</h2><button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button></div>
             <form onSubmit={handleAdd} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم النشاط</label>
-                <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input-field" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">النقاط</label>
-                  <input type="number" value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} className="input-field" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المحور</label>
-                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">
-                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
-                <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة'}</button>
-              </div>
+              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">اسم النشاط</label><input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input-field" /></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-semibold text-neutral-700 mb-1">النقاط</label><input type="number" value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} className="input-field" /></div><div><label className="block text-sm font-semibold text-neutral-700 mb-1">المحور</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">{Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div></div>
+              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label><input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" /></div>
+              <div className="flex justify-end gap-3 pt-4 border-t"><button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button><button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة'}</button></div>
             </form>
           </div>
         </div>

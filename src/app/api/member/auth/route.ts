@@ -1,0 +1,161 @@
+/**
+ * مصادقة بوابة العضو
+ * POST /api/member/auth — تسجيل الدخول
+ * GET  /api/member/auth — جلب بيانات العضو الحالي
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import { rateLimit } from '@/lib/rate-limit'
+
+const JWT_SECRET = process.env.AUTH_SECRET || 'member-secret-dev'
+const LOGIN_MAX_ATTEMPTS = 5
+const LOGIN_WINDOW_MS = 5 * 60 * 1000 // 5 دقائق
+const BLOCK_DURATION_MS = 15 * 60 * 1000 // 15 دقيقة حظر
+
+// توليد token بسيط
+function signToken(payload: object): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+}
+
+function verifyToken(token: string): any {
+  try { return jwt.verify(token, JWT_SECRET) } catch { return null }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { email, password } = await request.json()
+    if (!email || !password) {
+      return NextResponse.json({ success: false, message: 'البريد وكلمة المرور مطلوبان' }, { status: 400 })
+    }
+
+    // الحماية من هجمات القوة العمياء
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const emailKey = email.trim().toLowerCase()
+    const ipKey = `login:ip:${ip}`
+    const emailLimitKey = `login:email:${emailKey}`
+    const blockKey = `login:block:${ip}`
+
+    // فحص الحظر
+    const blockCheck = rateLimit(blockKey, 1, BLOCK_DURATION_MS)
+    if (!blockCheck.success) {
+      return NextResponse.json({ success: false, message: 'تم حظر محاولات الدخول مؤقتاً — حاول بعد 15 دقيقة' }, { status: 429 })
+    }
+
+    // فحص معدل المحاولات لكل IP ولكل بريد
+    const ipCheck = rateLimit(ipKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)
+    const emailCheck = rateLimit(emailLimitKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)
+
+    if (!ipCheck.success || !emailCheck.success) {
+      // تسجيل تجاوز الحد — حظر الـ IP
+      rateLimit(blockKey, 1, BLOCK_DURATION_MS) // هذا سيُستهلك في الفحص القادم
+      return NextResponse.json({ success: false, message: 'محاولات دخول كثيرة — تم حظرك مؤقتاً لمدة 15 دقيقة' }, { status: 429 })
+    }
+
+    const member = await (prisma as any).beneficiary.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: {
+        id: true, code: true, firstName: true, lastName: true,
+        email: true, networkRole: true, status: true,
+        passwordHash: true, mustChangePassword: true,
+        platform: { select: { id: true, name: true } },
+      },
+    })
+
+    if (!member || !member.passwordHash) {
+      return NextResponse.json({ success: false, message: 'البريد أو كلمة المرور غير صحيحة' }, { status: 401 })
+    }
+
+    if (member.status !== 'ACTIVE') {
+      return NextResponse.json({ success: false, message: 'الحساب غير نشط — تواصل مع مدير المنصة' }, { status: 403 })
+    }
+
+    const valid = await bcrypt.compare(password, member.passwordHash)
+    if (!valid) {
+      return NextResponse.json({ success: false, message: 'البريد أو كلمة المرور غير صحيحة' }, { status: 401 })
+    }
+
+    const token = signToken({ id: member.id, email: member.email, role: 'MEMBER' })
+
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        token,
+        member: {
+          id: member.id,
+          code: member.code,
+          name: `${member.firstName} ${member.lastName}`.trim(),
+          firstName: member.firstName,
+          lastName: member.lastName,
+          email: member.email,
+          networkRole: member.networkRole,
+          platformId: member.platform?.id || null,
+          platformName: member.platform?.name || null,
+          mustChangePassword: member.mustChangePassword,
+        },
+      },
+    })
+
+    // تعيين الكوكي
+    response.cookies.set('member_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 أيام
+      path: '/',
+    })
+
+    return response
+  } catch (error) {
+    console.error('Member login error:', error)
+    return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
+  }
+}
+
+/** جلب بيانات العضو من الكوكي */
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.cookies.get('member_token')?.value
+    if (!token) {
+      return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ success: false, message: 'انتهت الجلسة' }, { status: 401 })
+    }
+
+    const member = await (prisma as any).beneficiary.findUnique({
+      where: { id: payload.id },
+      select: {
+        id: true, code: true, firstName: true, lastName: true,
+        email: true, networkRole: true, status: true,
+        mustChangePassword: true,
+        platform: { select: { id: true, name: true } },
+      },
+    })
+
+    if (!member || member.status !== 'ACTIVE') {
+      return NextResponse.json({ success: false, message: 'الحساب غير نشط' }, { status: 403 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: member.id,
+        code: member.code,
+        name: `${member.firstName} ${member.lastName}`.trim(),
+        email: member.email,
+        networkRole: member.networkRole,
+        platformId: member.platform?.id || null,
+        platformName: member.platform?.name || null,
+        mustChangePassword: member.mustChangePassword,
+      },
+    })
+  } catch (error) {
+    console.error('Member session error:', error)
+    return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
+  }
+}

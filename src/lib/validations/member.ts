@@ -24,6 +24,12 @@ export const UnifiedMemberSchema = z.object({
   linkedinUrl: z.string().url('الرابط غير صحيح').max(500).optional().or(z.literal('')),
   sortOrder: z.coerce.number().int().default(0),
   interests: z.string().optional().or(z.literal('')),
+
+  // حقول لوحة الأثر
+  networkRole: z.string().max(200).optional().or(z.literal('')),
+  joinDate: z.string().optional().or(z.literal('')),
+  impactNote: z.string().optional().or(z.literal('')),
+  platformId: z.string().optional().or(z.literal('')),
 })
 
 export type UnifiedMemberFormData = z.infer<typeof UnifiedMemberSchema>

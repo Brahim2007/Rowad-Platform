@@ -15,9 +15,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   LayoutDashboard, FolderKanban, Blocks, Users, FileText, Shield,
-  LogOut, Menu, TrendingUp, Activity, Star,
+  LogOut, Menu, TrendingUp, Activity, Star, BarChart3, Bot, CalendarDays, Search,
   Library, ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
-  Medal, Settings, IdCard, UserCog,
+  Medal, Settings, IdCard, UserCog, Archive, Bell,
 } from 'lucide-react'
 
 /** تبويبات لوحة أثر الرواد — الشريط العلوي الرئيسي */
@@ -37,19 +37,22 @@ const sidebarSections = [
   {
     title: 'إدارة المحتوى',
     links: [
-      { href: '/admin/members',      label: 'الأعضاء والمستفيدون', icon: Users },
+      { href: '/admin/impact?tab=members', label: 'الأعضاء والمستفيدون', icon: Users },
       { href: '/admin/platforms',    label: 'المنصات والبرامج',  icon: Blocks },
       { href: '/admin/projects',     label: 'المشاريع',           icon: FolderKanban },
       { href: '/admin/knowledge-library', label: 'المكتبة المعرفية', icon: Library },
+      { href: '/admin/documents',     label: 'الأرشيف والوثائق',  icon: Archive },
       { href: '/admin/content',      label: 'صفحات المحتوى',       icon: FileText },
     ],
   },
   {
     title: 'المتابعة والتحليل',
     links: [
+      { href: '/admin/platforms-overview',   label: 'مركز متابعة المنصات', icon: BarChart3 },
       { href: '/admin/analytics',        label: 'التحليلات والمؤشرات', icon: TrendingUp },
       { href: '/admin/evaluations',      label: 'التقييم وضمان الجودة', icon: ClipboardCheck },
       { href: '/admin/coordination',     label: 'التنسيق المؤسسي',     icon: CalendarCheck },
+      { href: '/admin/calendar',      label: 'تقويم الأنشطة',     icon: CalendarDays },
       { href: '/admin/activity-log',     label: 'سجل النشاط',         icon: Activity },
     ],
   },
@@ -61,6 +64,56 @@ const sidebarSections = [
     ],
   },
 ]
+
+/** جرس الإشعارات — يعرض في القائمة الجانبية */
+function NotificationBell({ recipientType }: { recipientType: string }) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => {
+      fetch(`/api/notifications?type=${recipientType}&limit=99`).then(r => r.json()).then(d => {
+        if (d.success) setCount(d.unreadCount || 0)
+      }).catch(() => {})
+    }, 30000)
+    fetch(`/api/notifications?type=${recipientType}&limit=99`).then(r => r.json()).then(d => {
+      if (d.success) setCount(d.unreadCount || 0)
+    }).catch(() => {})
+    return () => clearInterval(id)
+  }, [recipientType])
+  return (
+    <Link href="/admin/notifications" className="relative p-1.5 text-neutral-500 hover:text-primary-600 transition-colors" title="الإشعارات">
+      <Bell size={18} />
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+function SearchGlobal() {
+  const router = useRouter()
+  const [q, setQ] = useState('')
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (q.trim().length >= 2) router.push(`/ar/admin/search?q=${encodeURIComponent(q.trim())}`)
+  }
+
+  return (
+    <form onSubmit={handleSearch} className="flex items-center gap-2">
+      <Search size={16} className="text-neutral-400" />
+      <input
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        placeholder="بحث سريع في الأعضاء والأنشطة والوثائق..."
+        className="bg-transparent text-sm text-neutral-700 placeholder-neutral-400 outline-none flex-1 min-w-[300px]"
+        dir="rtl"
+      />
+      <button type="submit" className="text-xs text-primary-600 hover:text-primary-800 font-semibold whitespace-nowrap">بحث</button>
+    </form>
+  )
+}
 
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
@@ -106,6 +159,37 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return null
   }
 
+  const userRole = (session?.user as any)?.role || 'EDITOR'
+  const isSuperAdmin = userRole === 'SUPER_ADMIN'
+  const isPlatformManager = userRole === 'PLATFORM_MANAGER'
+
+  /** القائمة الجانبية مع تصفية حسب الدور */
+  const visibleSections = isPlatformManager
+    ? [
+        // مدير المنصة يرى فقط العناصر المرتبطة بمنصته
+        {
+          title: 'منصتي',
+          links: [
+            { href: '/admin/my-platform',                   label: 'لوحة المنصة',     icon: Shield },
+            { href: '/admin/my-platform?tab=members',       label: 'الأعضاء',         icon: Users },
+            { href: '/admin/my-platform?tab=activities',    label: 'الأنشطة',        icon: Activity },
+          ],
+        },
+      ]
+    : sidebarSections.map(section => {
+        // إضافة رابط المساعد الذكي للإدارة العليا فقط
+        if (section.title === 'أدوات' && isSuperAdmin) {
+          return {
+            ...section,
+            links: [
+              ...section.links,
+              { href: '/admin/ai-assistant', label: 'المساعد الذكي', icon: Bot },
+            ],
+          }
+        }
+        return section
+      })
+
   /** اكتشاف التبويب النشط */
   const currentTab = isImpactPage ? (searchParams.get('tab') || 'dashboard') : null
 
@@ -136,7 +220,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Impact quick link */}
+          {/* Impact quick link — للإدارة فقط */}
+          {!isPlatformManager && (
           <div className="px-4 pt-4">
             <Link
               href="/admin/impact"
@@ -148,10 +233,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               <Star size={14} className="mr-auto text-amber-300" />
             </Link>
           </div>
+          )}
 
           {/* Sidebar sections */}
           <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
-            {sidebarSections.map(section => (
+            {visibleSections.map(section => (
               <div key={section.title}>
                 <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider px-4 mb-2">
                   {section.title}
@@ -183,11 +269,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           {/* User footer */}
           <div className="p-4 border-t border-neutral-100">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-primary-700 font-semibold text-sm">
-                  {session?.user?.name?.[0] || 'أ'}
-                </span>
-              </div>
+              <NotificationBell recipientType={isPlatformManager ? 'PLATFORM_MANAGER' : 'ADMIN'} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-neutral-900 truncate">
                   {session?.user?.name || 'Admin'}
@@ -221,7 +303,15 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="w-10" />
         </header>
 
-        {/* ─── شريط تبويبات لوحة الأثر (الأساسي) ─── */}
+        {/* شريط البحث السريع — سطح المكتب */}
+        <div className="hidden lg:block bg-white border-b border-neutral-200 px-4 py-2 flex-shrink-0">
+          <div className="max-w-7xl mx-auto flex items-center gap-4">
+            <SearchGlobal />
+          </div>
+        </div>
+
+        {/* ─── شريط تبويبات لوحة الأثر (للإدارة فقط) ─── */}
+        {!isPlatformManager && (
         <div className="bg-white border-b border-neutral-200 px-2 lg:px-4 flex-shrink-0 overflow-x-auto">
           <div className="flex gap-0.5 items-end max-w-7xl mx-auto">
             {impactTabs.map(tab => (
@@ -240,6 +330,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             ))}
           </div>
         </div>
+        )}
 
         {/* ─── محتوى الصفحة ─── */}
         <div className="flex-1 min-h-0">

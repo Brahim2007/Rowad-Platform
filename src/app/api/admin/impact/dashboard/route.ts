@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
         }
       : null
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         scope,

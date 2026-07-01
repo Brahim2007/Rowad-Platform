@@ -81,6 +81,10 @@ model Beneficiary {
   joinDate     DateTime?                      // تاريخ الانضمام للشبكة
   impactNote   String?      @db.Text          // ملاحظات خاصة بلوحة الأثر
 
+  // ─── بوابة العضو (Member Portal) ───
+  passwordHash      String?  @db.VarChar(255)  // كلمة مرور بوابة العضو
+  mustChangePassword Boolean @default(true)    // يُلزم بتغيير كلمة المرور عند أول دخول
+
   enrollments             Enrollment[]
   participations          Participation[]
   beneficiaryJourneyStages BeneficiaryJourneyStage[]
@@ -95,6 +99,7 @@ model Beneficiary {
   @@index([country])
   @@index([firstName, lastName])
   @@index([status, registeredAt])
+  @@index([status, type])
   @@map("beneficiaries")
 }
 
@@ -193,6 +198,8 @@ model Platform {
   coordinationTasks     CoordinationTask[]
   evaluations           Evaluation[]
   impactLogs            ImpactLog[]
+  adminUsers            AdminUser[]
+  documents             Document[]
 
   @@index([slug])
   @@index([isActive])
@@ -433,10 +440,14 @@ model AdminUser {
   role         AdminRole @default(EDITOR)
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
+  platformId   String?                // FK إلى Platform — مطلوب لدور PLATFORM_MANAGER
+  platform     Platform?  @relation(fields: [platformId], references: [id], onDelete: SetNull)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([email])
+  @@index([role])
+  @@index([platformId])
   @@map("admin_users")
 }
 
@@ -444,6 +455,140 @@ enum AdminRole {
   SUPER_ADMIN
   ADMIN
   EDITOR
+  PLATFORM_MANAGER
+}
+
+// ═══════════════════════════════════════════════════════════
+// الأرشيف والوثائق (Document Archive)
+// ═══════════════════════════════════════════════════════════
+
+model Document {
+  id            String         @id @default(cuid())
+  title         String         @db.VarChar(500)
+  type          DocumentType   @default(OTHER)
+  description   String?        @db.Text
+  tags          String?        @db.VarChar(500)     // وسوم مفصولة بفواصل
+  periodYear    Int?
+  periodMonth   Int?                                 // 1-12
+  fileUrl       String         @db.VarChar(1000)     // رابط الملف المرفوع
+  fileType      String?        @db.VarChar(50)       // pdf, docx, xlsx, image, etc.
+  fileSize      Int?                                 // الحجم بالبايت
+  platformId    String?
+  platform      Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  uploadedBy    String?        @db.VarChar(200)      // اسم الرافع
+  uploadedById  String?                              // معرف المستخدم الرافع
+  lastEditedBy  String?        @db.VarChar(200)      // آخر من عدّل
+  lastEditedAt  DateTime?
+  status        DocStatus      @default(DRAFT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  versions      DocumentVersion[]
+
+  @@index([platformId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([periodYear, periodMonth])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id          String    @id @default(cuid())
+  documentId  String
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version     Int       @default(1)
+  fileUrl     String    @db.VarChar(1000)
+  editedBy    String?   @db.VarChar(200)
+  editedAt    DateTime  @default(now())
+  changeNote  String?   @db.Text
+
+  @@index([documentId])
+  @@map("document_versions")
+}
+
+enum DocumentType {
+  REPORT             // تقرير
+  BUDGET             // ميزانية
+  MEETING_MINUTES    // محضر اجتماع
+  WORK_PLAN          // خطة عمل
+  ANNOUNCEMENT       // إعلان
+  NEWSLETTER         // نشرة
+  OTHER              // أخرى
+}
+
+enum DocStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+// ═══════════════════════════════════════════════════════════
+// الإشعارات الداخلية (Notification Center)
+// ═══════════════════════════════════════════════════════════
+
+model Notification {
+  id            String   @id @default(cuid())
+  recipientId   String   @db.VarChar(100)   // member/beneficiary id or admin id
+  recipientType String   @db.VarChar(50)    // ADMIN | PLATFORM_MANAGER | MEMBER
+  type          String   @db.VarChar(50)    // ACTIVITY_APPROVED | ACTIVITY_REJECTED | NEW_SUBMISSION | BROADCAST | SYSTEM_ALERT
+  title         String   @db.VarChar(500)
+  body          String   @db.Text
+  link          String?  @db.VarChar(500)   // رابط للانتقال إليه
+  isRead        Boolean  @default(false)
+  readAt        DateTime?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime?
+  senderId      String?  @db.VarChar(100)
+  senderName    String?  @db.VarChar(200)
+
+  @@index([recipientId])
+  @@index([recipientId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Broadcast {
+  id                String   @id @default(cuid())
+  senderId          String   @db.VarChar(100)
+  senderName        String?  @db.VarChar(200)
+  targetType        String   @db.VarChar(50)  // ALL | PLATFORM | ROLE | INDIVIDUAL
+  targetPlatformId  String?                   // للمنصة المعنية
+  targetRole        String?  @db.VarChar(200) // للصفة المعنية
+  targetMemberId    String?                   // للعضو المعني
+  subject           String   @db.VarChar(500)
+  body              String   @db.Text
+  channel           String   @db.VarChar(20)  @default("IN_APP")  // IN_APP | EMAIL | BOTH
+  status            String   @db.VarChar(20)  @default("DRAFT")   // DRAFT | SCHEDULED | SENT
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([senderId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("broadcasts")
+}
+
+// ═══════════════════════════════════════════════════════════
+// سجل استهلاك الذكاء الاصطناعي (AI Usage Log)
+// ═══════════════════════════════════════════════════════════
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  userId       String                       // من استخدم
+  feature      String   @db.VarChar(100)    // report-summary, report-analysis, assistant
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  costEstimate Float    @default(0)
+  success      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([feature])
+  @@index([createdAt])
+  @@map("ai_usage_logs")
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -929,6 +1074,9 @@ model ImpactLog {
   note            String?        @db.Text
   pointsSnapshot  Int?                               // النقاط وقت الاعتماد/الاحتساب للتقارير التاريخية
   createdBy       String?        @db.VarChar(200)   // من أدخل النشاط
+  approvedBy      String?        @db.VarChar(200)   // من اعتمد النشاط
+  approvedAt      DateTime?                          // وقت الاعتماد
+  rejectionReason String?        @db.Text            // سبب الرفض (إلزامي عند الرفض)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
@@ -968,6 +1116,7 @@ model ImpactLog {
   @@index([evaluationId])
   @@index([beneficiaryId, date])
   @@index([beneficiaryId, status, date])
+  @@index([platformId, status, date])
   @@unique([sourceType, sourceId, actionId])
   @@map("impact_logs")
 }

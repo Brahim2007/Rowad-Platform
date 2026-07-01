@@ -88,6 +88,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
+  const showDemo = process.env.NEXT_PUBLIC_ENV !== 'production'
 
   const [randomQuote, setRandomQuote] = useState(quotes[0])
 
@@ -329,6 +330,8 @@ export default function AdminLoginPage() {
                   </p>
                 </div>
 
+                {showDemo && (
+                <>
                 <button
                   type="button"
                   onClick={handleDemoLogin}
@@ -365,6 +368,8 @@ export default function AdminLoginPage() {
                     <p className="text-[11px] sm:text-xs font-semibold text-neutral-800">{DEMO_PASSWORD}</p>
                   </div>
                 </div>
+                </>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div>

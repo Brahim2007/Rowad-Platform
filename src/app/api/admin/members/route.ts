@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 import { UnifiedMemberSchema } from '@/lib/validations/member'
+import { sendWelcomeEmail } from '@/lib/email'
 import { z } from 'zod'
 
 async function checkAuth() {
@@ -60,17 +62,15 @@ function toMemberData(input: z.infer<typeof UnifiedMemberSchema>) {
     sortOrder: input.sortOrder,
     interests: nullable(input.interests),
     memberSince: isTeamLike ? new Date() : null,
+    // حقول الأثر
+    networkRole: nullable(input.networkRole),
+    joinDate: parseDate(input.joinDate),
+    impactNote: nullable(input.impactNote),
+    platformId: nullable(input.platformId),
   }
 }
 
-function mapMember(
-  m: Prisma.BeneficiaryGetPayload<{
-    include: {
-      _count: { select: { enrollments: true; participations: true } }
-      beneficiaryJourneyStages: true
-    }
-  }>
-) {
+function mapMember(m: any) {
   return {
     id: m.id,
     code: m.code,
@@ -96,10 +96,16 @@ function mapMember(
     memberSince: m.memberSince,
     sortOrder: m.sortOrder,
     interests: m.interests,
-    currentStage: m.beneficiaryJourneyStages[0]?.stage || null,
-    currentStageStartedAt: m.beneficiaryJourneyStages[0]?.startedAt || null,
-    enrollmentsCount: m._count.enrollments,
-    participationsCount: m._count.participations,
+    // حقول الأثر
+    networkRole: m.networkRole ?? null,
+    joinDate: m.joinDate ?? null,
+    impactNote: m.impactNote ?? null,
+    platformId: m.platformId ?? null,
+    platformName: m.platform?.name ?? null,
+    currentStage: m.beneficiaryJourneyStages?.[0]?.stage || null,
+    currentStageStartedAt: m.beneficiaryJourneyStages?.[0]?.startedAt || null,
+    enrollmentsCount: m._count?.enrollments ?? 0,
+    participationsCount: m._count?.participations ?? 0,
   }
 }
 
@@ -113,6 +119,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
     const stage = searchParams.get('stage') || ''
+    const page = Math.max(1, Number(searchParams.get('page')) || 1)
+    const limit = Math.min(Number(searchParams.get('limit')) || 50, 200)
+    const skip = (page - 1) * limit
 
     const where: Prisma.BeneficiaryWhereInput = {}
 
@@ -132,21 +141,31 @@ export async function GET(request: NextRequest) {
       where.status = status as Prisma.BeneficiaryWhereInput['status']
     }
 
-    const members = await prisma.beneficiary.findMany({
-      where,
-      orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
-      include: {
-        _count: { select: { enrollments: true, participations: true } },
-        beneficiaryJourneyStages: {
-          orderBy: { stage: 'desc' },
-          take: 1,
+    const [members, total] = await Promise.all([
+      (prisma as any).beneficiary.findMany({
+        where,
+        orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
+        skip,
+        take: limit,
+        include: {
+          _count: { select: { enrollments: true, participations: true } },
+          beneficiaryJourneyStages: {
+            orderBy: { stage: 'desc' },
+            take: 1,
+          },
+          platform: { select: { id: true, name: true } },
         },
-      },
+      }),
+      (prisma as any).beneficiary.count({ where }),
+    ])
+
+    const mapped = members.map(mapMember).filter((m: any) => !stage || m.currentStage === stage)
+
+    return NextResponse.json({
+      success: true,
+      data: mapped,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
-
-    const mapped = members.map(mapMember).filter(m => !stage || m.currentStage === stage)
-
-    return NextResponse.json({ success: true, data: mapped })
   } catch (error) {
     console.error('Members GET error:', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
@@ -159,11 +178,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const input = UnifiedMemberSchema.parse(await request.json())
-    const member = await prisma.beneficiary.create({
-      data: toMemberData(input),
+    // توليد كلمة مرور مؤقتة إن وُجد بريد إلكتروني
+    const memberEmail = input.email?.trim() || null
+    const tempPassword = memberEmail ? (Math.random().toString(36).slice(2, 10) + 'A1!') : null
+    const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null
+
+    const member = await (prisma as any).beneficiary.create({
+      data: {
+        ...toMemberData(input),
+        ...(passwordHash ? { passwordHash, mustChangePassword: true } : {}),
+      },
       include: {
         _count: { select: { enrollments: true, participations: true } },
         beneficiaryJourneyStages: true,
+        platform: { select: { id: true, name: true } },
       },
     })
 
@@ -184,6 +212,23 @@ export async function POST(request: NextRequest) {
         },
       ],
     })
+
+    // إرسال بريد ترحيبي إن وُجد بريد إلكتروني للعضو
+    if (member.email && tempPassword) {
+      try {
+        const platformName = member.platform?.name || 'شبكة رواد'
+        const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/ar/member/login`
+        await sendWelcomeEmail({
+          to: member.email,
+          memberName: `${member.firstName} ${member.lastName}`.trim(),
+          platformName,
+          tempPassword,
+          loginUrl,
+        })
+      } catch (e) {
+        console.error('[email] failed to send welcome email:', e)
+      }
+    }
 
     return NextResponse.json({ success: true, data: mapMember(member) }, { status: 201 })
   } catch (error: unknown) {
@@ -213,7 +258,7 @@ export async function PUT(request: NextRequest) {
     const data = toMemberData(input)
     const isTeamLike = input.type === 'TEAM' || input.type === 'BOTH'
 
-    const member = await prisma.beneficiary.update({
+    const member = await (prisma as any).beneficiary.update({
       where: { id },
       data: {
         ...data,
@@ -225,6 +270,7 @@ export async function PUT(request: NextRequest) {
           orderBy: { stage: 'desc' },
           take: 1,
         },
+        platform: { select: { id: true, name: true } },
       },
     })
 

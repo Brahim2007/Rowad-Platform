@@ -1,0 +1,42 @@
+name: تحقق وبناء
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit --pretty false
+
+  build:
+    name: Build Check
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run build
+        env:
+          AUTH_SECRET: 'ci-test-secret-do-not-use-in-production'
+          AUTH_URL: 'http://localhost:3000'
+          AUTH_TRUST_HOST: 'true'
+          NEXTAUTH_URL: 'http://localhost:3000'
+          DATABASE_URL: 'postgres://dummy:dummy@localhost:5432/dummy'
+          NODE_OPTIONS: '--max-old-space-size=4096'

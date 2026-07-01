@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
+import AnnouncementBanner from './AnnouncementBanner'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import {
@@ -47,6 +48,8 @@ export default function Navbar() {
   }
 
   return (
+    <>
+      <AnnouncementBanner />
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrolled
@@ -152,5 +155,6 @@ export default function Navbar() {
         </div>
       )}
     </header>
+    </>
   )
 }

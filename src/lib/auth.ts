@@ -9,6 +9,8 @@ const DEV_ADMIN = {
   id: 'dev-admin',
   name: 'المدير',
   role: 'SUPER_ADMIN',
+  platformId: null as string | null,
+  platformName: null as string | null,
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -25,16 +27,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = credentials.email as string
         const password = credentials.password as string
 
-        // Development fallback when database is unavailable
-        if (process.env.NODE_ENV === 'development') {
+        // Development fallback — يُعطَّل في الإنتاج عبر المتغير البيئي
+        if ((process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_LOGIN === 'true') && process.env.DISABLE_DEV_LOGIN !== 'true') {
           if (email === DEV_ADMIN.email && password === DEV_ADMIN.password) {
-            return { id: DEV_ADMIN.id, email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: DEV_ADMIN.role }
+            return { id: DEV_ADMIN.id, email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: DEV_ADMIN.role, platformId: DEV_ADMIN.platformId, platformName: DEV_ADMIN.platformName }
           }
         }
 
         try {
           const user = await prisma.adminUser.findUnique({
             where: { email },
+            include: { platform: { select: { id: true, name: true } } },
           })
 
           if (!user || !user.isActive) return null
@@ -53,6 +56,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.email,
             name: user.fullName,
             role: user.role,
+            platformId: user.platformId ?? null,
+            platformName: user.platform?.name ?? null,
           }
         } catch (error) {
           console.error('[auth] Database error during login:', error)
@@ -66,6 +71,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         ;(token as any).role = (user as any).role
         ;(token as any).id = user.id
+        ;(token as any).platformId = (user as any).platformId ?? null
+        ;(token as any).platformName = (user as any).platformName ?? null
       }
       return token
     },
@@ -74,6 +81,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const u = session.user as any
         u.role = (token as any).role
         u.id = (token as any).id
+        u.platformId = (token as any).platformId
+        u.platformName = (token as any).platformName
       }
       return session
     },

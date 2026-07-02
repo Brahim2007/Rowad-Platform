@@ -99,8 +99,9 @@ interface DashboardData {
 interface PaginationState {
   page: number
   pageSize: number
-  total: number
-  totalPages: number
+  total: number | null
+  totalPages: number | null
+  hasMore: boolean
 }
 
 interface MemberCardData {
@@ -237,13 +238,13 @@ export default function ImpactDashboardPage() {
   const [dashData, setDashData] = useState<DashboardData | null>(null)
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['dashboard']))
   const [tabLoading, setTabLoading] = useState(false)
-  const [membersPagination, setMembersPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: 0, totalPages: 0 })
-  const [logsPagination, setLogsPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: 0, totalPages: 0 })
+  const [membersPagination, setMembersPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: null, totalPages: null, hasMore: false })
+  const [logsPagination, setLogsPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: null, totalPages: null, hasMore: false })
   const [loadingMoreMembers, setLoadingMoreMembers] = useState(false)
   const [loadingMoreLogs, setLoadingMoreLogs] = useState(false)
 
   const loadMembersPage = useCallback(async (page = 1, append = false) => {
-    const res = await fetch(`/api/admin/members?page=${page}&pageSize=${PAGE_SIZE}`)
+    const res = await fetch(`/api/admin/members?page=${page}&pageSize=${PAGE_SIZE}&compact=1`)
     const data = await res.json()
     if (!data.success) throw new Error(data.message || 'فشل تحميل الأعضاء')
     const nextMembers = data.data?.members || data.data || []
@@ -251,13 +252,14 @@ export default function ImpactDashboardPage() {
     setMembersPagination({
       page: data.pagination?.page ?? page,
       pageSize: data.pagination?.pageSize ?? data.pagination?.limit ?? PAGE_SIZE,
-      total: data.pagination?.total ?? nextMembers.length,
-      totalPages: data.pagination?.totalPages ?? page,
+      total: data.pagination?.total ?? null,
+      totalPages: data.pagination?.totalPages ?? null,
+      hasMore: data.pagination?.hasMore ?? false,
     })
   }, [])
 
   const loadLogsPage = useCallback(async (page = 1, append = false) => {
-    const res = await fetch(`/api/admin/impact/logs?page=${page}&pageSize=${PAGE_SIZE}`)
+    const res = await fetch(`/api/admin/impact/logs?page=${page}&pageSize=${PAGE_SIZE}&compact=1`)
     const data = await res.json()
     if (!data.success) throw new Error(data.message || 'فشل تحميل الأنشطة')
     const nextLogs = data.data || []
@@ -265,13 +267,14 @@ export default function ImpactDashboardPage() {
     setLogsPagination({
       page: data.pagination?.page ?? page,
       pageSize: data.pagination?.pageSize ?? data.pagination?.limit ?? PAGE_SIZE,
-      total: data.pagination?.total ?? nextLogs.length,
-      totalPages: data.pagination?.totalPages ?? page,
+      total: data.pagination?.total ?? null,
+      totalPages: data.pagination?.totalPages ?? null,
+      hasMore: data.pagination?.hasMore ?? false,
     })
   }, [])
 
   const loadMoreMembers = useCallback(async () => {
-    if (loadingMoreMembers || membersPagination.page >= membersPagination.totalPages) return
+    if (loadingMoreMembers || !membersPagination.hasMore) return
     setLoadingMoreMembers(true)
     try {
       await loadMembersPage(membersPagination.page + 1, true)
@@ -281,10 +284,10 @@ export default function ImpactDashboardPage() {
     } finally {
       setLoadingMoreMembers(false)
     }
-  }, [loadMembersPage, loadingMoreMembers, membersPagination.page, membersPagination.totalPages])
+  }, [loadMembersPage, loadingMoreMembers, membersPagination.hasMore, membersPagination.page])
 
   const loadMoreLogs = useCallback(async () => {
-    if (loadingMoreLogs || logsPagination.page >= logsPagination.totalPages) return
+    if (loadingMoreLogs || !logsPagination.hasMore) return
     setLoadingMoreLogs(true)
     try {
       await loadLogsPage(logsPagination.page + 1, true)
@@ -294,7 +297,7 @@ export default function ImpactDashboardPage() {
     } finally {
       setLoadingMoreLogs(false)
     }
-  }, [loadLogsPage, loadingMoreLogs, logsPagination.page, logsPagination.totalPages])
+  }, [loadLogsPage, loadingMoreLogs, logsPagination.hasMore, logsPagination.page])
 
   /** التحميل الأولي — Dashboard فقط */
   useEffect(() => {
@@ -365,9 +368,9 @@ export default function ImpactDashboardPage() {
       const dashRes = await fetch('/api/admin/impact/dashboard').then(r => r.json())
       if (dashRes.success) setDashData(dashRes.data || null)
 
-      const benRes = await fetch(`/api/admin/members?page=1&pageSize=${PAGE_SIZE}`).then(r => r.json())
+      const benRes = await fetch(`/api/admin/members?page=1&pageSize=${PAGE_SIZE}&compact=1`).then(r => r.json())
       const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
-      const logRes = await fetch(`/api/admin/impact/logs?page=1&pageSize=${PAGE_SIZE}`).then(r => r.json())
+      const logRes = await fetch(`/api/admin/impact/logs?page=1&pageSize=${PAGE_SIZE}&compact=1`).then(r => r.json())
       const awdRes = await fetch('/api/admin/impact/awards').then(r => r.json())
       const gateRes = await fetch('/api/admin/impact/gates').then(r => r.json())
 
@@ -375,20 +378,22 @@ export default function ImpactDashboardPage() {
       if (actRes.success) setActions(actRes.data || [])
       if (logRes.success) setLogs(logRes.data || [])
       if (benRes.success) {
-        setMembersPagination({
-          page: benRes.pagination?.page ?? 1,
-          pageSize: benRes.pagination?.pageSize ?? benRes.pagination?.limit ?? PAGE_SIZE,
-          total: benRes.pagination?.total ?? (benRes.data?.members || benRes.data || []).length,
-          totalPages: benRes.pagination?.totalPages ?? 1,
-        })
+          setMembersPagination({
+            page: benRes.pagination?.page ?? 1,
+            pageSize: benRes.pagination?.pageSize ?? benRes.pagination?.limit ?? PAGE_SIZE,
+            total: benRes.pagination?.total ?? null,
+            totalPages: benRes.pagination?.totalPages ?? null,
+            hasMore: benRes.pagination?.hasMore ?? false,
+          })
       }
       if (logRes.success) {
-        setLogsPagination({
-          page: logRes.pagination?.page ?? 1,
-          pageSize: logRes.pagination?.pageSize ?? logRes.pagination?.limit ?? PAGE_SIZE,
-          total: logRes.pagination?.total ?? (logRes.data || []).length,
-          totalPages: logRes.pagination?.totalPages ?? 1,
-        })
+          setLogsPagination({
+            page: logRes.pagination?.page ?? 1,
+            pageSize: logRes.pagination?.pageSize ?? logRes.pagination?.limit ?? PAGE_SIZE,
+            total: logRes.pagination?.total ?? null,
+            totalPages: logRes.pagination?.totalPages ?? null,
+            hasMore: logRes.pagination?.hasMore ?? false,
+          })
       }
       if (awdRes.success) setAwards(awdRes.data || [])
       if (gateRes.success) setGates(gateRes.data || [])
@@ -794,9 +799,9 @@ function MembersTab({
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
             <span className="text-neutral-500">
-              المعروض: <b className="text-neutral-800">{beneficiaries.length}</b> من <b className="text-neutral-800">{pagination.total}</b>
+              المعروض: <b className="text-neutral-800">{beneficiaries.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
             </span>
-            {pagination.page < pagination.totalPages && (
+            {pagination.hasMore && (
               <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
                 {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
                 تحميل المزيد
@@ -1099,9 +1104,9 @@ function ActivitiesTab({
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
             <span className="text-neutral-500">
-              المعروض: <b className="text-neutral-800">{logs.length}</b> من <b className="text-neutral-800">{pagination.total}</b>
+              المعروض: <b className="text-neutral-800">{logs.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
             </span>
-            {pagination.page < pagination.totalPages && (
+            {pagination.hasMore && (
               <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
                 {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
                 تحميل المزيد

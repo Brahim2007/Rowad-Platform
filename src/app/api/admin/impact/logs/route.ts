@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { recordActivityLog } from '@/lib/activity-log'
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
     const pageSize = Math.min(Math.max(1, pageSizeParam), 50)
+    const includeTotal = searchParams.get('includeTotal') === '1'
+    const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
     const where = {
@@ -53,35 +56,137 @@ export async function GET(request: NextRequest) {
       ...(category && { action: { category: category as any } }),
     }
 
-    const [logs, total] = await Promise.all([
-      prisma.impactLog.findMany({
-        where,
-        orderBy: { date: 'desc' },
-        skip,
-        take: pageSize,
-        include: {
-          action: true,
-          platform: { select: { id: true, name: true, slug: true } },
-          program: { select: { id: true, name: true, slug: true } },
-          activity: { select: { id: true, name: true, slug: true } },
-          enrollment: { select: { id: true, status: true } },
-          participation: { select: { id: true, status: true } },
-          report: { select: { id: true, status: true } },
-          evaluation: { select: { id: true, title: true, status: true } },
-          beneficiary: {
-            select: {
-              id: true, firstName: true, lastName: true, code: true, networkRole: true,
-            },
+    if (compact) {
+      const clauses = [
+        beneficiaryId ? Prisma.sql`l."beneficiaryId" = ${beneficiaryId}` : null,
+        status ? Prisma.sql`l.status = ${status}::"ImpactApprovalStatus"` : null,
+        category ? Prisma.sql`a.category = ${category}::"ImpactCategory"` : null,
+      ].filter(Boolean) as Prisma.Sql[]
+      const whereSql = clauses.length ? Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}` : Prisma.empty
+      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+        SELECT
+          l.id,
+          l."beneficiaryId",
+          l."actionId",
+          l.count,
+          l.quality,
+          l.status,
+          l.date,
+          l.link,
+          l.note,
+          l."createdBy",
+          l."platformId",
+          l."rejectionReason",
+          l."sourceType",
+          a.id AS "action_id",
+          a.name AS "action_name",
+          a.points AS "action_points",
+          a.category AS "action_category",
+          a.note AS "action_note",
+          a."isActive" AS "action_isActive",
+          a."sortOrder" AS "action_sortOrder",
+          b.id AS "beneficiary_id",
+          b."firstName" AS "beneficiary_firstName",
+          b."lastName" AS "beneficiary_lastName",
+          b.code AS "beneficiary_code",
+          b."networkRole" AS "beneficiary_networkRole"
+        FROM "impact_logs" l
+        LEFT JOIN "impact_actions" a ON a.id = l."actionId"
+        LEFT JOIN "beneficiaries" b ON b.id = l."beneficiaryId"
+        ${whereSql}
+        ORDER BY l.date DESC
+        LIMIT ${pageSize + 1}
+        OFFSET ${skip}
+      `)
+      const hasMore = rows.length > pageSize
+      const logs = (hasMore ? rows.slice(0, pageSize) : rows).map(row => ({
+        id: row.id,
+        beneficiaryId: row.beneficiaryId,
+        actionId: row.actionId,
+        count: row.count,
+        quality: row.quality,
+        status: row.status,
+        date: row.date,
+        link: row.link,
+        note: row.note,
+        createdBy: row.createdBy,
+        platformId: row.platformId,
+        rejectionReason: row.rejectionReason,
+        sourceType: row.sourceType,
+        action: row.action_id ? {
+          id: row.action_id,
+          name: row.action_name,
+          points: row.action_points,
+          category: row.action_category,
+          note: row.action_note,
+          isActive: row.action_isActive,
+          sortOrder: row.action_sortOrder,
+        } : null,
+        beneficiary: row.beneficiary_id ? {
+          id: row.beneficiary_id,
+          firstName: row.beneficiary_firstName,
+          lastName: row.beneficiary_lastName,
+          code: row.beneficiary_code,
+          networkRole: row.beneficiary_networkRole,
+        } : null,
+      }))
+      const total = includeTotal ? await prisma.impactLog.count({ where }) : null
+
+      return NextResponse.json({
+        success: true,
+        data: logs,
+        pagination: {
+          page,
+          pageSize,
+          limit: pageSize,
+          hasMore,
+          total,
+          totalPages: total === null ? null : Math.ceil(total / pageSize),
+        },
+      })
+    }
+
+    const relationArgs: Prisma.ImpactLogFindManyArgs = {
+      include: {
+        action: true,
+        platform: { select: { id: true, name: true, slug: true } },
+        program: { select: { id: true, name: true, slug: true } },
+        activity: { select: { id: true, name: true, slug: true } },
+        enrollment: { select: { id: true, status: true } },
+        participation: { select: { id: true, status: true } },
+        report: { select: { id: true, status: true } },
+        evaluation: { select: { id: true, title: true, status: true } },
+        beneficiary: {
+          select: {
+            id: true, firstName: true, lastName: true, code: true, networkRole: true,
           },
         },
-      }),
-      prisma.impactLog.count({ where }),
-    ])
+      },
+    }
+
+    const rows = await prisma.impactLog.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      skip,
+      take: pageSize + 1,
+      ...relationArgs,
+    })
+
+    const hasMore = rows.length > pageSize
+    const logs = hasMore ? rows.slice(0, pageSize) : rows
+    const total = includeTotal ? await prisma.impactLog.count({ where }) : null
 
     return NextResponse.json({
       success: true,
       data: logs,
-      pagination: { page, pageSize, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      pagination: {
+        page,
+        pageSize,
+        limit: pageSize,
+        hasMore,
+        total,
+        totalPages: total === null ? null : Math.ceil(total / pageSize),
+      },
     })
   } catch (error) {
     console.error('ImpactLogs GET error:', error)

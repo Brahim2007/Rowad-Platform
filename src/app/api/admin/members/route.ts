@@ -122,6 +122,8 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
     const pageSize = Math.min(Math.max(1, pageSizeParam), 50)
+    const includeTotal = searchParams.get('includeTotal') === '1'
+    const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
     const where: Prisma.BeneficiaryWhereInput = {}
@@ -142,30 +144,119 @@ export async function GET(request: NextRequest) {
       where.status = status as Prisma.BeneficiaryWhereInput['status']
     }
 
-    const [members, total] = await Promise.all([
-      (prisma as any).beneficiary.findMany({
-        where,
-        orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
-        skip,
-        take: pageSize,
-        include: {
-          _count: { select: { enrollments: true, participations: true } },
-          beneficiaryJourneyStages: {
-            orderBy: { stage: 'desc' },
-            take: 1,
-          },
-          platform: { select: { id: true, name: true } },
-        },
-      }),
-      (prisma as any).beneficiary.count({ where }),
-    ])
+    if (compact) {
+      const searchPattern = `%${search}%`
+      const clauses = [
+        type === 'BENEFICIARY' ? Prisma.sql`b.type IN ('BENEFICIARY'::"MemberType", 'BOTH'::"MemberType")` : null,
+        type === 'TEAM' ? Prisma.sql`b.type IN ('TEAM'::"MemberType", 'BOTH'::"MemberType")` : null,
+        status ? Prisma.sql`b.status = ${status}::"BeneficiaryStatus"` : null,
+        search ? Prisma.sql`(
+          b."firstName" ILIKE ${searchPattern} OR
+          b."lastName" ILIKE ${searchPattern} OR
+          b.code ILIKE ${searchPattern} OR
+          b.email ILIKE ${searchPattern} OR
+          b.role ILIKE ${searchPattern}
+        )` : null,
+      ].filter(Boolean) as Prisma.Sql[]
+      const whereSql = clauses.length ? Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}` : Prisma.empty
+      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+        SELECT
+          b.id,
+          b.code,
+          b."firstName",
+          b."lastName",
+          b.email,
+          b.phone,
+          b.status,
+          b."registeredAt",
+          b.type,
+          b."networkRole",
+          b."joinDate",
+          b."impactNote",
+          b."platformId",
+          p.name AS "platformName"
+        FROM "beneficiaries" b
+        LEFT JOIN "platforms" p ON p.id = b."platformId"
+        ${whereSql}
+        ORDER BY b.type ASC, b."sortOrder" ASC, b."registeredAt" DESC
+        LIMIT ${pageSize + 1}
+        OFFSET ${skip}
+      `)
+      const hasMore = rows.length > pageSize
+      const members = (hasMore ? rows.slice(0, pageSize) : rows)
+        .map(row => ({
+          id: row.id,
+          code: row.code,
+          firstName: row.firstName,
+          lastName: row.lastName,
+          name: `${row.firstName} ${row.lastName}`.trim(),
+          email: row.email,
+          phone: row.phone,
+          status: row.status,
+          registeredAt: row.registeredAt,
+          type: row.type,
+          networkRole: row.networkRole,
+          joinDate: row.joinDate,
+          impactNote: row.impactNote,
+          platformId: row.platformId,
+          platformName: row.platformName,
+          currentStage: null,
+          currentStageStartedAt: null,
+          enrollmentsCount: 0,
+          participationsCount: 0,
+        }))
+        .filter((m: any) => !stage || m.currentStage === stage)
+      const total = includeTotal ? await (prisma as any).beneficiary.count({ where }) : null
 
+      return NextResponse.json({
+        success: true,
+        data: members,
+        pagination: {
+          page,
+          pageSize,
+          limit: pageSize,
+          hasMore,
+          total,
+          totalPages: total === null ? null : Math.ceil(total / pageSize),
+        },
+      })
+    }
+
+    const relationArgs = {
+      include: {
+        _count: { select: { enrollments: true, participations: true } },
+        beneficiaryJourneyStages: {
+          orderBy: { stage: 'desc' },
+          take: 1,
+        },
+        platform: { select: { id: true, name: true } },
+      },
+    }
+
+    const rows = await (prisma as any).beneficiary.findMany({
+      where,
+      orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
+      skip,
+      take: pageSize + 1,
+      ...relationArgs,
+    })
+
+    const hasMore = rows.length > pageSize
+    const members = hasMore ? rows.slice(0, pageSize) : rows
+    const total = includeTotal ? await (prisma as any).beneficiary.count({ where }) : null
     const mapped = members.map(mapMember).filter((m: any) => !stage || m.currentStage === stage)
 
     return NextResponse.json({
       success: true,
       data: mapped,
-      pagination: { page, pageSize, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
+      pagination: {
+        page,
+        pageSize,
+        limit: pageSize,
+        hasMore,
+        total,
+        totalPages: total === null ? null : Math.ceil(total / pageSize),
+      },
     })
   } catch (error) {
     console.error('Members GET error:', error)

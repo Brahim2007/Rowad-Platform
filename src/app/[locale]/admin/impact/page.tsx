@@ -96,6 +96,13 @@ interface DashboardData {
   settings: { qualityBonus: Record<string, number>; levels: Array<{ name: string; from: number; to: number; desc?: string }>; rewardTiers: Array<{ name: string; from: number; to: number }>; umrah: any } | null
 }
 
+interface PaginationState {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
 interface MemberCardData {
   member: BeneficiaryInfo
   entries: ImpactLogFull[]
@@ -156,6 +163,7 @@ const BADGE_CATALOG = [
   'جائزة المتطوع الذهبي', 'جائزة القيادة', 'جائزة العمرة',
 ]
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+const PAGE_SIZE = 50
 
 // ═══════════════════════════════════════════════
 // Helpers
@@ -183,6 +191,12 @@ const scopeLabel = (sc: { type: string; year?: number; month?: number; ref?: str
   if (sc.type === 'month' && sc.year && sc.month) return `${MONTHS[sc.month - 1]} ${sc.year}`
   if (sc.type === 'week' && sc.ref) return `الأسبوع المنتهي ${sc.ref}`
   return 'الإجمالي التراكمي'
+}
+
+function mergeUniqueById<T extends { id: string }>(current: T[], incoming: T[]) {
+  const map = new Map(current.map(item => [item.id, item]))
+  for (const item of incoming) map.set(item.id, item)
+  return Array.from(map.values())
 }
 
 // ═══════════════════════════════════════════════
@@ -223,15 +237,71 @@ export default function ImpactDashboardPage() {
   const [dashData, setDashData] = useState<DashboardData | null>(null)
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['dashboard']))
   const [tabLoading, setTabLoading] = useState(false)
+  const [membersPagination, setMembersPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: 0, totalPages: 0 })
+  const [logsPagination, setLogsPagination] = useState<PaginationState>({ page: 0, pageSize: PAGE_SIZE, total: 0, totalPages: 0 })
+  const [loadingMoreMembers, setLoadingMoreMembers] = useState(false)
+  const [loadingMoreLogs, setLoadingMoreLogs] = useState(false)
+
+  const loadMembersPage = useCallback(async (page = 1, append = false) => {
+    const res = await fetch(`/api/admin/members?page=${page}&pageSize=${PAGE_SIZE}`)
+    const data = await res.json()
+    if (!data.success) throw new Error(data.message || 'فشل تحميل الأعضاء')
+    const nextMembers = data.data?.members || data.data || []
+    setBeneficiaries(current => append ? mergeUniqueById(current, nextMembers) : nextMembers)
+    setMembersPagination({
+      page: data.pagination?.page ?? page,
+      pageSize: data.pagination?.pageSize ?? data.pagination?.limit ?? PAGE_SIZE,
+      total: data.pagination?.total ?? nextMembers.length,
+      totalPages: data.pagination?.totalPages ?? page,
+    })
+  }, [])
+
+  const loadLogsPage = useCallback(async (page = 1, append = false) => {
+    const res = await fetch(`/api/admin/impact/logs?page=${page}&pageSize=${PAGE_SIZE}`)
+    const data = await res.json()
+    if (!data.success) throw new Error(data.message || 'فشل تحميل الأنشطة')
+    const nextLogs = data.data || []
+    setLogs(current => append ? mergeUniqueById(current, nextLogs) : nextLogs)
+    setLogsPagination({
+      page: data.pagination?.page ?? page,
+      pageSize: data.pagination?.pageSize ?? data.pagination?.limit ?? PAGE_SIZE,
+      total: data.pagination?.total ?? nextLogs.length,
+      totalPages: data.pagination?.totalPages ?? page,
+    })
+  }, [])
+
+  const loadMoreMembers = useCallback(async () => {
+    if (loadingMoreMembers || membersPagination.page >= membersPagination.totalPages) return
+    setLoadingMoreMembers(true)
+    try {
+      await loadMembersPage(membersPagination.page + 1, true)
+    } catch (e) {
+      console.error('Failed to load more members:', e)
+      toast.error('فشل تحميل المزيد من الأعضاء')
+    } finally {
+      setLoadingMoreMembers(false)
+    }
+  }, [loadMembersPage, loadingMoreMembers, membersPagination.page, membersPagination.totalPages])
+
+  const loadMoreLogs = useCallback(async () => {
+    if (loadingMoreLogs || logsPagination.page >= logsPagination.totalPages) return
+    setLoadingMoreLogs(true)
+    try {
+      await loadLogsPage(logsPagination.page + 1, true)
+    } catch (e) {
+      console.error('Failed to load more logs:', e)
+      toast.error('فشل تحميل المزيد من الأنشطة')
+    } finally {
+      setLoadingMoreLogs(false)
+    }
+  }, [loadLogsPage, loadingMoreLogs, logsPagination.page, logsPagination.totalPages])
 
   /** التحميل الأولي — Dashboard فقط */
   useEffect(() => {
     const init = async () => {
       setLoading(true)
       try {
-        const [dashRes] = await Promise.all([
-          fetch('/api/admin/impact/dashboard').then(r => r.json()),
-        ])
+        const dashRes = await fetch('/api/admin/impact/dashboard').then(r => r.json())
         if (dashRes.success) setDashData(dashRes.data || null)
       } catch (e) {
         console.error('Failed to load dashboard:', e)
@@ -249,33 +319,29 @@ export default function ImpactDashboardPage() {
     setTabLoading(true)
     try {
       const newLoaded = new Set(loadedTabs)
-      if (tab === 'members' || tab === 'card' || tab === 'pulse') {
+      if (tab === 'members' || tab === 'activities' || tab === 'card' || tab === 'pulse' || tab === 'rewards' || tab === 'reports') {
         if (!loadedTabs.has('members')) {
-          const [benRes, actRes] = await Promise.all([
-            fetch('/api/admin/members?limit=500').then(r => r.json()),
-            fetch('/api/admin/impact/actions').then(r => r.json()),
-          ])
-          if (benRes.success) setBeneficiaries(benRes.data?.members || benRes.data || [])
+          await loadMembersPage(1, false)
+          const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
           if (actRes.success) setActions(actRes.data || [])
           newLoaded.add('members')
         }
       }
+      if (tab === 'settings' && actions.length === 0) {
+        const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
+        if (actRes.success) setActions(actRes.data || [])
+      }
       if (tab === 'activities' || tab === 'card' || tab === 'pulse' || tab === 'rewards' || tab === 'reports' || tab === 'dashboard') {
         if (!loadedTabs.has('logs')) {
-          const [logRes] = await Promise.all([
-            fetch('/api/admin/impact/logs?limit=2000').then(r => r.json()),
-          ])
-          if (logRes.success) setLogs(logRes.data || [])
+          await loadLogsPage(1, false)
           newLoaded.add('logs')
         }
       }
       if (tab === 'rewards' || tab === 'card') {
         if (!loadedTabs.has('awards_gates')) {
-          const [awdRes, gateRes] = await Promise.all([
-            fetch('/api/admin/impact/awards').then(r => r.json()),
-            fetch('/api/admin/impact/gates').then(r => r.json()),
-          ])
+          const awdRes = await fetch('/api/admin/impact/awards').then(r => r.json())
           if (awdRes.success) setAwards(awdRes.data || [])
+          const gateRes = await fetch('/api/admin/impact/gates').then(r => r.json())
           if (gateRes.success) setGates(gateRes.data || [])
           newLoaded.add('awards_gates')
         }
@@ -286,7 +352,7 @@ export default function ImpactDashboardPage() {
     } finally {
       setTabLoading(false)
     }
-  }, [loadedTabs])
+  }, [actions.length, loadedTabs, loadLogsPage, loadMembersPage])
 
   /** عند تبديل التبويب، حمّل بياناته */
   useEffect(() => {
@@ -296,21 +362,36 @@ export default function ImpactDashboardPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [benRes, actRes, logRes, awdRes, gateRes, dashRes] = await Promise.all([
-        fetch('/api/admin/members?limit=500').then(r => r.json()),
-        fetch('/api/admin/impact/actions').then(r => r.json()),
-        fetch('/api/admin/impact/logs?limit=2000').then(r => r.json()),
-        fetch('/api/admin/impact/awards').then(r => r.json()),
-        fetch('/api/admin/impact/gates').then(r => r.json()),
-        fetch('/api/admin/impact/dashboard').then(r => r.json()),
-      ])
+      const dashRes = await fetch('/api/admin/impact/dashboard').then(r => r.json())
+      if (dashRes.success) setDashData(dashRes.data || null)
+
+      const benRes = await fetch(`/api/admin/members?page=1&pageSize=${PAGE_SIZE}`).then(r => r.json())
+      const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
+      const logRes = await fetch(`/api/admin/impact/logs?page=1&pageSize=${PAGE_SIZE}`).then(r => r.json())
+      const awdRes = await fetch('/api/admin/impact/awards').then(r => r.json())
+      const gateRes = await fetch('/api/admin/impact/gates').then(r => r.json())
 
       if (benRes.success) setBeneficiaries(benRes.data?.members || benRes.data || [])
       if (actRes.success) setActions(actRes.data || [])
       if (logRes.success) setLogs(logRes.data || [])
+      if (benRes.success) {
+        setMembersPagination({
+          page: benRes.pagination?.page ?? 1,
+          pageSize: benRes.pagination?.pageSize ?? benRes.pagination?.limit ?? PAGE_SIZE,
+          total: benRes.pagination?.total ?? (benRes.data?.members || benRes.data || []).length,
+          totalPages: benRes.pagination?.totalPages ?? 1,
+        })
+      }
+      if (logRes.success) {
+        setLogsPagination({
+          page: logRes.pagination?.page ?? 1,
+          pageSize: logRes.pagination?.pageSize ?? logRes.pagination?.limit ?? PAGE_SIZE,
+          total: logRes.pagination?.total ?? (logRes.data || []).length,
+          totalPages: logRes.pagination?.totalPages ?? 1,
+        })
+      }
       if (awdRes.success) setAwards(awdRes.data || [])
       if (gateRes.success) setGates(gateRes.data || [])
-      if (dashRes.success) setDashData(dashRes.data || null)
       setLoadedTabs(new Set(['dashboard', 'members', 'logs', 'awards_gates']))
     } catch (e) {
       console.error('Failed to load impact data:', e)
@@ -367,8 +448,8 @@ export default function ImpactDashboardPage() {
 
       {/* Tab Content */}
       {activeTab === 'dashboard' && <DashboardTab dashData={dashData} actions={actions} logs={logs} />}
-      {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} />}
-      {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} qualityBonus={qualityBonus} />}
+      {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} pagination={membersPagination} onLoadMore={loadMoreMembers} loadingMore={loadingMoreMembers} />}
+      {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} qualityBonus={qualityBonus} pagination={logsPagination} onLoadMore={loadMoreLogs} loadingMore={loadingMoreLogs} />}
       {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
       {activeTab === 'card' && (
         <CardTab
@@ -486,7 +567,29 @@ function KpiCard({ icon: Icon, label, value, color, isText }: { icon: any; label
 // Tab: Members (الأعضاء)
 // ═══════════════════════════════════════════════
 
-function MembersTab({ beneficiaries, logs, actions, fetchAll, qualityBonus, setCardMemberId, switchTab }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; fetchAll: () => void; qualityBonus: Record<string, number>; setCardMemberId: (id: string) => void; switchTab: (tab: string) => void }) {
+function MembersTab({
+  beneficiaries,
+  logs,
+  actions,
+  fetchAll,
+  qualityBonus,
+  setCardMemberId,
+  switchTab,
+  pagination,
+  onLoadMore,
+  loadingMore,
+}: {
+  beneficiaries: BeneficiaryInfo[]
+  logs: ImpactLogFull[]
+  actions: ImpactActionItem[]
+  fetchAll: () => void
+  qualityBonus: Record<string, number>
+  setCardMemberId: (id: string) => void
+  switchTab: (tab: string) => void
+  pagination: PaginationState
+  onLoadMore: () => void
+  loadingMore: boolean
+}) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
@@ -642,6 +745,7 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll, qualityBonus, setC
         </div>
 
         {filtered.length > 0 ? (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -688,6 +792,18 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll, qualityBonus, setC
               </tbody>
             </table>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
+            <span className="text-neutral-500">
+              المعروض: <b className="text-neutral-800">{beneficiaries.length}</b> من <b className="text-neutral-800">{pagination.total}</b>
+            </span>
+            {pagination.page < pagination.totalPages && (
+              <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
+                {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
+                تحميل المزيد
+              </button>
+            )}
+          </div>
+          </>
         ) : <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء مطابقون</p>}
       </div>
 
@@ -798,7 +914,25 @@ function MembersTab({ beneficiaries, logs, actions, fetchAll, qualityBonus, setC
 // Tab: Activities (الأنشطة)
 // ═══════════════════════════════════════════════
 
-function ActivitiesTab({ logs, actions, beneficiaries, fetchAll, qualityBonus }: { logs: ImpactLogFull[]; actions: ImpactActionItem[]; beneficiaries: BeneficiaryInfo[]; fetchAll: () => void; qualityBonus: Record<string, number> }) {
+function ActivitiesTab({
+  logs,
+  actions,
+  beneficiaries,
+  fetchAll,
+  qualityBonus,
+  pagination,
+  onLoadMore,
+  loadingMore,
+}: {
+  logs: ImpactLogFull[]
+  actions: ImpactActionItem[]
+  beneficiaries: BeneficiaryInfo[]
+  fetchAll: () => void
+  qualityBonus: Record<string, number>
+  pagination: PaginationState
+  onLoadMore: () => void
+  loadingMore: boolean
+}) {
   const [filterMember, setFilterMember] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -962,6 +1096,17 @@ function ActivitiesTab({ logs, actions, beneficiaries, fetchAll, qualityBonus }:
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
+            <span className="text-neutral-500">
+              المعروض: <b className="text-neutral-800">{logs.length}</b> من <b className="text-neutral-800">{pagination.total}</b>
+            </span>
+            {pagination.page < pagination.totalPages && (
+              <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
+                {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
+                تحميل المزيد
+              </button>
+            )}
           </div>
           </>
         ) : <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>}

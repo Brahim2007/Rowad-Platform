@@ -104,6 +104,9 @@ model Beneficiary {
   @@index([firstName, lastName])
   @@index([status, registeredAt])
   @@index([status, type])
+  @@index([type, sortOrder, registeredAt])
+  @@index([status, type, sortOrder, registeredAt])
+  @@index([platformId, status, type])
   @@map("beneficiaries")
 }
 
@@ -317,6 +320,8 @@ model Enrollment {
   @@index([beneficiaryId])
   @@index([programId])
   @@index([status])
+  @@index([beneficiaryId, status])
+  @@index([status, completedAt])
   @@map("enrollments")
 }
 
@@ -358,6 +363,8 @@ model Participation {
   @@index([activityId])
   @@index([enrollmentId])
   @@index([status])
+  @@index([beneficiaryId, status])
+  @@index([status, attendedAt])
   @@map("participations")
 }
 
@@ -1049,6 +1056,8 @@ model ImpactAction {
 
   @@index([category])
   @@index([isActive])
+  @@index([isActive, sortOrder])
+  @@index([isActive, category, sortOrder])
   @@index([category, isActive, sortOrder])
   @@map("impact_actions")
 }
@@ -1122,6 +1131,10 @@ model ImpactLog {
   @@index([beneficiaryId, date])
   @@index([beneficiaryId, status, date])
   @@index([platformId, status, date])
+  @@index([status, date])
+  @@index([actionId, date])
+  @@index([beneficiaryId, actionId, date])
+  @@index([beneficiaryId, sourceType, sourceId])
   @@unique([sourceType, sourceId, actionId])
   @@map("impact_logs")
 }
@@ -1166,6 +1179,8 @@ model ImpactAward {
   @@index([beneficiaryId])
   @@index([type])
   @@index([date])
+  @@index([type, date])
+  @@index([beneficiaryId, date])
   @@map("impact_awards")
 }
 

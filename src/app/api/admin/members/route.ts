@@ -120,8 +120,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const stage = searchParams.get('stage') || ''
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
-    const limit = Math.min(Number(searchParams.get('limit')) || 50, 200)
-    const skip = (page - 1) * limit
+    const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
+    const pageSize = Math.min(Math.max(1, pageSizeParam), 100)
+    const skip = (page - 1) * pageSize
 
     const where: Prisma.BeneficiaryWhereInput = {}
 
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
         where,
         orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
         skip,
-        take: limit,
+        take: pageSize,
         include: {
           _count: { select: { enrollments: true, participations: true } },
           beneficiaryJourneyStages: {
@@ -164,7 +165,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: mapped,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: { page, pageSize, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
     })
   } catch (error) {
     console.error('Members GET error:', error)

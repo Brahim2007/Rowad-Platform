@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const category = searchParams.get('category') || ''
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
-    const limit = Math.min(Number(searchParams.get('limit')) || 100, 500)
-    const skip = (page - 1) * limit
+    const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
+    const pageSize = Math.min(Math.max(1, pageSizeParam), 100)
+    const skip = (page - 1) * pageSize
 
     const where = {
       ...(beneficiaryId && { beneficiaryId }),
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
         where,
         orderBy: { date: 'desc' },
         skip,
-        take: limit,
+        take: pageSize,
         include: {
           action: true,
           platform: { select: { id: true, name: true, slug: true } },
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: logs,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      pagination: { page, pageSize, limit: pageSize, total, totalPages: Math.ceil(total / pageSize) },
     })
   } catch (error) {
     console.error('ImpactLogs GET error:', error)

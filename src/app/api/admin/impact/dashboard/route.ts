@@ -36,10 +36,10 @@ function sourceKey(sourceType?: string | null, sourceId?: string | null, actionI
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
-
   try {
+    const authError = await checkAuth()
+    if (authError) return authError
+
     const { searchParams } = new URL(request.url)
     const scopeType = (searchParams.get('scope') || 'all') as 'all' | 'month' | 'week'
     const scope: Scope = { type: scopeType }
@@ -52,76 +52,138 @@ export async function GET(request: NextRequest) {
       scope.ref = searchParams.get('ref') || new Date().toISOString().split('T')[0]
     }
 
-    // جلب كل البيانات دفعة واحدة
-    const [actions, beneficiaries, awards, gates, settings] = await Promise.all([
-      prisma.impactAction.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
-      prisma.beneficiary.findMany({
-        where: { status: 'ACTIVE', type: { in: ['BENEFICIARY', 'BOTH'] } },
-        include: {
-          impactLogs: {
-            include: {
-              action: true,
-              platform: { select: { id: true, name: true } },
-              program: { select: { id: true, name: true } },
-              activity: { select: { id: true, name: true } },
-            },
+    // تحميل متدرج لتجنب فتح عدد كبير من اتصالات قاعدة البيانات في البيئة المجانية.
+    const actions = await prisma.impactAction.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
+    const beneficiaries = await prisma.beneficiary.findMany({
+      where: { status: 'ACTIVE', type: { in: ['BENEFICIARY', 'BOTH'] } },
+      select: {
+        id: true,
+        code: true,
+        firstName: true,
+        lastName: true,
+        networkRole: true,
+        joinDate: true,
+        memberSince: true,
+        status: true,
+      },
+    })
+    const shieldAwardCount = await prisma.impactAward.count({ where: { type: 'SHIELD' } })
+    const gates = await prisma.impactGate.findMany({
+      select: { beneficiaryId: true, year: true, month: true, passed: true },
+    })
+    const settings = await prisma.impactSettings.findUnique({ where: { id: 1 } })
+
+    const actionMap = buildActionMap(actions as ImpactActionItem[])
+    const beneficiaryIds = beneficiaries.map(b => b.id)
+
+    const impactLogs = beneficiaryIds.length
+      ? await prisma.impactLog.findMany({
+          where: { beneficiaryId: { in: beneficiaryIds } },
+          select: {
+            id: true,
+            beneficiaryId: true,
+            actionId: true,
+            sourceType: true,
+            sourceId: true,
+            platformId: true,
+            programId: true,
+            activityId: true,
+            enrollmentId: true,
+            participationId: true,
+            reportId: true,
+            evaluationId: true,
+            count: true,
+            quality: true,
+            status: true,
+            date: true,
+            link: true,
+            note: true,
+            platform: { select: { name: true } },
           },
-          impactAwards: true,
-          enrollments: {
-            where: { status: 'COMPLETED' },
-            include: {
-              program: {
-                select: {
-                  id: true,
-                  name: true,
-                  platform: { select: { id: true, name: true } },
-                },
+        })
+      : []
+    const enrollments = beneficiaryIds.length
+      ? await prisma.enrollment.findMany({
+          where: { beneficiaryId: { in: beneficiaryIds }, status: 'COMPLETED' },
+          select: {
+            id: true,
+            beneficiaryId: true,
+            completedAt: true,
+            updatedAt: true,
+            program: {
+              select: {
+                id: true,
+                name: true,
+                platform: { select: { id: true, name: true } },
               },
             },
           },
-          participations: {
-            where: { status: { in: ['ATTENDED', 'COMPLETED'] } },
-            include: {
-              activity: {
-                select: {
-                  id: true,
-                  name: true,
-                  startDate: true,
-                  program: {
-                    select: {
-                      id: true,
-                      name: true,
-                      platform: { select: { id: true, name: true } },
-                    },
+        })
+      : []
+    const participations = beneficiaryIds.length
+      ? await prisma.participation.findMany({
+          where: { beneficiaryId: { in: beneficiaryIds }, status: { in: ['ATTENDED', 'COMPLETED'] } },
+          select: {
+            id: true,
+            beneficiaryId: true,
+            status: true,
+            attendedAt: true,
+            createdAt: true,
+            activity: {
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                program: {
+                  select: {
+                    id: true,
+                    name: true,
+                    platform: { select: { id: true, name: true } },
                   },
                 },
               },
             },
           },
-        },
-      }),
-      prisma.impactAward.findMany({ orderBy: { date: 'desc' } }),
-      prisma.impactGate.findMany(),
-      prisma.impactSettings.findUnique({ where: { id: 1 } }),
-    ])
+        })
+      : []
 
-    const actionMap = buildActionMap(actions as ImpactActionItem[])
+    const logsByBeneficiary = new Map<string, typeof impactLogs>()
+    for (const log of impactLogs) {
+      const list = logsByBeneficiary.get(log.beneficiaryId) || []
+      list.push(log)
+      logsByBeneficiary.set(log.beneficiaryId, list)
+    }
+
+    const enrollmentsByBeneficiary = new Map<string, typeof enrollments>()
+    for (const enrollment of enrollments) {
+      const list = enrollmentsByBeneficiary.get(enrollment.beneficiaryId) || []
+      list.push(enrollment)
+      enrollmentsByBeneficiary.set(enrollment.beneficiaryId, list)
+    }
+
+    const participationsByBeneficiary = new Map<string, typeof participations>()
+    for (const participation of participations) {
+      const list = participationsByBeneficiary.get(participation.beneficiaryId) || []
+      list.push(participation)
+      participationsByBeneficiary.set(participation.beneficiaryId, list)
+    }
 
     const membersData = beneficiaries.map(b => {
+      const beneficiaryLogs = logsByBeneficiary.get(b.id) || []
       const persistedKeys = new Set(
-        b.impactLogs
+        beneficiaryLogs
           .map(log => sourceKey(log.sourceType, log.sourceId, log.actionId))
           .filter(Boolean)
       )
 
-      const persistedEntries = b.impactLogs.map(log => ({
+      const persistedEntries = beneficiaryLogs.map(log => ({
         ...log,
-        action: log.action as ImpactActionItem,
+        action: actionMap.get(log.actionId),
         platformName: log.platform?.name || null,
       })) as ImpactLogEntry[]
 
       const operationalEntries: ImpactLogEntry[] = []
-      for (const participation of b.participations) {
+      for (const participation of participationsByBeneficiary.get(b.id) || []) {
         const actionId = participation.status === 'COMPLETED'
           ? '__participation_completed'
           : '__participation_attended'
@@ -148,7 +210,7 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      for (const enrollment of b.enrollments) {
+      for (const enrollment of enrollmentsByBeneficiary.get(b.id) || []) {
         const actionId = '__enrollment_completed'
         const key = sourceKey('ENROLLMENT', enrollment.id, actionId)
         if (persistedKeys.has(key)) continue
@@ -247,7 +309,7 @@ export async function GET(request: NextRequest) {
         }
       : null
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: {
         scope,
@@ -256,7 +318,7 @@ export async function GET(request: NextRequest) {
           activeNow,
           actCount: allEntries.length,
           totalPoints,
-          badgeCount: awards.filter(a => a.type === 'SHIELD').length,
+          badgeCount: shieldAwardCount,
           topMember: topMember ? { name: topMember.member.name || `${topMember.member.firstName} ${topMember.member.lastName}`, total: topMember.total } : null,
         },
         catTotals,
@@ -277,6 +339,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('ImpactDashboard GET error:', error)
-    return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json(
+      { success: false, message: 'تعذر تحميل لوحة الأثر', error: message },
+      { status: 500 },
+    )
   }
 }

@@ -20,7 +20,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/admin/impact/logs?limit=500`).then(r => r.json()).then(json => {
+    fetch(`/api/admin/impact/logs?page=1&pageSize=50`).then(r => r.json()).then(json => {
       if (json.success) {
         const cal: CalendarEvent[] = (json.data || []).map((l: any) => ({
           id: l.id,

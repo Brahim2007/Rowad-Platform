@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
     const stage = searchParams.get('stage') || ''
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
-    const pageSize = Math.min(Math.max(1, pageSizeParam), 100)
+    const pageSize = Math.min(Math.max(1, pageSizeParam), 50)
     const skip = (page - 1) * pageSize
 
     const where: Prisma.BeneficiaryWhereInput = {}

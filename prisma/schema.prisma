@@ -85,6 +85,10 @@ model Beneficiary {
   passwordHash      String?  @db.VarChar(255)  // كلمة مرور بوابة العضو
   mustChangePassword Boolean @default(true)    // يُلزم بتغيير كلمة المرور عند أول دخول
 
+  // ─── ربط العضو بمنصة (للإدارة المباشرة) ───
+  platformId          String?
+  platform            Platform?  @relation("MemberPlatform", fields: [platformId], references: [id], onDelete: SetNull)
+
   enrollments             Enrollment[]
   participations          Participation[]
   beneficiaryJourneyStages BeneficiaryJourneyStage[]
@@ -198,6 +202,7 @@ model Platform {
   coordinationTasks     CoordinationTask[]
   evaluations           Evaluation[]
   impactLogs            ImpactLog[]
+  members               Beneficiary[]  @relation("MemberPlatform")
   adminUsers            AdminUser[]
   documents             Document[]
 

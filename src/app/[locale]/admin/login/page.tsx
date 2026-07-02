@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react'
 import {
   ArrowLeft,
   BarChart3,
+  Crown,
   Database,
   KeyRound,
   Loader2,
@@ -18,10 +19,46 @@ import {
   Layers,
   Blocks,
   FileText,
+  UserCog,
+  Users,
+  User,
 } from 'lucide-react'
 
-const DEMO_EMAIL = 'admin@rowad-network.org'
-const DEMO_PASSWORD = 'Admin@2024!'
+const DEMO_ACCOUNTS = [
+  {
+    role: 'إدارة عليا',
+    icon: Crown,
+    email: 'admin@rowad-network.org',
+    password: 'Admin@2024!',
+    color: 'from-amber-500 to-orange-600',
+    bgLight: 'bg-amber-50',
+    border: 'border-amber-200',
+    textColor: 'text-amber-700',
+    desc: 'رؤية كاملة — كل المنصات والإعدادات',
+  },
+  {
+    role: 'مدير منصة',
+    icon: UserCog,
+    email: 'manager@rowad-network.org',
+    password: 'Manager@2024!',
+    color: 'from-blue-500 to-indigo-600',
+    bgLight: 'bg-blue-50',
+    border: 'border-blue-200',
+    textColor: 'text-blue-700',
+    desc: 'يدير أعضاءه ويعتمد أنشطتهم',
+  },
+  {
+    role: 'عضو',
+    icon: User,
+    email: 'ahmed@example.com',
+    password: 'Member@2024!',
+    color: 'from-green-500 to-emerald-600',
+    bgLight: 'bg-green-50',
+    border: 'border-green-200',
+    textColor: 'text-green-700',
+    desc: 'يدخل أنشطته ويتابع نقاطه',
+  },
+]
 
 const quotes = [
   {
@@ -87,8 +124,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [demoLoading, setDemoLoading] = useState(false)
-  const showDemo = process.env.NEXT_PUBLIC_ENV !== 'production'
+  const [demoLoadingIdx, setDemoLoadingIdx] = useState<number | null>(null)
 
   const [randomQuote, setRandomQuote] = useState(quotes[0])
 
@@ -101,10 +137,9 @@ export default function AdminLoginPage() {
     return params.get('callbackUrl') || '/ar/admin/dashboard'
   }
 
-  const loginWithCredentials = async (loginEmail: string, loginPassword: string, isDemo = false) => {
+  const loginWithCredentials = async (loginEmail: string, loginPassword: string) => {
     setError('')
-    setLoading(!isDemo)
-    setDemoLoading(isDemo)
+    setLoading(true)
 
     try {
       const result = await signIn('credentials', {
@@ -122,7 +157,6 @@ export default function AdminLoginPage() {
       setError('حدث خطأ في الاتصال')
     } finally {
       setLoading(false)
-      setDemoLoading(false)
     }
   }
 
@@ -131,10 +165,30 @@ export default function AdminLoginPage() {
     await loginWithCredentials(email, password)
   }
 
-  const handleDemoLogin = async () => {
-    setEmail(DEMO_EMAIL)
-    setPassword(DEMO_PASSWORD)
-    await loginWithCredentials(DEMO_EMAIL, DEMO_PASSWORD, true)
+  const handleDemoLogin = async (idx: number) => {
+    const account = DEMO_ACCOUNTS[idx]
+    setEmail(account.email)
+    setPassword(account.password)
+    setDemoLoadingIdx(idx)
+    setError('')
+
+    try {
+      const result = await signIn('credentials', {
+        email: account.email,
+        password: account.password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError('فشل الدخول التجريبي — تأكد من تشغيل البذرة')
+      } else {
+        window.location.href = getCallbackUrl()
+      }
+    } catch {
+      setError('حدث خطأ في الاتصال')
+    } finally {
+      setDemoLoadingIdx(null)
+    }
   }
 
   return (
@@ -330,46 +384,61 @@ export default function AdminLoginPage() {
                   </p>
                 </div>
 
-                {showDemo && (
-                <>
-                <button
-                  type="button"
-                  onClick={handleDemoLogin}
-                  disabled={loading || demoLoading}
-                  className="mb-4 flex w-full items-center justify-between gap-2 rounded-xl border border-secondary-200 bg-gradient-to-l from-secondary-50 to-white px-3 py-2.5 sm:px-4 sm:py-3 text-start transition-all hover:-translate-y-0.5 hover:border-secondary-300 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  <span className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-secondary-500 to-secondary-600 text-white shadow-sm">
-                      {demoLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-xs sm:text-sm font-bold text-neutral-900">الدخول التجريبي المباشر</span>
-                      <span className="mt-0.5 block text-[10px] sm:text-xs text-neutral-600">
-                        يملأ بيانات التجربة ويسجل الدخول تلقائياً
-                      </span>
-                    </span>
-                  </span>
-                  <ArrowLeft size={16} className="shrink-0 rtl-flip text-secondary-600" />
-                </button>
-
-                <div className="mb-4 grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-3 py-2">
-                    <div className="mb-1 flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-neutral-500">
-                      <Mail size={10} className="shrink-0" />
-                      البريد التجريبي
+                {/* ===== دخول تجريبي سريع ===== */}
+                <div className="mb-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary-100 text-secondary-600">
+                      <Sparkles size={12} />
                     </div>
-                    <p className="break-all text-[11px] sm:text-xs font-semibold text-neutral-800 leading-relaxed">{DEMO_EMAIL}</p>
+                    <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">دخول تجريبي بنقرة واحدة</span>
                   </div>
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 px-3 py-2">
-                    <div className="mb-1 flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-neutral-500">
-                      <KeyRound size={10} className="shrink-0" />
-                      كلمة المرور
-                    </div>
-                    <p className="text-[11px] sm:text-xs font-semibold text-neutral-800">{DEMO_PASSWORD}</p>
+
+                  <div className="grid gap-2">
+                    {DEMO_ACCOUNTS.map((account, idx) => {
+                      const Icon = account.icon
+                      const isLoading = demoLoadingIdx === idx
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleDemoLogin(idx)}
+                          disabled={loading || demoLoadingIdx !== null}
+                          className={`flex w-full items-center gap-3 rounded-xl border ${account.border} ${account.bgLight} px-3 py-2.5 text-start transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60`}
+                        >
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${account.color} text-white shadow-sm`}>
+                            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={16} />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className={`block text-[11px] sm:text-xs font-bold ${account.textColor}`}>
+                              {account.role}
+                            </span>
+                            <span className="mt-0.5 block text-[10px] text-neutral-500 leading-tight">
+                              {account.desc}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-[10px] text-neutral-400 font-mono text-left leading-tight">
+                            <div className="flex items-center gap-1">
+                              <Mail size={9} />
+                              <span className="truncate max-w-[130px] sm:max-w-[160px]">{account.email}</span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <KeyRound size={9} />
+                              <span>{account.password}</span>
+                            </div>
+                          </span>
+                          <ArrowLeft size={14} className="shrink-0 text-neutral-400" />
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-                </>
-                )}
+
+                {/* ===== فاصل ===== */}
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-neutral-200" />
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">أو سجل دخولك يدوياً</span>
+                  <div className="h-px flex-1 bg-neutral-200" />
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div>
@@ -382,7 +451,7 @@ export default function AdminLoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="input-field"
-                      placeholder={DEMO_EMAIL}
+                      placeholder="email@example.com"
                       autoComplete="email"
                     />
                   </div>
@@ -409,7 +478,7 @@ export default function AdminLoginPage() {
 
                   <button
                     type="submit"
-                    disabled={loading || demoLoading}
+                    disabled={loading || demoLoadingIdx !== null}
                     className="btn-primary btn-md w-full"
                   >
                     {loading ? (

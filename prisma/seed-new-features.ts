@@ -151,7 +151,7 @@ async function main() {
 
   const allActions = await prisma.impactAction.findMany({ where: { isActive: true } });
   const qualityLevels = ["ACCEPTABLE", "GOOD", "EXCELLENT", "EXCEPTIONAL", "ACCEPTABLE"] as const;
-  const statuses = ["APPROVED", "APPROVED", "APPROVED", "APPROVED", "PENDING_REVIEW"] as const;
+  const statuses = ["APPROVED", "APPROVED", "APPROVED", "PENDING_REVIEW", "REJECTED"] as const;
 
   let newLogs = 0;
   for (const [memberId, platformId] of memberPlatformMap.entries()) {
@@ -219,7 +219,7 @@ async function main() {
       try {
         await (prisma as any).impactGate.upsert({
           where: { beneficiaryId_year_month: { beneficiaryId: memberId, year: targetYear, month: actualMonth + 1 } },
-          create: { beneficiaryId: b.id, year: targetYear, month: actualMonth + 1, passed: Math.random() > 0.15 },
+          create: { beneficiaryId: memberId, year: targetYear, month: actualMonth + 1, passed: Math.random() > 0.15 },
           update: {},
         });
       } catch { /* تخطي */ }

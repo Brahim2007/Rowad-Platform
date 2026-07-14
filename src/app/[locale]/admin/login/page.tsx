@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
+import Image from 'next/image'
 import {
   ArrowLeft,
   BarChart3,
   Crown,
   Database,
-  KeyRound,
   Loader2,
   LockKeyhole,
-  Mail,
   Quote,
   ShieldCheck,
   Sparkles,
@@ -19,46 +18,19 @@ import {
   Layers,
   Blocks,
   FileText,
-  UserCog,
-  Users,
-  User,
 } from 'lucide-react'
 
-const DEMO_ACCOUNTS = [
-  {
-    role: 'إدارة عليا',
-    icon: Crown,
-    email: 'admin@rowad-network.org',
-    password: 'Admin@2024!',
-    color: 'from-amber-500 to-orange-600',
-    bgLight: 'bg-amber-50',
-    border: 'border-amber-200',
-    textColor: 'text-amber-700',
-    desc: 'رؤية كاملة — كل المنصات والإعدادات',
-  },
-  {
-    role: 'مدير منصة',
-    icon: UserCog,
-    email: 'manager@rowad-network.org',
-    password: 'Manager@2024!',
-    color: 'from-blue-500 to-indigo-600',
-    bgLight: 'bg-blue-50',
-    border: 'border-blue-200',
-    textColor: 'text-blue-700',
-    desc: 'يدير أعضاءه ويعتمد أنشطتهم',
-  },
-  {
-    role: 'عضو',
-    icon: User,
-    email: 'ahmed@example.com',
-    password: 'Member@2024!',
-    color: 'from-green-500 to-emerald-600',
-    bgLight: 'bg-green-50',
-    border: 'border-green-200',
-    textColor: 'text-green-700',
-    desc: 'يدخل أنشطته ويتابع نقاطه',
-  },
-]
+const DEMO_ACCOUNTS: Array<{
+  role: string
+  icon: typeof Crown
+  email: string
+  password: string
+  color: string
+  bgLight: string
+  border: string
+  textColor: string
+  desc: string
+}> = []
 
 const quotes = [
   {
@@ -274,10 +246,13 @@ export default function AdminLoginPage() {
               <div className="w-full max-w-lg animate-slide-up">
                 {/* Logo */}
                 <div className="mb-6">
-                  <img
+                  <Image
                     src="https://www.rowwad.net/uploads/system/logo-light.png"
                     alt="شبكة الرواد الإلكترونية"
+                    width={176}
+                    height={64}
                     className="h-auto w-44"
+                    unoptimized
                   />
                 </div>
 
@@ -350,10 +325,13 @@ export default function AdminLoginPage() {
               {/* Mobile Logo */}
               <div className="mb-6 text-center lg:hidden">
                 <div className="mx-auto mb-4 inline-flex rounded-xl bg-white/10 p-3 shadow-lg backdrop-blur-sm ring-1 ring-white/10">
-                  <img
+                  <Image
                     src="https://www.rowwad.net/uploads/system/logo-light.png"
                     alt="شبكة الرواد الإلكترونية"
+                    width={160}
+                    height={58}
                     className="h-auto w-36 sm:w-40"
+                    unoptimized
                   />
                 </div>
               </div>
@@ -384,61 +362,52 @@ export default function AdminLoginPage() {
                   </p>
                 </div>
 
-                {/* ===== دخول تجريبي سريع ===== */}
-                <div className="mb-5">
-                  <div className="mb-3 flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary-100 text-secondary-600">
-                      <Sparkles size={12} />
+                {DEMO_ACCOUNTS.length > 0 && (
+                  <div className="mb-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary-100 text-secondary-600">
+                        <Sparkles size={12} />
+                      </div>
+                      <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">دخول تجريبي بنقرة واحدة</span>
                     </div>
-                    <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">دخول تجريبي بنقرة واحدة</span>
-                  </div>
 
-                  <div className="grid gap-2">
-                    {DEMO_ACCOUNTS.map((account, idx) => {
-                      const Icon = account.icon
-                      const isLoading = demoLoadingIdx === idx
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => handleDemoLogin(idx)}
-                          disabled={loading || demoLoadingIdx !== null}
-                          className={`flex w-full items-center gap-3 rounded-xl border ${account.border} ${account.bgLight} px-3 py-2.5 text-start transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60`}
-                        >
-                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${account.color} text-white shadow-sm`}>
-                            {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={16} />}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block text-[11px] sm:text-xs font-bold ${account.textColor}`}>
-                              {account.role}
+                    <div className="grid gap-2">
+                      {DEMO_ACCOUNTS.map((account, idx) => {
+                        const Icon = account.icon
+                        const isLoading = demoLoadingIdx === idx
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleDemoLogin(idx)}
+                            disabled={loading || demoLoadingIdx !== null}
+                            className={`flex w-full items-center gap-3 rounded-xl border ${account.border} ${account.bgLight} px-3 py-2.5 text-start transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60`}
+                          >
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${account.color} text-white shadow-sm`}>
+                              {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={16} />}
                             </span>
-                            <span className="mt-0.5 block text-[10px] text-neutral-500 leading-tight">
-                              {account.desc}
+                            <span className="min-w-0 flex-1">
+                              <span className={`block text-[11px] sm:text-xs font-bold ${account.textColor}`}>
+                                {account.role}
+                              </span>
+                              <span className="mt-0.5 block text-[10px] text-neutral-500 leading-tight">
+                                {account.desc}
+                              </span>
                             </span>
-                          </span>
-                          <span className="shrink-0 text-[10px] text-neutral-400 font-mono text-left leading-tight">
-                            <div className="flex items-center gap-1">
-                              <Mail size={9} />
-                              <span className="truncate max-w-[130px] sm:max-w-[160px]">{account.email}</span>
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <KeyRound size={9} />
-                              <span>{account.password}</span>
-                            </div>
-                          </span>
-                          <ArrowLeft size={14} className="shrink-0 text-neutral-400" />
-                        </button>
-                      )
-                    })}
+                            <ArrowLeft size={14} className="shrink-0 text-neutral-400" />
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* ===== فاصل ===== */}
-                <div className="mb-4 flex items-center gap-3">
+                {DEMO_ACCOUNTS.length > 0 && <div className="mb-4 flex items-center gap-3">
                   <div className="h-px flex-1 bg-neutral-200" />
                   <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">أو سجل دخولك يدوياً</span>
                   <div className="h-px flex-1 bg-neutral-200" />
-                </div>
+                </div>}
 
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div>

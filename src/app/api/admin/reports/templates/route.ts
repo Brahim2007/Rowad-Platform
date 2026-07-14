@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { recordActivityLog } from '@/lib/activity-log'
+import { requireAuth, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+function requireTemplateMutation(user: SessionUser) {
+  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    return NextResponse.json({ success: false, message: 'غير مصرح — قوالب التقارير متاحة للإدارة فقط' }, { status: 403 })
   }
   return null
 }
 
 export async function GET() {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const templates = await prisma.reportTemplate.findMany({
@@ -47,7 +47,9 @@ function normalizeSections(value: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireTemplateMutation(auth.user)
   if (authError) return authError
 
   try {
@@ -70,12 +72,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    const session = await auth()
     await recordActivityLog({
       entity: 'report_template',
       entityId: template.id,
       action: 'CREATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: auth.user.email || auth.user.name,
       changes: template,
     })
 
@@ -88,13 +89,15 @@ export async function POST(request: NextRequest) {
     if (error instanceof SyntaxError) {
       return NextResponse.json({ success: false, message: 'صيغة JSON في الأقسام غير صحيحة' }, { status: 400 })
     }
-    console.error('Report template POST error:', error)
+    logger.error('Report template POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireTemplateMutation(auth.user)
   if (authError) return authError
 
   try {
@@ -115,12 +118,11 @@ export async function PUT(request: NextRequest) {
       },
     })
 
-    const session = await auth()
     await recordActivityLog({
       entity: 'report_template',
       entityId: template.id,
       action: 'UPDATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: auth.user.email || auth.user.name,
       changes: body,
     })
 
@@ -133,13 +135,15 @@ export async function PUT(request: NextRequest) {
     if (error instanceof SyntaxError) {
       return NextResponse.json({ success: false, message: 'صيغة JSON في الأقسام غير صحيحة' }, { status: 400 })
     }
-    console.error('Report template PUT error:', error)
+    logger.error('Report template PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireTemplateMutation(auth.user)
   if (authError) return authError
 
   try {
@@ -149,17 +153,16 @@ export async function DELETE(request: NextRequest) {
 
     await prisma.reportTemplate.delete({ where: { id } })
 
-    const session = await auth()
     await recordActivityLog({
       entity: 'report_template',
       entityId: id,
       action: 'DELETE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: auth.user.email || auth.user.name,
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Report template DELETE error:', error)
+    logger.error('Report template DELETE error', error)
     return NextResponse.json({ success: false, message: 'لا يمكن حذف قالب مرتبط بتقارير أو حدث خطأ في الخادم' }, { status: 500 })
   }
 }

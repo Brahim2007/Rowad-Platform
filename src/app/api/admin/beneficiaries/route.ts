@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
+import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireBeneficiariesAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 }),
+    }
   }
-  return null
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
+    }
+  }
+  return auth
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireBeneficiariesAccess()
+  if (!auth.ok) return auth.error
 
   try {
+    const scope = getPlatformScope(auth.user)
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const country = searchParams.get('country') || ''
@@ -24,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     const where: Prisma.BeneficiaryWhereInput = {
       type: { in: ['BENEFICIARY', 'BOTH'] },
+      ...platformWhere(scope),
     }
     if (search) {
       where.OR = [
@@ -94,8 +106,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireBeneficiariesAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
@@ -113,6 +125,7 @@ export async function POST(request: NextRequest) {
         gender: gender || null, birthDate: birthDate ? new Date(birthDate) : null,
         educationLevel: educationLevel || null, nationality: nationality || null,
         country: country || null, city: city || null,
+        platformId: auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : (body.platformId || null),
       },
     })
 
@@ -148,14 +161,19 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireBeneficiariesAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
     const { id, code, firstName, lastName, email, phone, gender, birthDate, educationLevel, nationality, country, city, status } = body
 
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
+    const current = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!current) return NextResponse.json({ success: false, message: 'المستفيد غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, current.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     const beneficiary = await prisma.beneficiary.update({
       where: { id },
@@ -172,6 +190,7 @@ export async function PUT(request: NextRequest) {
         country: country || null,
         city: city || null,
         ...(status && { status }),
+        ...(auth.user.role === 'PLATFORM_MANAGER' ? { platformId: auth.user.platformId } : {}),
       },
     })
 
@@ -186,13 +205,18 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireBeneficiariesAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
+    const beneficiary = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!beneficiary) return NextResponse.json({ success: false, message: 'المستفيد غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, beneficiary.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
     await prisma.beneficiary.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch {

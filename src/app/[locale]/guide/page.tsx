@@ -5,16 +5,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   BookOpen, ChevronDown, Menu, Database, LayoutDashboard, Route,
-  Target, Users, Blocks, FileText, ClipboardList, Activity,
-  Layers, ShieldCheck, BarChart3, Fingerprint, Handshake,
-  Compass, CheckSquare, Clock, BookMarked, GraduationCap,
-  Search, Filter, Download, PieChart, RefreshCw, Calendar,
-  ImageOff, ChevronLeft, ArrowUpRight, ListChecks, UserCheck,
-  Network, Briefcase, Globe, TrendingUp, Library, ClipboardCheck,
-  CalendarCheck, Settings, HelpCircle, Info, AlertCircle,
-  CheckCircle, ArrowLeft, Maximize2, Plus, Star, Workflow,
-  FileSearch, Link2, Upload, Eye, Edit3, Trash2, LogIn,
-  ChevronRight, ExternalLink, ZoomIn
+  Target, Users, Blocks, FileText, Activity,
+  BarChart3, Fingerprint, Handshake,
+  Search, Filter, Download, PieChart, Calendar,
+  ImageOff, ListChecks,
+  Network, Briefcase, TrendingUp, Library, ClipboardCheck,
+  HelpCircle, Info, AlertCircle,
+  CheckCircle, Star,
+  Upload, Eye, Edit3,
 } from 'lucide-react'
 import PageLayout from '@/components/shared/PageLayout'
 

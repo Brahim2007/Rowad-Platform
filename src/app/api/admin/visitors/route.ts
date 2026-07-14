@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireGlobalAnalyticsAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'PLATFORM_MANAGER' || auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — التحليلات العامة متاحة للإدارة فقط' }, { status: 403 }),
+    }
   }
-  return null
+  return auth
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireGlobalAnalyticsAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
@@ -232,7 +237,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Visitors API Error:', error)
+    logger.error('Visitors API Error', error)
     return NextResponse.json(
       { success: false, message: 'خطأ في تحميل بيانات الزوار' },
       { status: 500 }

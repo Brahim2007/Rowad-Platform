@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { ArrowLeft, Blocks, Activity, BookOpen } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
@@ -100,11 +101,13 @@ export default function FeaturedPlatforms() {
 
                     <div className="relative aspect-square overflow-hidden bg-neutral-50">
                       {image ? (
-                        <img
+                        <Image
                           src={image}
                           alt={name}
+                          fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                           className="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-[1.03]"
-                          loading="lazy"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: `${brandColor}12` }}>

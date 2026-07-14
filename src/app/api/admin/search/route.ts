@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { getPlatformScope, platformWhere, requireAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q')?.trim() || ''
     if (q.length < 2) return NextResponse.json({ success: true, data: { members: [], activities: [], documents: [] } })
+    const scope = getPlatformScope(auth.user)
+    const platformFilter = platformWhere(scope)
 
     const [members, activities, documents] = await Promise.all([
-      (prisma as any).beneficiary.findMany({
+      prisma.beneficiary.findMany({
         where: {
+          ...platformFilter,
           OR: [
             { firstName: { contains: q, mode: 'insensitive' } },
             { lastName: { contains: q, mode: 'insensitive' } },
@@ -24,8 +28,9 @@ export async function GET(request: NextRequest) {
         select: { id: true, code: true, firstName: true, lastName: true, networkRole: true, platform: { select: { name: true } } },
         take: 10,
       }),
-      (prisma as any).impactLog.findMany({
+      prisma.impactLog.findMany({
         where: {
+          ...platformFilter,
           OR: [
             { note: { contains: q, mode: 'insensitive' } },
             { action: { name: { contains: q, mode: 'insensitive' } } },
@@ -40,8 +45,9 @@ export async function GET(request: NextRequest) {
         take: 10,
         orderBy: { date: 'desc' },
       }),
-      (prisma as any).document.findMany({
+      prisma.document.findMany({
         where: {
+          ...platformFilter,
           OR: [
             { title: { contains: q, mode: 'insensitive' } },
             { description: { contains: q, mode: 'insensitive' } },
@@ -76,7 +82,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Search error:', error)
+    logger.error('Search error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

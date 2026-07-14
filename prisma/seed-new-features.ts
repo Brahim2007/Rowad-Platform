@@ -8,6 +8,10 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+function randomLocalPassword() {
+  return `Local-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}!`
+}
+
 async function main() {
   console.log("🌱 بدء بذرة الأنظمة الجديدة...\n");
 
@@ -54,14 +58,15 @@ async function main() {
   const [platA, platB] = platforms;
 
   // ════════════ 3. إنشاء مدراء منصات ════════════
-  const managerEmail = "manager@rowad-network.org";
+  const managerEmail = process.env.SEED_MANAGER_EMAIL || "manager@example.test";
+  const managerPassword = process.env.SEED_MANAGER_PASSWORD || randomLocalPassword();
   const existingManager = await prisma.adminUser.findUnique({ where: { email: managerEmail } });
   let managerId = existingManager?.id || "";
   if (!existingManager) {
     const mgr = await prisma.adminUser.create({
       data: {
         email: managerEmail,
-        passwordHash: await bcrypt.hash("Manager@2024!", 12),
+        passwordHash: await bcrypt.hash(managerPassword, 12),
         fullName: "مدير منصة التقنية",
         role: "PLATFORM_MANAGER" as any,
         platformId: platA.id,
@@ -74,7 +79,8 @@ async function main() {
   }
 
   // ════════════ 4. إنشاء أعضاء بحسابات دخول ════════════
-  const memberPassword = await bcrypt.hash("Member@2024!", 12);
+  const rawMemberPassword = process.env.SEED_MEMBER_PASSWORD || randomLocalPassword();
+  const memberPassword = await bcrypt.hash(rawMemberPassword, 12);
   // كل عضو يُربط بمنصة عبر حقل platformId (أضيف مؤخراً)
   const sampleMembers = [
     { firstName: "أحمد", lastName: "العمري", code: "R-101", email: "ahmed@example.com", networkRole: "باحث ومفكر", platformId: platA.id },
@@ -98,7 +104,7 @@ async function main() {
           platformId: m.platformId,
           status: "ACTIVE", type: "BENEFICIARY",
           joinDate: new Date(curYear - 1, Math.floor(Math.random() * 12), 1),
-          passwordHash: memberPassword, mustChangePassword: false,
+          passwordHash: memberPassword, mustChangePassword: true,
         },
       });
       memberPlatformMap.set(created.id, m.platformId);
@@ -110,7 +116,7 @@ async function main() {
       memberPlatformMap.set(existing.id, m.platformId);
     }
   }
-  console.log(`✅ أعضاء بحسابات دخول: ${memberPlatformMap.size} (كلمة المرور: Member@2024!)`);
+  console.log(`✅ أعضاء بحسابات دخول: ${memberPlatformMap.size}`);
 
   // ════════════ 5. أنواع الأنشطة (إن لم تكن موجودة) ════════════
   const existingActions = await prisma.impactAction.count();
@@ -282,10 +288,7 @@ async function main() {
   // ════════════ 11. SUMMARY ════════════
   console.log("\n📊 ===== ملخص البذرة =====");
   console.log("─────────────────────────");
-  console.log("🔑 دخول الإدارة: admin@rowad-network.org / Admin@2024!");
-  console.log("🔑 دخول مدير المنصة: manager@rowad-network.org / Manager@2024!");
-  console.log("🔑 دخول الأعضاء (أي منهم): البريد في الجدول / Member@2024!");
-  console.log("   مثال: ahmed@example.com / Member@2024!");
+  console.log("🔑 بيانات الدخول التجريبية تُضبط عبر SEED_* ولا تُطبع في السجلات.");
   console.log("─────────────────────────");
   console.log("🌐 /ar/admin/login     — لوحة الإدارة");
   console.log("🌐 /ar/admin/my-platform — لوحة مدير المنصة");

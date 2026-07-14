@@ -14,6 +14,7 @@
 
 import OpenAI from 'openai'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // ═══════════════════════════════════════════════════
 // الإعدادات
@@ -35,7 +36,7 @@ function getClient() {
   const apiKey = process.env.DEEPSEEK_API_KEY
   if (!apiKey) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[deepseek] DEEPSEEK_API_KEY غير مضبوط — الـ API سيفشل حتى يُضبط المفتاح')
+      logger.warn('[deepseek] DEEPSEEK_API_KEY غير مضبوط — الـ API سيفشل حتى يُضبط المفتاح')
     }
   }
   return new OpenAI({ baseURL: DEEPSEEK_BASE_URL, apiKey: apiKey || 'sk-placeholder' })
@@ -50,7 +51,7 @@ async function logUsage(params: {
 }) {
   try {
     const cost = (params.inputTokens / 1000) * COST_PER_1K_INPUT + (params.outputTokens / 1000) * COST_PER_1K_OUTPUT
-    await (prisma as any).aiUsageLog?.create?.({
+    await prisma.aiUsageLog.create({
       data: {
         userId: params.userId,
         feature: params.feature,
@@ -67,7 +68,7 @@ async function checkBudget(): Promise<boolean> {
   try {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const result = await (prisma as any).aiUsageLog?.aggregate?.({
+    const result = await prisma.aiUsageLog.aggregate({
       where: { createdAt: { gte: startOfMonth } },
       _sum: { costEstimate: true },
     })
@@ -100,7 +101,6 @@ export const ai = {
     if (opts.system) messages.push({ role: 'system', content: opts.system })
     messages.push({ role: 'user', content: prompt })
 
-    const start = Date.now()
     try {
       const response = await client.chat.completions.create({
         model: DEEPSEEK_MODEL,
@@ -124,8 +124,8 @@ export const ai = {
         text: response.choices[0]?.message?.content || '',
         usage: usage ? { input: usage.prompt_tokens, output: usage.completion_tokens } : null,
       }
-    } catch (error: any) {
-      console.error('[deepseek] chat error:', error?.message || error)
+    } catch (error: unknown) {
+      logger.error('[deepseek] chat error', error instanceof Error ? error.message : error)
       if (opts.userId) {
         await logUsage({ userId: opts.userId, feature: opts.feature || 'chat', inputTokens: 0, outputTokens: 0, success: false })
       }

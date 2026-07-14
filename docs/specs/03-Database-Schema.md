@@ -35,7 +35,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("ROWAD_DATABASE_URL")
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -562,18 +562,22 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  // مدير افتراضي
-  const passwordHash = await bcrypt.hash('ChangeMeNow!2026', 12)
+  // مدير تجريبي اختياري
+  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD
+  if (seedAdminEmail && seedAdminPassword) {
+  const passwordHash = await bcrypt.hash(seedAdminPassword, 12)
   await prisma.adminUser.upsert({
-    where: { email: 'admin@rowad-network.org' },
+    where: { email: seedAdminEmail },
     update: {},
     create: {
-      email: 'admin@rowad-network.org',
+      email: seedAdminEmail,
       passwordHash,
       fullName: 'Super Admin',
       role: AdminRole.SUPER_ADMIN,
     },
   })
+  }
 
   // شريك افتراضي
   await prisma.partner.create({
@@ -743,10 +747,10 @@ const partners = await prisma.partner.findMany({
 
 ```bash
 # النسخ الاحتياطي
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+pg_dump $ROWAD_DATABASE_URL > backup_$(date +%Y%m%d).sql
 
 # الاستعادة
-psql $DATABASE_URL < backup_20260101.sql
+psql $ROWAD_DATABASE_URL < backup_20260101.sql
 ```
 
 استخدم الميزات المدمجة في Neon/Supabase للنسخ الاحتياطي التلقائي.

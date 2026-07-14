@@ -2,28 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireSuperAdmin as requireSuperAdminAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import { AdminUserSchema } from '@/lib/validations/admin'
 import { recordActivityLog } from '@/lib/activity-log'
 
 async function requireSuperAdmin() {
-  const session = await auth()
-  if (!session?.user) {
-    return {
-      error: NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 }),
-      session: null,
-    }
-  }
-
-  const role = (session.user as { role?: string }).role
-  if (role !== 'SUPER_ADMIN') {
-    return {
-      error: NextResponse.json({ success: false, message: 'هذه الصفحة متاحة للمدير العام فقط' }, { status: 403 }),
-      session,
-    }
-  }
-
-  return { error: null, session }
+  const auth = await requireSuperAdminAuth()
+  return auth.ok ? { error: null, user: auth.user } : { error: auth.error, user: null }
 }
 
 function toSafeUser(user: {
@@ -64,13 +50,13 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: users.map(toSafeUser) })
   } catch (error) {
-    console.error('Admin users GET error:', error)
+    logger.error('Admin users GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  const { error, session } = await requireSuperAdmin()
+  const { error, user: actor } = await requireSuperAdmin()
   if (error) return error
 
   try {
@@ -99,7 +85,7 @@ export async function POST(request: NextRequest) {
       entity: 'admin_user',
       entityId: user.id,
       action: 'CREATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: actor?.email || actor?.name,
       metadata: { email: user.email, role: user.role },
     })
 
@@ -112,13 +98,13 @@ export async function POST(request: NextRequest) {
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, message: 'البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
     }
-    console.error('Admin users POST error:', error)
+    logger.error('Admin users POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const { error, session } = await requireSuperAdmin()
+  const { error, user: actor } = await requireSuperAdmin()
   if (error) return error
 
   try {
@@ -168,7 +154,7 @@ export async function PUT(request: NextRequest) {
       entity: 'admin_user',
       entityId: user.id,
       action: 'UPDATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: actor?.email || actor?.name,
       changes: {
         email: { old: current.email, new: user.email },
         fullName: { old: current.fullName, new: user.fullName },
@@ -187,13 +173,13 @@ export async function PUT(request: NextRequest) {
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, message: 'البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
     }
-    console.error('Admin users PUT error:', error)
+    logger.error('Admin users PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error, session } = await requireSuperAdmin()
+  const { error, user: actor } = await requireSuperAdmin()
   if (error) return error
 
   try {
@@ -218,13 +204,13 @@ export async function DELETE(request: NextRequest) {
       entity: 'admin_user',
       entityId: id,
       action: 'DELETE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: actor?.email || actor?.name,
       metadata: { email: user.email, role: user.role },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Admin users DELETE error:', error)
+    logger.error('Admin users DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

@@ -55,7 +55,7 @@ interface SyncParticipationParams {
 
 export async function syncParticipation(params: SyncParticipationParams): Promise<void> {
   const {
-    id, beneficiaryId, status, platformId, platformName,
+    id, beneficiaryId, status, platformId,
     programId, activityId, activityName, attendedAt, activityStartDate, createdAt,
   } = params
 

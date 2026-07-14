@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Plus, Pencil, Trash2, X, Blocks, BookOpen, Activity,
   Target, Users, Search, Hash, ArrowLeft,
@@ -101,13 +102,15 @@ const PlatformCard = ({ platform, onEdit, onDelete }: {
 
       <div className="relative h-36 overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-200">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={platform.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className={`h-full w-full transition-transform duration-500 group-hover:scale-105 ${
               platform.coverImage ? 'object-cover' : 'object-contain p-6'
             }`}
-            loading="lazy"
+            unoptimized
           />
         ) : (
           <div
@@ -150,11 +153,11 @@ const PlatformCard = ({ platform, onEdit, onDelete }: {
       <div className="p-4">
         <div className="flex items-start gap-3 mb-3">
           <div
-            className="h-12 w-12 shrink-0 rounded-xl border-2 flex items-center justify-center overflow-hidden"
+            className="relative h-12 w-12 shrink-0 rounded-xl border-2 flex items-center justify-center overflow-hidden"
             style={{ borderColor: `${color}25`, backgroundColor: `${color}08` }}
           >
             {platform.logo && !platform.coverImage ? (
-              <img src={platform.logo} alt="" className="h-full w-full object-contain p-1" loading="lazy" />
+              <Image src={platform.logo} alt="" fill sizes="48px" className="object-contain p-1" unoptimized />
             ) : (
               <Blocks size={20} style={{ color }} />
             )}

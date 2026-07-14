@@ -8,33 +8,37 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
-import { getPlatformScope, type SessionUser } from '@/lib/auth-helpers'
+import { requireAuth, type SessionUser, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
+
+function requireDocumentAccess(user: SessionUser) {
+  if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'PLATFORM_MANAGER') return null
+  return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
+}
 
 // ═══════════════════════════════════════════════════
 // GET — عرض الوثائق مع الفلترة
 // ═══════════════════════════════════════════════════
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.role !== 'PLATFORM_MANAGER') {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
-  }
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireDocumentAccess(auth.user)
+  if (authError) return authError
 
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || ''
-    const platformId = searchParams.get('platformId') || (user.role === 'PLATFORM_MANAGER' ? user.platformId : '')
+    const platformId = auth.user.role === 'PLATFORM_MANAGER'
+      ? auth.user.platformId
+      : (searchParams.get('platformId') || '')
     const status = searchParams.get('status') || ''
     const search = searchParams.get('search') || ''
     const year = searchParams.get('year') || ''
     const month = searchParams.get('month') || ''
     const limit = Math.min(Number(searchParams.get('limit')) || 200, 500)
 
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     if (type) where.type = type
     if (status) where.status = status
     if (platformId) where.platformId = platformId
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (!status) where.status = { not: 'ARCHIVED' }
 
     const [docs, total] = await Promise.all([
-      (prisma as any).document.findMany({
+      prisma.document.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
           _count: { select: { versions: true } },
         },
       }),
-      (prisma as any).document.count({ where }),
+      prisma.document.count({ where }),
     ])
 
     const data = docs.map((d: any) => ({
@@ -87,7 +91,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data, total })
   } catch (error) {
-    console.error('Documents GET error:', error)
+    logger.error('Documents GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
@@ -102,13 +106,10 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.role !== 'PLATFORM_MANAGER') {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
-  }
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireDocumentAccess(auth.user)
+  if (authError) return authError
 
   try {
     const body = await request.json()
@@ -121,8 +122,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'رابط الملف مطلوب' }, { status: 400 })
     }
 
-    const actor = user.name || user.email || 'مستخدم'
-    const doc = await (prisma as any).document.create({
+    const actor = auth.user.name || auth.user.email || 'مستخدم'
+    const scopedPlatformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : (platformId || null)
+    if (auth.user.role === 'PLATFORM_MANAGER' && !scopedPlatformId) {
+      return NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 })
+    }
+    if (scopedPlatformId && !(await verifyPlatformOwnership(auth.user, scopedPlatformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    const doc = await prisma.document.create({
       data: {
         title: title.trim(),
         type: type || 'OTHER',
@@ -133,15 +141,15 @@ export async function POST(request: NextRequest) {
         fileUrl: fileUrl.trim(),
         fileType: fileType || null,
         fileSize: fileSize || null,
-        platformId: platformId || (user.role === 'PLATFORM_MANAGER' ? user.platformId : null),
+        platformId: scopedPlatformId,
         uploadedBy: actor,
-        uploadedById: user.id,
+        uploadedById: auth.user.id,
         status: 'APPROVED',
       },
     })
 
     // إنشاء النسخة الأولى
-    await (prisma as any).documentVersion.create({
+    await prisma.documentVersion.create({
       data: {
         documentId: doc.id,
         version: 1,
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: doc }, { status: 201 })
   } catch (error) {
-    console.error('Documents POST error:', error)
+    logger.error('Documents POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الحفظ' }, { status: 500 })
   }
 }
@@ -163,29 +171,29 @@ export async function POST(request: NextRequest) {
 // ═══════════════════════════════════════════════════
 
 export async function PUT(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.role !== 'PLATFORM_MANAGER') {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
-  }
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireDocumentAccess(auth.user)
+  if (authError) return authError
 
   try {
-    const { id, title, type, description, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, status, status: newStatus } = await request.json()
+    const { id, title, type, description, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, status } = await request.json()
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
-    const actor = user.name || user.email || 'مستخدم'
-    const current = await (prisma as any).document.findUnique({ where: { id } })
+    const actor = auth.user.name || auth.user.email || 'مستخدم'
+    const current = await prisma.document.findUnique({ where: { id } })
     if (!current) return NextResponse.json({ success: false, message: 'الوثيقة غير موجودة' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, current.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     // إنشاء نسخة جديدة إن تغيّر الملف
     if (fileUrl && fileUrl !== current.fileUrl) {
-      const lastVersion = await (prisma as any).documentVersion.findFirst({
+      const lastVersion = await prisma.documentVersion.findFirst({
         where: { documentId: id },
         orderBy: { version: 'desc' },
       })
-      await (prisma as any).documentVersion.create({
+      await prisma.documentVersion.create({
         data: {
           documentId: id,
           version: (lastVersion?.version || 1) + 1,
@@ -196,7 +204,7 @@ export async function PUT(request: NextRequest) {
       })
     }
 
-    const doc = await (prisma as any).document.update({
+    const doc = await prisma.document.update({
       where: { id },
       data: {
         title: title?.trim(),
@@ -209,14 +217,15 @@ export async function PUT(request: NextRequest) {
         fileType: fileType,
         fileSize: fileSize,
         status: status,
+        ...(auth.user.role === 'PLATFORM_MANAGER' ? { platformId: auth.user.platformId } : {}),
         lastEditedBy: actor,
         lastEditedAt: new Date(),
-      } as any,
+      },
     })
 
     return NextResponse.json({ success: true, data: doc })
   } catch (error) {
-    console.error('Documents PUT error:', error)
+    logger.error('Documents PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في التحديث' }, { status: 500 })
   }
 }
@@ -226,11 +235,9 @@ export async function PUT(request: NextRequest) {
 // ═══════════════════════════════════════════════════
 
 export async function DELETE(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN') {
     return NextResponse.json({ success: false, message: 'غير مصرح — الإدارة العليا فقط' }, { status: 403 })
   }
 
@@ -238,16 +245,21 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
+    const document = await prisma.document.findUnique({ where: { id }, select: { platformId: true } })
+    if (!document) return NextResponse.json({ success: false, message: 'الوثيقة غير موجودة' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, document.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     // أرشفة لا حذف
-    await (prisma as any).document.update({
+    await prisma.document.update({
       where: { id },
       data: { status: 'ARCHIVED' },
     })
 
     return NextResponse.json({ success: true, message: 'تمت أرشفة الوثيقة' })
   } catch (error) {
-    console.error('Documents DELETE error:', error)
+    logger.error('Documents DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

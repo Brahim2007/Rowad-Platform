@@ -8,3 +8,5 @@ next-env.d.ts
 *.log
 cookies.txt
 -n
+Prompt/
+.claude/

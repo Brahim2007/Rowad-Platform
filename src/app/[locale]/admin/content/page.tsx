@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Pencil, X, Eye, EyeOff } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ContentPage {

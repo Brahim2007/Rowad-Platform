@@ -7,42 +7,74 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { ImpactApprovalStatus, ImpactCategory, ImpactQuality, ImpactSourceType, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { recordActivityLog } from '@/lib/activity-log'
 import { sendActivityApprovedEmail, sendActivityRejectedEmail } from '@/lib/email'
-import { createNotification, notifyNewSubmission, notifyActivityApproved, notifyActivityRejected } from '@/lib/notifications'
+import { notifyNewSubmission, notifyActivityApproved, notifyActivityRejected } from '@/lib/notifications'
+import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireImpactAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 }),
+    }
   }
-  return null
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
+    }
+  }
+  return auth
 }
 
-function getRole() {
-  return auth().then(s => (s?.user as any)?.role || 'EDITOR')
+async function resolveScopedPlatformId(user: SessionUser, beneficiaryId: string, requestedPlatformId?: string | null) {
+  const beneficiary = await prisma.beneficiary.findUnique({
+    where: { id: beneficiaryId },
+    select: { platformId: true },
+  })
+  if (!beneficiary) return { ok: false as const, error: NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 }) }
+  if (!(await verifyPlatformOwnership(user, beneficiary.platformId))) {
+    return { ok: false as const, error: NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 }) }
+  }
+  if (user.role === 'PLATFORM_MANAGER') {
+    return { ok: true as const, platformId: user.platformId }
+  }
+  return { ok: true as const, platformId: requestedPlatformId || beneficiary.platformId || null }
 }
 
-async function rejectIfEditor(action: string) {
-  const role = await getRole()
-  if (role === 'EDITOR') {
-    return NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 })
-  }
-  return null
+function enumValue<T extends Record<string, string>>(enumObject: T, value: unknown): T[keyof T] | undefined {
+  const text = String(value || '')
+  return Object.values(enumObject).includes(text) ? text as T[keyof T] : undefined
+}
+
+function parseStatus(value: unknown, fallback = ImpactApprovalStatus.PENDING_REVIEW) {
+  return enumValue(ImpactApprovalStatus, value) ?? fallback
+}
+
+function parseQuality(value: unknown) {
+  return enumValue(ImpactQuality, value) ?? ImpactQuality.ACCEPTABLE
+}
+
+function parseSourceType(value: unknown) {
+  return enumValue(ImpactSourceType, value) ?? ImpactSourceType.MANUAL
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireImpactAccess()
+  if (!auth.ok) return auth.error
 
   try {
+    const scope = getPlatformScope(auth.user)
     const { searchParams } = new URL(request.url)
     const beneficiaryId = searchParams.get('beneficiaryId') || ''
-    const status = searchParams.get('status') || ''
-    const category = searchParams.get('category') || ''
+    const status = enumValue(ImpactApprovalStatus, searchParams.get('status'))
+    const category = enumValue(ImpactCategory, searchParams.get('category'))
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
     const pageSize = Math.min(Math.max(1, pageSizeParam), 50)
@@ -50,20 +82,48 @@ export async function GET(request: NextRequest) {
     const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
-    const where = {
+    const where: Prisma.ImpactLogWhereInput = {
+      ...platformWhere(scope),
       ...(beneficiaryId && { beneficiaryId }),
-      ...(status && { status: status as any }),
-      ...(category && { action: { category: category as any } }),
+      ...(status && { status }),
+      ...(category && { action: { category } }),
     }
 
     if (compact) {
       const clauses = [
+        scope.filterId ? Prisma.sql`l."platformId" = ${scope.filterId}` : null,
         beneficiaryId ? Prisma.sql`l."beneficiaryId" = ${beneficiaryId}` : null,
         status ? Prisma.sql`l.status = ${status}::"ImpactApprovalStatus"` : null,
         category ? Prisma.sql`a.category = ${category}::"ImpactCategory"` : null,
       ].filter(Boolean) as Prisma.Sql[]
       const whereSql = clauses.length ? Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}` : Prisma.empty
-      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      const rows = await prisma.$queryRaw<Array<{
+        id: string
+        beneficiaryId: string
+        actionId: string
+        count: number
+        quality: ImpactQuality
+        status: ImpactApprovalStatus
+        date: Date
+        link: string | null
+        note: string | null
+        createdBy: string | null
+        platformId: string | null
+        rejectionReason: string | null
+        sourceType: ImpactSourceType
+        action_id: string | null
+        action_name: string | null
+        action_points: number | null
+        action_category: ImpactCategory | null
+        action_note: string | null
+        action_isActive: boolean | null
+        action_sortOrder: number | null
+        beneficiary_id: string | null
+        beneficiary_firstName: string | null
+        beneficiary_lastName: string | null
+        beneficiary_code: string | null
+        beneficiary_networkRole: string | null
+      }>>(Prisma.sql`
         SELECT
           l.id,
           l."beneficiaryId",
@@ -189,14 +249,14 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('ImpactLogs GET error:', error)
+    logger.error('ImpactLogs GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireImpactAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
@@ -207,9 +267,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'العضو ونوع النشاط مطلوبان' }, { status: 400 })
     }
 
-    const status = String(body.status || 'PENDING_REVIEW')
-    const session = await auth()
-    const actor = session?.user?.email || session?.user?.name || null
+    const status = parseStatus(body.status)
+    const actor = auth.user.email || auth.user.name || null
+    const scopedPlatform = await resolveScopedPlatformId(auth.user, beneficiaryId, body.platformId || null)
+    if (!scopedPlatform.ok) return scopedPlatform.error
 
     // التحقق من وجود سبب الرفض عند الرفض
     if (status === 'REJECTED' && !body.rejectionReason?.trim()) {
@@ -223,11 +284,11 @@ export async function POST(request: NextRequest) {
       data: {
         beneficiaryId,
         actionId,
-        sourceType: String(body.sourceType || 'MANUAL') as any,
+        sourceType: parseSourceType(body.sourceType),
         sourceId: body.sourceId ? String(body.sourceId).trim() : null,
         count: Number(body.count) || 1,
-        quality: String(body.quality || 'ACCEPTABLE') as any,
-        status: status as any,
+        quality: parseQuality(body.quality),
+        status,
         date: body.date ? new Date(String(body.date)) : new Date(),
         link: body.link?.trim() || null,
         note: body.note?.trim() || null,
@@ -238,7 +299,7 @@ export async function POST(request: NextRequest) {
         approvedBy: status === 'APPROVED' ? (body.approvedBy?.trim() || actor) : null,
         approvedAt: status === 'APPROVED' ? new Date() : null,
         rejectionReason: status === 'REJECTED' ? (body.rejectionReason?.trim() || null) : null,
-        platformId: body.platformId || null,
+        platformId: scopedPlatform.platformId,
         programId: body.programId || null,
         activityId: body.activityId || null,
         enrollmentId: body.enrollmentId || null,
@@ -253,13 +314,13 @@ export async function POST(request: NextRequest) {
       entity: 'impactLog',
       entityId: log.id,
       action: 'CREATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor,
       changes: body,
     })
 
     // إشعار داخلي للمشرفين عند إنشاء نشاط جديد
     try {
-      const beneficiary = log.beneficiary as any
+      const beneficiary = log.beneficiary
       if (log.platformId && beneficiary) {
         await notifyNewSubmission({
           beneficiaryId: log.beneficiaryId,
@@ -271,31 +332,31 @@ export async function POST(request: NextRequest) {
     } catch { /* silent */ }
 
     return NextResponse.json({ success: true, data: log }, { status: 201 })
-  } catch (error: any) {
-    console.error('ImpactLogs POST error:', error)
-    return NextResponse.json({ success: false, message: error.message || 'خطأ في الحفظ' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('ImpactLogs POST error', error)
+    return NextResponse.json({ success: false, message: error instanceof Error ? error.message : 'خطأ في الحفظ' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireImpactAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
     const id = String(body.id || '')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
-    const previous = await prisma.impactLog.findUnique({ where: { id }, select: { status: true } })
-    const newStatus = body.status || undefined
+    const previous = await prisma.impactLog.findUnique({ where: { id }, select: { status: true, platformId: true, beneficiaryId: true } })
+    if (!previous) return NextResponse.json({ success: false, message: 'السجل غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, previous.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    const newStatus = enumValue(ImpactApprovalStatus, body.status)
 
     // EDITOR لا يمكنه الاعتماد أو الرفض
     if (newStatus && (newStatus === 'APPROVED' || newStatus === 'REJECTED')) {
-      const session = await auth()
-      const role = (session?.user as any)?.role || 'EDITOR'
-      if (role === 'EDITOR') {
-        return NextResponse.json({ success: false, message: 'غير مصرح — لا يمكن للمحرر الاعتماد أو الرفض' }, { status: 403 })
-      }
+      // requireImpactAccess منع EDITOR مسبقاً. نُبقي هذا الحاجز لتوضيح السياسة.
     }
 
     // التحقق من سبب الرفض عند تغيير الحالة إلى مرفوض
@@ -306,8 +367,10 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const session = await auth()
-    const actor = session?.user?.email || session?.user?.name || null
+    const actor = auth.user.email || auth.user.name || null
+    const targetBeneficiaryId = body.beneficiaryId ? String(body.beneficiaryId).trim() : previous.beneficiaryId
+    const scopedPlatform = await resolveScopedPlatformId(auth.user, targetBeneficiaryId, body.platformId !== undefined ? body.platformId || null : previous.platformId)
+    if (!scopedPlatform.ok) return scopedPlatform.error
 
     // منطق الاعتماد: إذا تغيّرت الحالة إلى APPROVED، سجّل المعتمد والوقت
     const approvedByField = newStatus === 'APPROVED' && previous?.status !== 'APPROVED'
@@ -324,11 +387,12 @@ export async function PUT(request: NextRequest) {
       where: { id },
       data: {
         actionId: body.actionId || undefined,
-        sourceType: body.sourceType || undefined,
+        beneficiaryId: body.beneficiaryId ? String(body.beneficiaryId).trim() : undefined,
+        sourceType: body.sourceType !== undefined ? parseSourceType(body.sourceType) : undefined,
         sourceId: body.sourceId !== undefined ? (body.sourceId ? String(body.sourceId).trim() : null) : undefined,
         count: body.count !== undefined ? Number(body.count) : undefined,
-        quality: body.quality || undefined,
-        status: newStatus as any,
+        quality: body.quality !== undefined ? parseQuality(body.quality) : undefined,
+        status: newStatus,
         date: body.date ? new Date(String(body.date)) : undefined,
         link: body.link?.trim() ?? undefined,
         note: body.note?.trim() ?? undefined,
@@ -340,7 +404,7 @@ export async function PUT(request: NextRequest) {
         rejectionReason: newStatus === 'REJECTED'
           ? (body.rejectionReason?.trim() || null)
           : (isResetting || newStatus === 'APPROVED' ? null : undefined),
-        platformId: body.platformId !== undefined ? body.platformId || null : undefined,
+        platformId: body.platformId !== undefined || auth.user.role === 'PLATFORM_MANAGER' ? scopedPlatform.platformId : undefined,
         programId: body.programId !== undefined ? body.programId || null : undefined,
         activityId: body.activityId !== undefined ? body.activityId || null : undefined,
         enrollmentId: body.enrollmentId !== undefined ? body.enrollmentId || null : undefined,
@@ -362,13 +426,13 @@ export async function PUT(request: NextRequest) {
     // إرسال بريد إلكتروني عند الاعتماد أو الرفض
     try {
       const beneficiary = log.beneficiary
-      if ((beneficiary as any)?.email) {
+      if (beneficiary.email) {
         const memberName = `${beneficiary.firstName} ${beneficiary.lastName}`.trim()
         const activityName = log.action?.name || 'نشاط'
 
         if (log.status === 'APPROVED') {
           await sendActivityApprovedEmail({
-            to: (beneficiary as any).email!,
+            to: beneficiary.email,
             memberName,
             activityName,
             points: log.pointsSnapshot ?? 0,
@@ -376,7 +440,7 @@ export async function PUT(request: NextRequest) {
           })
         } else if (log.status === 'REJECTED') {
           await sendActivityRejectedEmail({
-            to: (beneficiary as any).email!,
+            to: beneficiary.email,
             memberName,
             activityName,
             reason: log.rejectionReason || 'لم يذكر سبب',
@@ -384,7 +448,7 @@ export async function PUT(request: NextRequest) {
         }
       }
     } catch (e) {
-      console.error('[email] failed to send approval/rejection email:', e)
+      logger.error('[email] failed to send approval/rejection email', e)
     }
 
     // إشعار داخلي للعضو عند الاعتماد أو الرفض
@@ -411,28 +475,31 @@ export async function PUT(request: NextRequest) {
     } catch { /* silent */ }
 
     return NextResponse.json({ success: true, data: log })
-  } catch (error: any) {
-    console.error('ImpactLogs PUT error:', error)
-    return NextResponse.json({ success: false, message: error.message || 'خطأ في التحديث' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('ImpactLogs PUT error', error)
+    return NextResponse.json({ success: false, message: error instanceof Error ? error.message : 'خطأ في التحديث' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
-
-  const editorError = await rejectIfEditor('حذف')
-  if (editorError) return editorError
+  const auth = await requireImpactAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
+    const log = await prisma.impactLog.findUnique({ where: { id }, select: { platformId: true } })
+    if (!log) return NextResponse.json({ success: false, message: 'السجل غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, log.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+
     await prisma.impactLog.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('ImpactLogs DELETE error:', error)
+    logger.error('ImpactLogs DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الحذف' }, { status: 500 })
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import FadeIn from '@/components/motion/FadeIn'
 
 interface Partner {
@@ -83,9 +84,9 @@ export default function PartnersShowcase() {
               const cardClass = 'group flex h-[150px] w-[250px] flex-shrink-0 flex-col items-center justify-center gap-3.5 rounded-xl border border-neutral-200/80 bg-gradient-to-b from-neutral-50 to-white px-6 py-5 text-center shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary-200/60 hover:-translate-y-0.5'
               const content = (
                 <>
-                  <div className="flex h-16 w-32 items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                  <div className="relative flex h-16 w-32 items-center justify-center transition-transform duration-300 group-hover:scale-105">
                     {logo ? (
-                      <img src={logo} alt={name} className="max-h-full max-w-full object-contain" loading="lazy" />
+                      <Image src={logo} alt={name} fill sizes="128px" className="object-contain" unoptimized />
                     ) : (
                       <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-xl font-bold text-primary-700">
                         {name.trim().slice(0, 1)}

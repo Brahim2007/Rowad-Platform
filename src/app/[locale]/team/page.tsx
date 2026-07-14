@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Linkedin, Quote, Users } from 'lucide-react'
+import Image from 'next/image'
+import { Linkedin, Quote } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
 import PageLayout from '@/components/shared/PageLayout'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -93,12 +94,14 @@ export default function TeamPage() {
                       {/* Avatar */}
                       <div className="relative mx-auto mb-5">
                         {avatar ? (
-                          <div className="relative inline-block">
-                            <img
+                          <div className="relative mx-auto h-22 w-22 overflow-hidden rounded-full border-4 border-white shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl" style={{ width: '5.5rem', height: '5.5rem' }}>
+                            <Image
                               src={avatar}
                               alt={name}
-                              className="relative mx-auto h-22 w-22 rounded-full border-4 border-white object-cover shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
-                              style={{ width: '5.5rem', height: '5.5rem' }}
+                              fill
+                              sizes="88px"
+                              className="object-cover"
+                              unoptimized
                             />
                             <div className="absolute inset-0 rounded-full bg-gradient-to-t from-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                           </div>

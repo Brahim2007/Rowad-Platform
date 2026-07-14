@@ -11,15 +11,7 @@ import {
 import { toast } from 'sonner'
 import { ReportDocument, reportFileName, type ReportDocumentData } from '@/components/admin/ReportDocument'
 import { exportElementToPdf, printElement } from '@/lib/report-export'
-
-/** Simple HTML sanitizer for display in the live preview */
-function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
-    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
-}
+import { sanitizeRichHtml } from '@/lib/sanitize-html'
 
 const HTML_TOOLBAR_ITEMS = [
   { label: 'عنوان', icon: Heading, snippet: '<h2>نص العنوان</h2>\n<p>نص الفقرة...</p>' },
@@ -877,7 +869,7 @@ export default function AdminReportsPage() {
                     dir="rtl"
                   >
                     {htmlContent.trim() ? (
-                      <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(htmlContent) }} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(htmlContent) }} />
                     ) : (
                       <p className="text-neutral-400">لا يوجد محتوى HTML للإضافة</p>
                     )}

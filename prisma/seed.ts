@@ -47,16 +47,20 @@ async function main() {
   // ═══════════════════════════════════════════════════════════
   // 1. ADMIN USERS
   // ═══════════════════════════════════════════════════════════
-  const adminExists = await prisma.adminUser.findUnique({ where: { email: "admin@rowad-network.org" } });
-  if (!adminExists) {
+  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL;
+  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (seedAdminEmail && seedAdminPassword) {
+    const adminExists = await prisma.adminUser.findUnique({ where: { email: seedAdminEmail } });
+    if (!adminExists) {
     await prisma.adminUser.create({
       data: {
-        email: "admin@rowad-network.org",
-        passwordHash: await bcrypt.hash("Admin@2024!", 12),
+        email: seedAdminEmail,
+        passwordHash: await bcrypt.hash(seedAdminPassword, 12),
         fullName: "المشرف العام",
         role: "SUPER_ADMIN",
       },
     });
+    }
   }
   console.log("✅ مستخدمو الإدارة");
 
@@ -996,7 +1000,7 @@ async function main() {
     console.log(`   ${key}: ${value}`);
   }
   console.log("=".repeat(60));
-  console.log("\n🔑 تسجيل الدخول: admin@rowad-network.org / Admin@2024!");
+  console.log("\n🔑 بيانات المدير التجريبي تُضبط عبر SEED_ADMIN_EMAIL و SEED_ADMIN_PASSWORD.");
 }
 
 main()

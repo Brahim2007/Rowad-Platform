@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { JourneyStage } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { getPlatformScope, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import {
   buildActionMap,
   memberTotal,
   type ImpactActionItem,
   type ImpactLogEntry,
 } from '@/lib/impact-scoring'
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
-}
 
 // ─── Stage order and labels ───
 const STAGE_ORDER = ['DISCOVERY', 'APPLICATION', 'ONBOARDING', 'ACTIVE', 'ADVANCED', 'GRADUATED', 'ALUMNI', 'CHAMPION']
@@ -94,14 +88,20 @@ function activeImpactMonths(entries: ImpactLogEntry[]) {
 
 // ─── GET: Fetch journey for a beneficiary ───
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const beneficiaryId = searchParams.get('beneficiaryId')
+    const scope = getPlatformScope(auth.user)
 
     if (beneficiaryId) {
+      const beneficiary = await prisma.beneficiary.findUnique({ where: { id: beneficiaryId }, select: { platformId: true } })
+      if (!beneficiary) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+      if (!(await verifyPlatformOwnership(auth.user, beneficiary.platformId))) {
+        return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+      }
       const stages = await prisma.beneficiaryJourneyStage.findMany({
         where: { beneficiaryId },
         orderBy: { stage: 'asc' },
@@ -111,6 +111,7 @@ export async function GET(request: NextRequest) {
 
     // Return all stages grouped by beneficiary
     const allStages = await prisma.beneficiaryJourneyStage.findMany({
+      where: scope.filterId ? { beneficiary: { platformId: scope.filterId } } : undefined,
       include: {
         beneficiary: { select: { firstName: true, lastName: true, code: true } },
       },
@@ -118,15 +119,16 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ success: true, data: allStages })
-  } catch {
+  } catch (error) {
+    logger.error('Journey GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 // ─── POST: Auto-advance beneficiary journey ───
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { beneficiaryId } = await request.json()
@@ -164,6 +166,9 @@ export async function POST(request: NextRequest) {
 
     if (!beneficiary) {
       return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    }
+    if (!(await verifyPlatformOwnership(auth.user, beneficiary.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
 
     const hasChampionRole = false // Could be extended with a champion flag
@@ -229,7 +234,7 @@ export async function POST(request: NextRequest) {
     const stage = await prisma.beneficiaryJourneyStage.create({
       data: {
         beneficiaryId,
-        stage: newStage as any,
+        stage: newStage as JourneyStage,
         startedAt: new Date(),
         notes,
       },
@@ -248,15 +253,15 @@ export async function POST(request: NextRequest) {
       data: { stage: stage.stage, label: STAGE_LABELS[stage.stage] || stage.stage, notes: stage.notes },
     })
   } catch (error) {
-    console.error('Journey API Error:', error)
+    logger.error('Journey API error', error)
     return NextResponse.json({ success: false, message: 'خطأ في تحديث مسار الرحلة' }, { status: 500 })
   }
 }
 
 // ─── PUT: Manually set journey stage ───
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
@@ -268,6 +273,11 @@ export async function PUT(request: NextRequest) {
 
     if (!STAGE_ORDER.includes(stage)) {
       return NextResponse.json({ success: false, message: 'مرحلة غير صالحة' }, { status: 400 })
+    }
+    const beneficiary = await prisma.beneficiary.findUnique({ where: { id: beneficiaryId }, select: { platformId: true } })
+    if (!beneficiary) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, beneficiary.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
 
     // Complete all existing stages up to and including the new one
@@ -300,7 +310,7 @@ export async function PUT(request: NextRequest) {
     const newStage = await prisma.beneficiaryJourneyStage.create({
       data: {
         beneficiaryId,
-        stage: stage as any,
+        stage: stage as JourneyStage,
         startedAt: new Date(),
         completedAt: null,
         notes: notes || `تم الانتقال يدوياً إلى مرحلة "${STAGE_LABELS[stage] || stage}"`,
@@ -312,7 +322,7 @@ export async function PUT(request: NextRequest) {
       data: { stage: newStage.stage, label: STAGE_LABELS[stage] || stage },
     })
   } catch (error) {
-    console.error('Journey Update Error:', error)
+    logger.error('Journey PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في تحديث المسار' }, { status: 500 })
   }
 }

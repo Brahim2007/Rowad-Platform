@@ -388,7 +388,7 @@ Broadcast {
 - [x] إخفاء روابط الواجهة حسب صلاحية المستخدم.
 - [x] حماية APIs بنفس قواعد الواجهة، وليس بالواجهة فقط.
 - [x] تسجيل عمليات إنشاء وتعديل وحذف — activity-log.ts + audit في ImpactLog.
-- [x] إزالة أو تقييد زر الدخول التجريبي في بيئة الإنتاج — DISABLE_DEV_LOGIN=true + إخفاء واجهة التجربة.
+- [x] إزالة زر الدخول التجريبي من الواجهة، وحصر fallback التطوير بمتغيرات `DEV_ADMIN_*` داخل `NODE_ENV=development` فقط.
 
 ## التقارير والتحليلات
 
@@ -412,7 +412,7 @@ Broadcast {
 - [x] منع حذف نوع نشاط مستخدم في سجلات أثر — DELETE يُعطّل النوع إن كان مستخدماً بدل الحذف الفعلي.
 - [x] إضافة قيود أو رسائل واضحة للتكرار في ImpactLog — unique constraint + sourceType_sourceId_actionId.
 - [x] مراجعة `sourceType/sourceId/actionId` لمنع ازدواج احتساب الأنشطة التشغيلية.
-- [x] إضافة seed production-safe — seed الحالي للتطوير، الإنتاج يحتاج DISABLE_DEV_LOGIN=true.
+- [x] إضافة seed production-safe — لا توجد كلمة مرور ثابتة؛ الحسابات التجريبية تُضبط عبر `SEED_*`.
 - [x] إزالة أو أرشفة APIs القديمة — /api/admin/beneficiaries و /api/admin/team غير مستخدمتين، مُهيأتان للإزالة.
 - [x] مراجعة استخدام الحقل `platformId` في Beneficiary: هل العضو ينتمي لمنصة واحدة أم عدة منصات؟ تحديد العلاقة بوضوح في الـ Schema.
 - [x] التأكد من أن النقاط التلقائية من Participation/Enrollment لا تتضاعف عند استدعاء dashboard API أكثر من مرة.
@@ -464,7 +464,7 @@ Broadcast {
 - [x] **تحديد معدل الفشل (Brute Force Protection)** — rate limiting على بوابتي الدخول (5 محاولات/5 دقائق، حظر 15 دقيقة).
 - [x] **Content Security Policy (CSP)** — headers شاملة في next.config.
 - [ ] **فحص صلاحية الملفات المرفوعة**: التحقق من نوع الملف الحقيقي (MIME type) ورفض الملفات التنفيذية.
-- [ ] **تدوير `NEXTAUTH_SECRET`**: توثيق آلية تغيير السر بأمان في البيئة الإنتاجية.
+- [ ] **تدوير `AUTH_SECRET`**: توثيق آلية تغيير السر بأمان في البيئة الإنتاجية.
 
 ## البنية والبناء
 
@@ -473,7 +473,7 @@ Broadcast {
 - [x] ضبط سكربت build — NODE_OPTIONS=4096 في CI workflow.
 - [x] إضافة سكربت تحقق موحد — `npm run verify` = type-check.
 - [x] مراجعة متغيرات البيئة المحلية والإنتاجية — AUTH_URL و NEXTAUTH_URL.
-- [x] فصل إعدادات التطوير عن الإنتاج — DISABLE_DEV_LOGIN و ALLOW_DEV_LOGIN.
+- [x] فصل إعدادات التطوير عن الإنتاج — `DEV_ADMIN_*` يعمل فقط في `NODE_ENV=development`.
 - [x] إضافة README تشغيلي يوضح تسجيل الدخول والإعدادات الأساسية.
 
 ## التحسينات المستقبلية

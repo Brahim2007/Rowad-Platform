@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ai } from '@/lib/ai/deepseek'
 import { requireSuperAdmin } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const auth = await requireSuperAdmin()
@@ -34,22 +35,22 @@ export async function POST(request: NextRequest) {
       pendingCount,
       impactLogsThisMonth,
     ] = await Promise.all([
-      (prisma as any).platform.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }),
-      (prisma as any).beneficiary.count({ where: { status: 'ACTIVE' } }),
-      (prisma as any).beneficiary.count({ where: { status: 'ACTIVE', impactLogs: { some: { date: { gte: new Date(curYear, curMonth - 1, 1) } } } } }),
-      (prisma as any).impactLog.count({ where: { status: 'PENDING_REVIEW' } }),
-      (prisma as any).impactLog.findMany({
+      prisma.platform.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }),
+      prisma.beneficiary.count({ where: { status: 'ACTIVE' } }),
+      prisma.beneficiary.count({ where: { status: 'ACTIVE', impactLogs: { some: { date: { gte: new Date(curYear, curMonth - 1, 1) } } } } }),
+      prisma.impactLog.count({ where: { status: 'PENDING_REVIEW' } }),
+      prisma.impactLog.findMany({
         where: { date: { gte: new Date(curYear, curMonth - 1, 1) } },
         select: { status: true, platformId: true, beneficiaryId: true },
       }),
     ])
 
     // تجميعات لكل منصة
-    const platformStats = platforms.map((p: any) => {
-      const platformLogs = impactLogsThisMonth.filter((l: any) => l.platformId === p.id)
-      const approved = platformLogs.filter((l: any) => l.status === 'APPROVED').length
-      const pending = platformLogs.filter((l: any) => l.status === 'PENDING_REVIEW').length
-      const active = new Set(platformLogs.map((l: any) => l.beneficiaryId).filter(Boolean)).size
+    const platformStats = platforms.map((p) => {
+      const platformLogs = impactLogsThisMonth.filter((l) => l.platformId === p.id)
+      const approved = platformLogs.filter((l) => l.status === 'APPROVED').length
+      const pending = platformLogs.filter((l) => l.status === 'PENDING_REVIEW').length
+      const active = new Set(platformLogs.map((l) => l.beneficiaryId).filter(Boolean)).size
       return { name: p.name, approved, pending, active }
     })
 
@@ -62,18 +63,18 @@ export async function POST(request: NextRequest) {
         activeMembers,
         pendingActivities: pendingCount,
         activitiesThisMonth: impactLogsThisMonth.length,
-        approvedThisMonth: impactLogsThisMonth.filter((l: any) => l.status === 'APPROVED').length,
+        approvedThisMonth: impactLogsThisMonth.filter((l) => l.status === 'APPROVED').length,
       },
     }
 
     const answer = await ai.assistant(question.trim(), contextData, auth.user.id)
 
     return NextResponse.json({ success: true, data: { answer, context: contextData } })
-  } catch (error: any) {
-    if (error?.message === 'Budget exceeded') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Budget exceeded') {
       return NextResponse.json({ success: false, message: 'تم تجاوز السقف الشهري' }, { status: 429 })
     }
-    console.error('[ai] assistant error:', error)
+    logger.error('[ai] assistant error', error)
     return NextResponse.json({ success: false, message: 'فشل معالجة السؤال' }, { status: 500 })
   }
 }

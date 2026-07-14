@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
@@ -401,9 +402,9 @@ export default function AdminMemberDetailPage() {
 
       <div className="card mb-6">
         <div className="flex flex-col lg:flex-row gap-5">
-          <div className="w-28 h-28 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="relative w-28 h-28 rounded-2xl bg-primary-50 border border-primary-100 flex items-center justify-center overflow-hidden shrink-0">
             {member.avatar ? (
-              <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+              <Image src={member.avatar} alt={member.name} fill sizes="112px" className="object-cover" unoptimized />
             ) : (
               <span className="text-3xl font-bold text-primary-700">{initials(member.name)}</span>
             )}

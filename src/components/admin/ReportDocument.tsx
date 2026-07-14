@@ -1,5 +1,6 @@
 import { CheckCircle, Clock, FileText, XCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { sanitizeRichHtml } from '@/lib/sanitize-html'
 
 export interface ReportDocumentTemplate {
   title: string
@@ -78,15 +79,6 @@ function valueIsEmpty(value: unknown) {
   return value === null || value === undefined || value === ''
 }
 
-/** Safely strip script/on* from HTML to avoid XSS */
-function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
-    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
-}
-
 /** Detect if a string contains HTML tags */
 function isHtmlString(value: string): boolean {
   if (value.length < 3) return false
@@ -102,7 +94,7 @@ function renderValue(value: unknown): ReactNode {
       <div
         className="report-html-content text-neutral-700"
         dir="rtl"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(value) }}
       />
     )
   }
@@ -136,7 +128,7 @@ function renderValue(value: unknown): ReactNode {
       <div
         className="report-html-content text-neutral-700"
         dir="rtl"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(str) }}
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(str) }}
       />
     )
   }

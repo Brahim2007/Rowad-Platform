@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
-  Database, Activity, Fingerprint, ShieldCheck, Layers, TrendingUp,
-  Route, UserCheck, Archive, Search, Download, PieChart, RefreshCw,
+  Database, Activity, Fingerprint, ShieldCheck, Layers,
+  Route, Search,
   Compass, FileText, CheckSquare, BarChart2, Clock, Target,
-  Users, Globe, BookOpen, Briefcase, X, Network, BarChart3,
-  Percent, Award, CheckCircle, GraduationCap, MapPin, Calendar,
-  Filter, AlertCircle, ListChecks, Handshake, ArrowUpRight,
+  Users, Globe, BookOpen, Briefcase, X, BarChart3,
+  CheckCircle, Calendar,
+  AlertCircle, Handshake, ArrowUpRight,
   FolderSync, Eye, ImageOff
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -403,13 +404,15 @@ export default function AdminDashboardPage() {
                   <div className="absolute top-0 right-0 w-1 h-full" style={{ backgroundColor: platform.color || '#527F47' }} />
 
                   <div className="grid gap-3 sm:grid-cols-[76px_minmax(0,1fr)]">
-                    <div className="aspect-square overflow-hidden rounded-lg border border-neutral-100 bg-white">
+                    <div className="relative aspect-square overflow-hidden rounded-lg border border-neutral-100 bg-white">
                       {image ? (
-                        <img
+                        <Image
                           src={image}
                           alt={platform.name}
+                          fill
+                          sizes="76px"
                           className={`h-full w-full ${platform.coverImage ? 'object-cover' : 'object-contain'}`}
-                          loading="lazy"
+                          unoptimized
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-secondary-50">
@@ -550,7 +553,7 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-neutral-500 mb-4">تحليل دورة حياة الشباب داخل الشبكة بناءً على رحلة العضو.</p>
 
             <div className="space-y-2.5">
-              {journeyFunnel.map((item, idx) => {
+              {journeyFunnel.map((item) => {
                 const pct = maxFunnelCount > 0 ? Math.round((item.count / maxFunnelCount) * 100) : 0
                 const stageConfig = JOURNEY_STAGES.find(s => s.key === item.stage)
 
@@ -651,7 +654,6 @@ export default function AdminDashboardPage() {
               ) : (
                 filteredBeneficiaries.map(b => {
                   const stageLabel = b.currentStage ? STAGE_LABEL[b.currentStage] : 'لم يبدأ'
-                  const stageIdx = JOURNEY_STEPS.indexOf(stageLabel)
                   const stageConfig = JOURNEY_STAGES.find(s => s.key === b.currentStage)
 
                   return (

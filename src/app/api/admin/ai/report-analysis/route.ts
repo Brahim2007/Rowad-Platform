@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ai } from '@/lib/ai/deepseek'
 import { requireSuperAdmin } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   const auth = await requireSuperAdmin()
@@ -30,11 +31,11 @@ export async function POST(request: NextRequest) {
     }, auth.user.id)
 
     return NextResponse.json({ success: true, data: result })
-  } catch (error: any) {
-    if (error?.message === 'Budget exceeded') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Budget exceeded') {
       return NextResponse.json({ success: false, message: 'تم تجاوز السقف الشهري' }, { status: 429 })
     }
-    console.error('[ai] report-analysis error:', error)
+    logger.error('[ai] report-analysis error', error)
     return NextResponse.json({ success: false, message: 'فشل التحليل' }, { status: 500 })
   }
 }

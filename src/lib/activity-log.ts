@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 type ActivityLogInput = {
   entity: string
@@ -27,6 +28,6 @@ export async function recordActivityLog(input: ActivityLogInput) {
       },
     })
   } catch (error) {
-    console.error('[activity-log] Failed to record activity:', error)
+    logger.error('[activity-log] Failed to record activity', error)
   }
 }

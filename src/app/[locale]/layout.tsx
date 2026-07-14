@@ -41,7 +41,7 @@ const ROUTE_META: Record<string, { title: string; desc: string }> = {
   '/admin': { title: 'لوحة الإدارة - شبكة الرواد الإلكترونية', desc: 'لوحة إدارة شبكة الرواد الإلكترونية' },
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params: _params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
 

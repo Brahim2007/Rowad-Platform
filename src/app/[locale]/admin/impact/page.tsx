@@ -9,13 +9,13 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import {
-  Activity, Bell, Book, Calculator, ChartBar, TrendingUp, PieChart,
-  CheckCircle, ClipboardCheck, Clock, Crown, Download, Eye,
-  FileText, Flag, Settings, Heart, Hourglass, IdCard,
-  Info, Medal, Monitor, Moon, Pencil, Plus, Printer,
-  Scale, ShieldCheck, Shield, LayoutGrid, Star, Trash, TrendingUp as TrendIcon,
-  User, UserCheck, Users, UserRound, TriangleAlert, X,
-  Search, ChevronDown, ChevronUp
+  Activity, Calculator, TrendingUp,
+  CheckCircle, ClipboardCheck, Crown, Download, Eye,
+  Settings,
+  Info, Medal, Pencil, Plus, Printer,
+  Shield, LayoutGrid, Star, Trash,
+  User, UserCheck, Users, TriangleAlert, X,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
@@ -104,25 +104,6 @@ interface PaginationState {
   hasMore: boolean
 }
 
-interface MemberCardData {
-  member: BeneficiaryInfo
-  entries: ImpactLogFull[]
-  awards: ImpactAwardFull[]
-  total: number
-  level: { name: string; from: number; to: number; desc?: string }
-  progress: number
-  nextLevel: { name: string; gap: number } | null
-  byCategory: Record<string, number>
-  monthlyTrend: number[]
-  yearlyPoints: number
-  monthlyPoints: number
-  rank: number
-  platformRank: number
-  status: { key: string; label: string; dot: string; since: number }
-  lastActive: string | null
-  journey: Array<{ date: string; type: string; title: string; note?: string; icon: string; cls: string }>
-}
-
 // ═══════════════════════════════════════════════
 // Constants
 // ═══════════════════════════════════════════════
@@ -180,11 +161,6 @@ function dateLabel(date: string) {
 }
 
 function today() { return new Date().toISOString().slice(0, 10) }
-
-function scorePct(score: number | null, maxScore: number) {
-  if (score === null || !maxScore) return null
-  return Math.round((score / maxScore) * 100)
-}
 
 function fullName(f?: string, l?: string) { return [f, l].filter(Boolean).join(' ') || '—' }
 
@@ -452,7 +428,7 @@ export default function ImpactDashboardPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'dashboard' && <DashboardTab dashData={dashData} actions={actions} logs={logs} />}
+      {activeTab === 'dashboard' && <DashboardTab dashData={dashData} />}
       {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} pagination={membersPagination} onLoadMore={loadMoreMembers} loadingMore={loadingMoreMembers} />}
       {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} qualityBonus={qualityBonus} pagination={logsPagination} onLoadMore={loadMoreLogs} loadingMore={loadingMoreLogs} />}
       {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
@@ -474,15 +450,14 @@ export default function ImpactDashboardPage() {
 // Tab: Dashboard (الرئيسية)
 // ═══════════════════════════════════════════════
 
-function DashboardTab({ dashData, actions, logs }: { dashData: DashboardData | null; actions: ImpactActionItem[]; logs: ImpactLogFull[] }) {
+function DashboardTab({ dashData }: { dashData: DashboardData | null }) {
   const [scope, setScope] = useState<{ type: string; year?: number; month?: number; ref?: string }>({ type: 'all' })
 
   if (!dashData) {
     return <div className="card text-center py-12 text-neutral-400"><Shield size={36} className="mx-auto mb-3 text-neutral-300" /><p>لا توجد بيانات للوحة الأثر بعد</p></div>
   }
 
-  const { kpis, catTotals, top10 } = dashData
-  const d = dashData
+  const { kpis, top10 } = dashData
 
   return (
     <div>
@@ -1211,12 +1186,13 @@ function PulseTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiarie
 
   const memberStatuses = useMemo(() => {
     const actionMap = buildActionMap(actions as any)
+    const nowTime = Date.now()
 
     return beneficiaries.map(b => {
       const myLogs = logs.filter(l => l.beneficiaryId === b.id)
       const approved = myLogs.filter(l => l.status === 'APPROVED').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       const lastDate = approved[0]?.date || null
-      const daysSince = lastDate ? Math.floor((now.getTime() - new Date(lastDate).getTime()) / 86400000) : Infinity
+      const daysSince = lastDate ? Math.floor((nowTime - new Date(lastDate).getTime()) / 86400000) : Infinity
       const status = daysSince <= 7 ? { key: 'active', label: 'نشط هذا الأسبوع', dot: 'g' as const }
         : daysSince <= 30 ? { key: 'month', label: 'نشط هذا الشهر', dot: 'g' as const }
         : daysSince <= 60 ? { key: 'idle', label: 'خامل (٣٠–٦٠ يوم)', dot: 'o' as const }

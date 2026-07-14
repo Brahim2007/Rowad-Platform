@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import {
   Activity, ArrowLeft, Award, BarChart3, Blocks, BookOpen,
-  Briefcase, Calendar, ExternalLink, FolderKanban,
+  Calendar, ExternalLink, FolderKanban,
   MapPin, PlayCircle, Route, Search, Target, Users,
   Plus, Pencil, Trash2, X, Globe, Hash, ChevronDown, Layers,
   FileText,
@@ -467,11 +468,13 @@ export default function AdminPlatformDetailPage() {
           {/* Cover */}
           <div className="relative h-36 md:h-48 overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-200">
             {platform.coverImage || platform.logo ? (
-              <img
+              <Image
                 src={platform.coverImage || platform.logo || ''}
                 alt={platform.name}
+                fill
+                sizes="100vw"
                 className={`h-full w-full ${platform.coverImage ? 'object-cover' : 'object-contain p-8'}`}
-                loading="lazy"
+                unoptimized
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: `${color}15` }}>
@@ -486,15 +489,17 @@ export default function AdminPlatformDetailPage() {
             <div className="flex items-end gap-5 -mt-12 mb-4">
               {/* Avatar */}
               <div
-                className="h-24 w-24 shrink-0 rounded-2xl border-4 border-white shadow-xl overflow-hidden flex items-center justify-center bg-white"
+                className="relative h-24 w-24 shrink-0 rounded-2xl border-4 border-white shadow-xl overflow-hidden flex items-center justify-center bg-white"
                 style={{ boxShadow: `0 4px 24px ${color}30` }}
               >
                 {platform.logo || platform.coverImage ? (
-                  <img
+                  <Image
                     src={platform.logo || platform.coverImage || ''}
                     alt={platform.name}
+                    fill
+                    sizes="96px"
                     className="h-full w-full object-contain p-1.5"
-                    loading="lazy"
+                    unoptimized
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: color }}>
@@ -608,11 +613,13 @@ export default function AdminPlatformDetailPage() {
                       {/* Program Image - fills card height */}
                       <div className="relative w-56 shrink-0 overflow-hidden bg-white border-l border-neutral-100 max-md:hidden">
                         {program.image ? (
-                          <img
+                          <Image
                             src={program.image}
                             alt={program.name}
+                            fill
+                            sizes="224px"
                             className="h-full w-full object-contain p-3"
-                            loading="lazy"
+                            unoptimized
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100/50">
@@ -624,9 +631,9 @@ export default function AdminPlatformDetailPage() {
                       {/* Mobile/tablet image */}
                       <div className="flex-1 p-4 md:pr-5">
                         <div className="flex items-start gap-4">
-                          <div className="md:hidden h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-white">
+                          <div className="relative md:hidden h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-neutral-100 bg-white">
                             {program.image ? (
-                              <img src={program.image} alt={program.name} className="h-full w-full object-contain p-2" loading="lazy" />
+                              <Image src={program.image} alt={program.name} fill sizes="96px" className="object-contain p-2" unoptimized />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100/50">
                                 <BookOpen size={28} className="text-secondary-300" />
@@ -747,11 +754,13 @@ export default function AdminPlatformDetailPage() {
                                 {/* Activity Image - fills card */}
                                 <div className="relative h-44 overflow-hidden bg-white border-b border-neutral-100">
                                   {activity.icon ? (
-                                    <img
+                                    <Image
                                       src={activity.icon}
                                       alt={activity.name}
+                                      fill
+                                      sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                                       className="h-full w-full object-contain p-4"
-                                      loading="lazy"
+                                      unoptimized
                                     />
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100/30">

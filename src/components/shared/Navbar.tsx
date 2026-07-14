@@ -35,6 +35,8 @@ export default function Navbar() {
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const isHomePage = pathname === '/' || pathname === '/ar' || pathname === '/en'
+  const floatingOnHero = isHomePage && !scrolled && !mobileOpen
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50)
@@ -52,7 +54,9 @@ export default function Navbar() {
       <AnnouncementBanner />
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-        scrolled
+        floatingOnHero
+          ? 'border-b border-white/10 bg-neutral-950/16 text-white backdrop-blur-md'
+          : scrolled
           ? 'border-b border-neutral-200/80 bg-white/95 shadow-lg shadow-neutral-900/5 backdrop-blur-xl'
           : 'border-b border-transparent bg-white/80 backdrop-blur-sm'
       }`}
@@ -78,8 +82,12 @@ export default function Navbar() {
                 href={href}
                 className={`relative inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 no-underline ${
                   isActive(href)
-                    ? 'bg-primary-50 text-primary-700 shadow-sm'
-                    : 'text-neutral-600 hover:bg-neutral-100 hover:text-primary-600'
+                    ? floatingOnHero
+                      ? 'bg-white/14 text-white shadow-sm'
+                      : 'bg-primary-50 text-primary-700 shadow-sm'
+                    : floatingOnHero
+                      ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-primary-600'
                 }`}
               >
                 <Icon size={16} />
@@ -91,20 +99,32 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <Link
               href="/contact"
-              className="hidden sm:inline-flex btn-primary btn-sm no-underline group"
+              className={`hidden sm:inline-flex btn-sm no-underline group ${
+                floatingOnHero
+                  ? 'btn border border-white/20 bg-white/12 text-white backdrop-blur-md hover:bg-white/20 focus:ring-white/20'
+                  : 'btn-primary'
+              }`}
             >
               {t('contact')}
               <ArrowLeft size={16} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-0.5" />
             </Link>
             <Link
               href="/admin/login"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white/60 px-3.5 py-2.5 text-xs font-semibold text-neutral-600 no-underline shadow-sm transition-all duration-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-md"
+              className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-semibold no-underline shadow-sm transition-all duration-200 hover:shadow-md ${
+                floatingOnHero
+                  ? 'border-white/18 bg-white/10 text-white/82 backdrop-blur-md hover:bg-white/16 hover:text-white'
+                  : 'border-neutral-200 bg-white/60 text-neutral-600 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700'
+              }`}
             >
               <Lock size={14} />
               دخول الإدارة
             </Link>
             <button
-              className="rounded-xl border border-neutral-200 bg-white p-2.5 text-neutral-700 shadow-sm transition-all duration-200 hover:bg-neutral-50 hover:text-neutral-900 md:hidden"
+              className={`rounded-xl border p-2.5 shadow-sm transition-all duration-200 md:hidden ${
+                floatingOnHero
+                  ? 'border-white/18 bg-white/10 text-white backdrop-blur-md hover:bg-white/16'
+                  : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+              }`}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
             >

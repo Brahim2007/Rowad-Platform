@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
-}
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 const STAGE_ORDER = ['DISCOVERY', 'APPLICATION', 'ONBOARDING', 'ACTIVE', 'ADVANCED', 'GRADUATED', 'ALUMNI', 'CHAMPION']
 
@@ -24,8 +17,8 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { slug } = await params
@@ -68,6 +61,9 @@ export async function GET(
 
     if (!platform) {
       return NextResponse.json({ success: false, message: 'المنصة غير موجودة' }, { status: 404 })
+    }
+    if (!(await verifyPlatformOwnership(auth.user, platform.id))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
 
     const programIds = platform.programs.map(program => program.id)
@@ -233,7 +229,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Platform detail API error:', error)
+    logger.error('Platform detail API error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

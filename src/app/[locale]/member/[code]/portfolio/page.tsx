@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Shield, Star, Medal, TrendingUp, Award, Calendar, Clock, Activity } from 'lucide-react'
+import { Shield, Medal, TrendingUp, Calendar, Clock, Activity } from 'lucide-react'
 
 interface PortfolioData {
   name: string; code: string; networkRole: string | null; platformName: string | null

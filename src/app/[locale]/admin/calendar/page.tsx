@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronLeft, Activity, Users, Calendar as CalIcon } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Calendar as CalIcon } from 'lucide-react'
 
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 const WEEKDAYS = ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت']
@@ -9,6 +9,15 @@ const WEEKDAYS = ['أحد','إثنين','ثلاثاء','أربعاء','خميس'
 interface CalendarEvent {
   id: string; title: string; type: string; date: string; platformName: string | null
   beneficiaryName: string | null; status: string
+}
+
+interface ImpactLogSummary {
+  id: string
+  date?: string | null
+  status: string
+  action?: { name?: string | null; category?: string | null } | null
+  platform?: { name?: string | null } | null
+  beneficiary?: { firstName?: string | null; lastName?: string | null } | null
 }
 
 export default function CalendarPage() {
@@ -22,7 +31,7 @@ export default function CalendarPage() {
     setLoading(true)
     fetch(`/api/admin/impact/logs?page=1&pageSize=50&compact=1`).then(r => r.json()).then(json => {
       if (json.success) {
-        const cal: CalendarEvent[] = (json.data || []).map((l: any) => ({
+        const cal: CalendarEvent[] = ((json.data || []) as ImpactLogSummary[]).map((l) => ({
           id: l.id,
           title: l.action?.name || 'نشاط',
           type: l.action?.category || 'OTHER',
@@ -104,7 +113,6 @@ export default function CalendarPage() {
             const dayEvents = eventsByDate.get(String(day)) || []
             const hasPending = dayEvents.some(e => e.status === 'PENDING_REVIEW')
             const hasApproved = dayEvents.some(e => e.status === 'APPROVED')
-            const hasRejected = dayEvents.some(e => e.status === 'REJECTED') && !hasApproved && !hasPending
 
             return (
               <div key={day} className={`min-h-[80px] p-1 border-l border-b border-neutral-100 ${dayEvents.length > 0 ? 'bg-primary-50/30' : ''}`}>

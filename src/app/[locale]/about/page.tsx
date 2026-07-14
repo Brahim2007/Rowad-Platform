@@ -283,7 +283,7 @@ export default function AboutPage() {
                     { icon: Users, title: 'فرق متخصصة', desc: 'كوادر شبابية ومهنية.' },
                     { icon: Handshake, title: 'شراكات هادفة', desc: 'تكامل مع المؤسسات القريبة من الرسالة.' },
                     { icon: Heart, title: 'تعليم غير ربحي', desc: 'أولوية للأثر المجتمعي.' },
-                  ].map(({ icon: Icon, title, desc }, i) => (
+                  ].map(({ icon: Icon, title, desc }) => (
                     <div key={title} className="group rounded-xl border border-neutral-200/80 bg-white p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-secondary-200">
                       <Icon className="mb-4 h-6 w-6 text-secondary-600 transition-transform duration-300 group-hover:scale-110" />
                       <h3 className="font-bold text-neutral-900">{title}</h3>

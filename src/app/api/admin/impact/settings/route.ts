@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import {
   QUALITY_BONUS,
   DEFAULT_LEVELS,
@@ -14,10 +15,9 @@ import {
   DEFAULT_UMRAH,
 } from '@/lib/impact-scoring'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+function requireGlobalImpactSettings(user: SessionUser) {
+  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    return NextResponse.json({ success: false, message: 'غير مصرح — إعدادات الأثر متاحة للإدارة فقط' }, { status: 403 })
   }
   return null
 }
@@ -40,8 +40,8 @@ async function ensureSettings() {
 }
 
 export async function GET() {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const settings = await ensureSettings()
@@ -56,13 +56,15 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('ImpactSettings GET error:', error)
+    logger.error('ImpactSettings GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalImpactSettings(auth.user)
   if (authError) return authError
 
   try {
@@ -89,8 +91,9 @@ export async function PUT(request: NextRequest) {
         umrah: JSON.parse(settings.umrah),
       },
     })
-  } catch (error: any) {
-    console.error('ImpactSettings PUT error:', error)
-    return NextResponse.json({ success: false, message: error.message || 'خطأ في التحديث' }, { status: 500 })
+  } catch (error) {
+    logger.error('ImpactSettings PUT error', error)
+    const message = error instanceof Error ? error.message : 'خطأ في التحديث'
+    return NextResponse.json({ success: false, message }, { status: 500 })
   }
 }

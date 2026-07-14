@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { UnifiedMemberSchema } from '@/lib/validations/member'
 import { sendWelcomeEmail } from '@/lib/email'
 import { z } from 'zod'
+import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireMembersAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 }),
+    }
   }
-  return null
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
+    }
+  }
+  return auth
+}
+
+function scopedMemberData(input: z.infer<typeof UnifiedMemberSchema>, user: SessionUser) {
+  const data = toMemberData(input)
+  if (user.role === 'PLATFORM_MANAGER') {
+    data.platformId = user.platformId
+  }
+  return data
 }
 
 function typeWhere(type: string): Prisma.BeneficiaryWhereInput['type'] | undefined {
@@ -70,7 +89,15 @@ function toMemberData(input: z.infer<typeof UnifiedMemberSchema>) {
   }
 }
 
-function mapMember(m: any) {
+type MemberWithAdminIncludes = Prisma.BeneficiaryGetPayload<{
+  include: {
+    _count: { select: { enrollments: true; participations: true } }
+    beneficiaryJourneyStages: true
+    platform: { select: { id: true; name: true } }
+  }
+}>
+
+function mapMember(m: MemberWithAdminIncludes) {
   return {
     id: m.id,
     code: m.code,
@@ -110,10 +137,11 @@ function mapMember(m: any) {
 }
 
 export async function GET(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
+    const scope = getPlatformScope(auth.user)
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || '' // BENEFICIARY, TEAM, or '' for all
     const search = searchParams.get('search') || ''
@@ -126,7 +154,9 @@ export async function GET(request: NextRequest) {
     const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
-    const where: Prisma.BeneficiaryWhereInput = {}
+    const where: Prisma.BeneficiaryWhereInput = {
+      ...platformWhere(scope),
+    }
 
     const typeFilter = typeWhere(type)
     if (typeFilter) where.type = typeFilter
@@ -147,6 +177,7 @@ export async function GET(request: NextRequest) {
     if (compact) {
       const searchPattern = `%${search}%`
       const clauses = [
+        scope.filterId ? Prisma.sql`b."platformId" = ${scope.filterId}` : null,
         type === 'BENEFICIARY' ? Prisma.sql`b.type IN ('BENEFICIARY'::"MemberType", 'BOTH'::"MemberType")` : null,
         type === 'TEAM' ? Prisma.sql`b.type IN ('TEAM'::"MemberType", 'BOTH'::"MemberType")` : null,
         status ? Prisma.sql`b.status = ${status}::"BeneficiaryStatus"` : null,
@@ -159,7 +190,22 @@ export async function GET(request: NextRequest) {
         )` : null,
       ].filter(Boolean) as Prisma.Sql[]
       const whereSql = clauses.length ? Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}` : Prisma.empty
-      const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      const rows = await prisma.$queryRaw<Array<{
+        id: string
+        code: string
+        firstName: string
+        lastName: string
+        email: string | null
+        phone: string | null
+        status: string
+        registeredAt: Date
+        type: string
+        networkRole: string | null
+        joinDate: Date | null
+        impactNote: string | null
+        platformId: string | null
+        platformName: string | null
+      }>>(Prisma.sql`
         SELECT
           b.id,
           b.code,
@@ -205,8 +251,8 @@ export async function GET(request: NextRequest) {
           enrollmentsCount: 0,
           participationsCount: 0,
         }))
-        .filter((m: any) => !stage || m.currentStage === stage)
-      const total = includeTotal ? await (prisma as any).beneficiary.count({ where }) : null
+        .filter((m) => !stage || m.currentStage === stage)
+      const total = includeTotal ? await prisma.beneficiary.count({ where }) : null
 
       return NextResponse.json({
         success: true,
@@ -222,7 +268,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const relationArgs = {
+    const relationArgs = Prisma.validator<Prisma.BeneficiaryDefaultArgs>()({
       include: {
         _count: { select: { enrollments: true, participations: true } },
         beneficiaryJourneyStages: {
@@ -231,9 +277,9 @@ export async function GET(request: NextRequest) {
         },
         platform: { select: { id: true, name: true } },
       },
-    }
+    })
 
-    const rows = await (prisma as any).beneficiary.findMany({
+    const rows = await prisma.beneficiary.findMany({
       where,
       orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { registeredAt: 'desc' }],
       skip,
@@ -243,8 +289,8 @@ export async function GET(request: NextRequest) {
 
     const hasMore = rows.length > pageSize
     const members = hasMore ? rows.slice(0, pageSize) : rows
-    const total = includeTotal ? await (prisma as any).beneficiary.count({ where }) : null
-    const mapped = members.map(mapMember).filter((m: any) => !stage || m.currentStage === stage)
+    const total = includeTotal ? await prisma.beneficiary.count({ where }) : null
+    const mapped = members.map(mapMember).filter((m) => !stage || m.currentStage === stage)
 
     return NextResponse.json({
       success: true,
@@ -259,14 +305,14 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Members GET error:', error)
+    logger.error('Members GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const input = UnifiedMemberSchema.parse(await request.json())
@@ -275,9 +321,9 @@ export async function POST(request: NextRequest) {
     const tempPassword = memberEmail ? (Math.random().toString(36).slice(2, 10) + 'A1!') : null
     const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null
 
-    const member = await (prisma as any).beneficiary.create({
+    const member = await prisma.beneficiary.create({
       data: {
-        ...toMemberData(input),
+        ...scopedMemberData(input, auth.user),
         ...(passwordHash ? { passwordHash, mustChangePassword: true } : {}),
       },
       include: {
@@ -318,7 +364,7 @@ export async function POST(request: NextRequest) {
           loginUrl,
         })
       } catch (e) {
-        console.error('[email] failed to send welcome email:', e)
+        logger.error('[email] failed to send welcome email', e)
       }
     }
 
@@ -331,14 +377,14 @@ export async function POST(request: NextRequest) {
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, message: 'الكود أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
     }
-    console.error('Members POST error:', error)
+    logger.error('Members POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
@@ -346,11 +392,15 @@ export async function PUT(request: NextRequest) {
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
     const input = UnifiedMemberSchema.parse(body)
-    const previous = await prisma.beneficiary.findUnique({ where: { id }, select: { memberSince: true } })
-    const data = toMemberData(input)
+    const previous = await prisma.beneficiary.findUnique({ where: { id }, select: { memberSince: true, platformId: true } })
+    if (!previous) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, previous.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    const data = scopedMemberData(input, auth.user)
     const isTeamLike = input.type === 'TEAM' || input.type === 'BOTH'
 
-    const member = await (prisma as any).beneficiary.update({
+    const member = await prisma.beneficiary.update({
       where: { id },
       data: {
         ...data,
@@ -375,24 +425,30 @@ export async function PUT(request: NextRequest) {
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, message: 'الكود أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
     }
-    console.error('Members PUT error:', error)
+    logger.error('Members PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
+    const member = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!member) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, member.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+
     await prisma.beneficiary.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Members DELETE error:', error)
+    logger.error('Members DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

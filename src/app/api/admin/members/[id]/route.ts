@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireMembersAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 }),
+    }
   }
-  return null
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
+    }
+  }
+  return auth
 }
 
 const STAGE_ORDER = ['DISCOVERY', 'APPLICATION', 'ONBOARDING', 'ACTIVE', 'ADVANCED', 'GRADUATED', 'ALUMNI', 'CHAMPION']
@@ -24,8 +35,8 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { id } = await params
@@ -106,6 +117,9 @@ export async function GET(
     if (!member) {
       return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
     }
+    if (!(await verifyPlatformOwnership(auth.user, member.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     const currentStage = latestStage(member.beneficiaryJourneyStages)
     const currentStageRecord = [...member.beneficiaryJourneyStages].reverse().find(stage => stage.stage === currentStage) || null
@@ -156,6 +170,7 @@ export async function GET(
           memberSince: member.memberSince,
           sortOrder: member.sortOrder,
           interests: member.interests,
+          platformId: member.platformId,
           currentStage,
           currentStageStartedAt: currentStageRecord?.startedAt || null,
         },
@@ -198,7 +213,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Member detail GET error:', error)
+    logger.error('Member detail GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
@@ -208,12 +223,17 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
 
   try {
     const { id } = await params
     const body = await request.json()
+    const current = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!current) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, current.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     // السماح بتحديث الحقول الأساسية للعضو + حقول الأثر
     const updated = await prisma.beneficiary.update({
@@ -229,7 +249,9 @@ export async function PUT(
         ...(body.networkRole !== undefined && { networkRole: body.networkRole || null }),
         ...(body.joinDate !== undefined && { joinDate: body.joinDate ? new Date(body.joinDate) : null }),
         ...(body.impactNote !== undefined && { impactNote: body.impactNote || null }),
-        ...(body.platformId !== undefined && { platformId: body.platformId || null }),
+        ...(body.platformId !== undefined && {
+          platformId: auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : body.platformId || null,
+        }),
       },
     })
 
@@ -239,7 +261,7 @@ export async function PUT(
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, message: 'الكود أو البريد مستخدم مسبقاً' }, { status: 409 })
     }
-    console.error('Member PUT error:', error)
+    logger.error('Member PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

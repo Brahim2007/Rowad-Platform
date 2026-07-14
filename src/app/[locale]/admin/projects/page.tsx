@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Plus, Pencil, Trash2, X, FolderKanban, FolderOpen,
-  CheckCircle, Clock, Target, Star, Image, Link as LinkIcon,
-  Calendar, FileText, Layout, ExternalLink, Hash,
-  BookOpen, BarChart3, Layers, Eye, ArrowUpRight, Globe,
+  CheckCircle, Clock, Target, Star, Image as ImageIcon,
+  FileText, ExternalLink, Hash,
+  BookOpen, BarChart3, Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -72,25 +72,6 @@ const emptyForm = {
   status: 'ACTIVE', coverImage: '', startDate: '', endDate: '',
   partnerLogos: '', isFeatured: false, sortOrder: 0,
   platformId: '', programId: '',
-}
-
-// ─── Badge Component ───
-
-const Badge = ({ children, variant = 'primary', className = '' }: { children: React.ReactNode; variant?: string; className?: string }) => {
-  const variants: Record<string, string> = {
-    primary: 'bg-primary-100 text-primary-700',
-    success: 'bg-success-50 text-success-700',
-    warning: 'bg-warning-50 text-warning-700',
-    neutral: 'bg-neutral-100 text-neutral-600',
-    info: 'bg-info-50 text-info-700',
-    error: 'bg-error-50 text-error-700',
-    secondary: 'bg-secondary-100 text-secondary-700',
-  }
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant] || variants.primary} ${className}`}>
-      {children}
-    </span>
-  )
 }
 
 // ─── Main Page ───
@@ -587,7 +568,7 @@ export default function AdminProjectsPage() {
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">صورة الغلاف (رابط)</label>
                   <div className="relative">
-                    <Image size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                    <ImageIcon size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                     <input
                       dir="ltr"
                       value={form.coverImage}

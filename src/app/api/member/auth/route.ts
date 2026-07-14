@@ -7,22 +7,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import { rateLimit } from '@/lib/rate-limit'
+import { blockRateLimit, clearRateLimit, clientIp, isRateLimited, rateLimit } from '@/lib/rate-limit'
+import { requireMemberToken, signMemberToken } from '@/lib/member-auth'
+import { logger } from '@/lib/logger'
 
-const JWT_SECRET = process.env.AUTH_SECRET || 'member-secret-dev'
 const LOGIN_MAX_ATTEMPTS = 5
 const LOGIN_WINDOW_MS = 5 * 60 * 1000 // 5 دقائق
 const BLOCK_DURATION_MS = 15 * 60 * 1000 // 15 دقيقة حظر
-
-// توليد token بسيط
-function signToken(payload: object): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
-}
-
-function verifyToken(token: string): any {
-  try { return jwt.verify(token, JWT_SECRET) } catch { return null }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,29 +23,28 @@ export async function POST(request: NextRequest) {
     }
 
     // الحماية من هجمات القوة العمياء
-    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+    const ip = clientIp(request)
     const emailKey = email.trim().toLowerCase()
-    const ipKey = `login:ip:${ip}`
+    const ipKey = ip === 'unknown' ? null : `login:ip:${ip}`
     const emailLimitKey = `login:email:${emailKey}`
-    const blockKey = `login:block:${ip}`
+    const blockKey = ipKey ? `login:block:ip:${ip}` : `login:block:email:${emailKey}`
 
     // فحص الحظر
-    const blockCheck = rateLimit(blockKey, 1, BLOCK_DURATION_MS)
-    if (!blockCheck.success) {
+    if (isRateLimited(blockKey)) {
       return NextResponse.json({ success: false, message: 'تم حظر محاولات الدخول مؤقتاً — حاول بعد 15 دقيقة' }, { status: 429 })
     }
 
     // فحص معدل المحاولات لكل IP ولكل بريد
-    const ipCheck = rateLimit(ipKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)
+    const ipCheck = ipKey ? rateLimit(ipKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS) : { success: true }
     const emailCheck = rateLimit(emailLimitKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS)
 
     if (!ipCheck.success || !emailCheck.success) {
       // تسجيل تجاوز الحد — حظر الـ IP
-      rateLimit(blockKey, 1, BLOCK_DURATION_MS) // هذا سيُستهلك في الفحص القادم
+      blockRateLimit(blockKey, BLOCK_DURATION_MS)
       return NextResponse.json({ success: false, message: 'محاولات دخول كثيرة — تم حظرك مؤقتاً لمدة 15 دقيقة' }, { status: 429 })
     }
 
-    const member = await (prisma as any).beneficiary.findUnique({
+    const member = await prisma.beneficiary.findUnique({
       where: { email: email.trim().toLowerCase() },
       select: {
         id: true, code: true, firstName: true, lastName: true,
@@ -77,7 +67,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'البريد أو كلمة المرور غير صحيحة' }, { status: 401 })
     }
 
-    const token = signToken({ id: member.id, email: member.email, role: 'MEMBER' })
+    if (ipKey) clearRateLimit(ipKey)
+    clearRateLimit(emailLimitKey)
+    clearRateLimit(blockKey)
+
+    const token = signMemberToken({ id: member.id, email: member.email, role: 'MEMBER' })
 
     const response = NextResponse.json({
       success: true,
@@ -109,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('Member login error:', error)
+    logger.error('Member login error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
@@ -117,18 +111,11 @@ export async function POST(request: NextRequest) {
 /** جلب بيانات العضو من الكوكي */
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('member_token')?.value
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-    }
+    const auth = requireMemberToken(request)
+    if (!auth.ok) return auth.error
 
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ success: false, message: 'انتهت الجلسة' }, { status: 401 })
-    }
-
-    const member = await (prisma as any).beneficiary.findUnique({
-      where: { id: payload.id },
+    const member = await prisma.beneficiary.findUnique({
+      where: { id: auth.payload.id },
       select: {
         id: true, code: true, firstName: true, lastName: true,
         email: true, networkRole: true, status: true,
@@ -155,7 +142,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Member session error:', error)
+    logger.error('Member session error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

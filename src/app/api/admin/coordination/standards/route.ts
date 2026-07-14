@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
+function requireGlobalStandardsAccess(user: SessionUser) {
+  if (user.role === 'SUPER_ADMIN') return null
+  if (user.role === 'ADMIN') return null
+  return NextResponse.json({ success: false, message: 'هذه الميزة متاحة للإدارة العامة فقط' }, { status: 403 })
 }
 
 export async function GET() {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalStandardsAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -25,7 +26,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalStandardsAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -53,12 +56,15 @@ export async function POST(request: NextRequest) {
     if (e.code === 'P2002') {
       return NextResponse.json({ success: false, error: 'الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
     }
+    logger.error('Data standard POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalStandardsAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -78,13 +84,16 @@ export async function PUT(request: NextRequest) {
 
     const standard = await prisma.dataStandard.update({ where: { id }, data })
     return NextResponse.json({ success: true, data: standard })
-  } catch {
+  } catch (error) {
+    logger.error('Data standard PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalStandardsAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -93,7 +102,8 @@ export async function DELETE(request: NextRequest) {
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
     await prisma.dataStandard.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error) {
+    logger.error('Data standard DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

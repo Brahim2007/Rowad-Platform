@@ -26,7 +26,7 @@ npx prisma generate && npx prisma db push
 npm run dev
 ```
 
-**متغيرات أساسية:** `AUTH_SECRET`, `DATABASE_URL`, `SMTP_*`, `EMAIL_FROM`
+**متغيرات أساسية:** `AUTH_SECRET`, `ROWAD_DATABASE_URL`, `SMTP_*`, `EMAIL_FROM`
 **AI (اختياري):** `DEEPSEEK_API_KEY`, `AI_MONTHLY_BUDGET`
 
 ## الدخول
@@ -36,8 +36,9 @@ npm run dev
 | الإدارة | `http://localhost:3002/ar/admin/login` |
 | العضو | `http://localhost:3002/ar/member/login` |
 
-**حساب تطوير:** `admin@rowad-network.org` / `Admin@2024!`
-> ⚠️ إنتاج: اضبط `DISABLE_DEV_LOGIN=true`
+لا يوجد حساب مدير افتراضي في الإنتاج. أنشئ المستخدمين الإداريين من قاعدة البيانات أو سكربت seed آمن.
+
+للتطوير المحلي فقط يمكن ضبط `DEV_ADMIN_EMAIL` و`DEV_ADMIN_PASSWORD` في `.env.local`. هذه القيم لا تعمل إلا عندما يكون `NODE_ENV=development`.
 
 ## بناء للإنتاج
 

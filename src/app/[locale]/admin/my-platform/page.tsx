@@ -10,9 +10,9 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import {
-  Shield, Users, Activity, TrendingUp, Clock, CheckCircle, XCircle,
-  ClipboardCheck, Search, UserCheck, Plus, Pencil, Trash,
-  Hourglass, Calendar, Eye
+  Shield, Users, Activity, TrendingUp, Clock, CheckCircle,
+  Search, UserCheck, Plus,
+  Hourglass, Eye
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════
@@ -65,6 +65,11 @@ interface ActivityItem {
   rejectionReason: string | null
 }
 
+interface SessionUserWithPlatform {
+  platformName?: string | null
+  platformId?: string | null
+}
+
 const QUALITY_LABELS: Record<string, string> = { WEAK: 'ضعيف', ACCEPTABLE: 'مقبول', GOOD: 'جيد', EXCELLENT: 'ممتاز', EXCEPTIONAL: 'استثنائي' }
 const STATUS_LABELS: Record<string, string> = { APPROVED: 'معتمد', PENDING_REVIEW: 'قيد المراجعة', REJECTED: 'مرفوض' }
 const NETWORK_ROLES = ['باحث ومفكر', 'مؤثر رقمي', 'متطوع', 'مشرف', 'رئيس منصة']
@@ -81,14 +86,14 @@ export default function MyPlatformDashboard() {
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab') || 'dashboard'
 
-  const platformName = (session?.user as any)?.platformName || 'المنصة'
-  const platformId = (session?.user as any)?.platformId
+  const sessionUser = session?.user as SessionUserWithPlatform | undefined
+  const platformName = sessionUser?.platformName || 'المنصة'
+  const platformId = sessionUser?.platformId
 
   const [kpis, setKpis] = useState<Kpis>({ memberCount: 0, activeNow: 0, pendingReviews: 0, totalApproved: 0, monthlyApproved: 0 })
   const [pendingActivities, setPendingActivities] = useState<PendingActivity[]>([])
   const [members, setMembers] = useState<MemberItem[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [loading, setLoading] = useState(true)
 
   // Members form state
   const [memberSearch, setMemberSearch] = useState('')
@@ -109,7 +114,6 @@ export default function MyPlatformDashboard() {
 
   const fetchData = useCallback(async () => {
     if (!platformId) return
-    setLoading(true)
     try {
       const res = await fetch(`/api/admin/my-platform/stats?platformId=${platformId}&tab=${tab === 'dashboard' ? 'dashboard' : tab}&search=${memberSearch || actSearch}&status=${actStatusFilter}`)
       if (res.ok) {
@@ -126,7 +130,6 @@ export default function MyPlatformDashboard() {
         }
       }
     } catch { /* fallback */ }
-    finally { setLoading(false) }
   }, [platformId, tab, memberSearch, actSearch, actStatusFilter])
 
   useEffect(() => { fetchData() }, [fetchData])

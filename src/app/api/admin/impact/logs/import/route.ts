@@ -4,12 +4,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ImpactQuality } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
+
+function parseQuality(value: string): ImpactQuality {
+  return Object.values(ImpactQuality).includes(value as ImpactQuality)
+    ? value as ImpactQuality
+    : ImpactQuality.ACCEPTABLE
+}
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN' && auth.user.role !== 'PLATFORM_MANAGER') {
+    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
+  }
 
   try {
     const { rows } = await request.json()
@@ -38,27 +49,31 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        const beneficiary = await (prisma as any).beneficiary.findUnique({ where: { code: beneficiaryCode } })
+        const beneficiary = await prisma.beneficiary.findUnique({ where: { code: beneficiaryCode } })
         if (!beneficiary) {
           results.push({ row: i + 2, status: 'error', message: `العضو ${beneficiaryCode} غير موجود` })
           continue
         }
+        if (!(await verifyPlatformOwnership(auth.user, beneficiary.platformId))) {
+          results.push({ row: i + 2, status: 'error', message: `العضو ${beneficiaryCode} خارج نطاق المنصة` })
+          continue
+        }
 
-        let action = await (prisma as any).impactAction.findFirst({ where: { name: actionName } })
+        let action = await prisma.impactAction.findFirst({ where: { name: actionName } })
         if (!action) {
-          action = await (prisma as any).impactAction.findFirst({ where: { name: { contains: actionName, mode: 'insensitive' } } })
+          action = await prisma.impactAction.findFirst({ where: { name: { contains: actionName, mode: 'insensitive' } } })
         }
         if (!action) {
           results.push({ row: i + 2, status: 'error', message: `النشاط "${actionName}" غير موجود في الكتالوج` })
           continue
         }
 
-        await (prisma as any).impactLog.create({
+        await prisma.impactLog.create({
           data: {
             beneficiaryId: beneficiary.id,
             actionId: action.id,
             count: Math.max(1, count),
-            quality,
+            quality: parseQuality(quality),
             date: new Date(date),
             note: note || null,
             status: 'PENDING_REVIEW',
@@ -69,14 +84,14 @@ export async function POST(request: NextRequest) {
 
         results.push({ row: i + 2, status: 'created', message: `${beneficiary.firstName}: ${action.name}` })
         created++
-      } catch (e: any) {
-        results.push({ row: i + 2, status: 'error', message: e?.message || 'خطأ' })
+      } catch (e: unknown) {
+        results.push({ row: i + 2, status: 'error', message: e instanceof Error ? e.message : 'خطأ' })
       }
     }
 
     return NextResponse.json({ success: true, data: { created, total: rows.length, results } }, { status: 201 })
   } catch (error) {
-    console.error('Activity import error:', error)
+    logger.error('Impact logs import error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الاستيراد' }, { status: 500 })
   }
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import {
   ArrowLeft, Activity, BookOpen, Users, Globe, MapPin,
@@ -293,12 +294,14 @@ export default function AdminActivityDetailPage() {
         {/* Image Banner */}
         <div className="relative h-56 md:h-64 overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-200">
           {activity.icon ? (
-            <div className="flex h-full w-full items-center justify-center bg-white p-8 md:p-12">
-              <img
+            <div className="relative flex h-full w-full items-center justify-center bg-white p-8 md:p-12">
+              <Image
                 src={activity.icon}
                 alt={activity.name}
+                fill
+                sizes="100vw"
                 className="h-full w-full object-contain"
-                loading="lazy"
+                unoptimized
               />
             </div>
           ) : (
@@ -334,11 +337,11 @@ export default function AdminActivityDetailPage() {
           {/* Overlapping title area */}
           <div className="flex items-end gap-5 -mt-12 mb-5">
             <div
-              className="h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl border-4 border-white shadow-xl overflow-hidden flex items-center justify-center bg-white"
+              className="relative h-20 w-20 md:h-24 md:w-24 shrink-0 rounded-2xl border-4 border-white shadow-xl overflow-hidden flex items-center justify-center bg-white"
               style={{ boxShadow: `0 4px 24px ${platformColor}30` }}
             >
               {activity.icon ? (
-                <img src={activity.icon} alt="" className="h-full w-full object-contain p-2" loading="lazy" />
+                <Image src={activity.icon} alt="" fill sizes="96px" className="object-contain p-2" unoptimized />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-50">
                   <Activity size={32} className="text-primary-400" />
@@ -609,9 +612,9 @@ export default function AdminActivityDetailPage() {
                 return (
                   <div key={participation.id} className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-3">
                     <div className="flex items-start gap-3">
-                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-white">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-white">
                         {member.avatar ? (
-                          <img src={member.avatar} alt={memberName} className="h-full w-full object-cover" loading="lazy" />
+                          <Image src={member.avatar} alt={memberName} fill sizes="44px" className="object-cover" unoptimized />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center bg-primary-50 text-sm font-bold text-primary-700">
                             {memberName.trim().slice(0, 2)}

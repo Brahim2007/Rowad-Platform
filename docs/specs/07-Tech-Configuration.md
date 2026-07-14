@@ -633,17 +633,18 @@ export default withNextIntl(nextConfig)
 
 ```bash
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/rowad_db"
-DIRECT_DATABASE_URL="postgresql://user:password@localhost:5432/rowad_db"
+ROWAD_DATABASE_URL="postgresql://user:password@localhost:5432/rowad_db"
 
 # NextAuth
-NEXTAUTH_SECRET="generate-with: openssl rand -base64 32"
+AUTH_SECRET="generate-with: openssl rand -base64 32"
 NEXTAUTH_URL="http://localhost:3000"
 
 # File Storage (Cloudinary) - اختياري
-CLOUDINARY_CLOUD_NAME="..."
-CLOUDINARY_API_KEY="..."
-CLOUDINARY_API_SECRET="..."
+SMTP_HOST="smtp.example.com"
+SMTP_PORT="587"
+SMTP_USER="..."
+SMTP_PASS="..."
+EMAIL_FROM="noreply@example.com"
 
 # App
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
@@ -688,7 +689,7 @@ NODE_ENV="development"
     "framer-motion": "^11.5.0",
     "lucide-react": "^0.445.0",
     "next": "^15.0.0",
-    "next-auth": "^5.0.0-beta",
+    "next-auth": "5.0.0-beta.30",
     "next-intl": "^3.20.0",
     "pino": "^9.4.0",
     "react": "^19.0.0",

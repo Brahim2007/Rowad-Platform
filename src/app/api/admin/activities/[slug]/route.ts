@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { slug } = await params
@@ -75,6 +74,9 @@ export async function GET(
     if (!activity) {
       return NextResponse.json({ success: false, message: 'النشاط غير موجود' }, { status: 404 })
     }
+    if (!(await verifyPlatformOwnership(auth.user, activity.program.platform.id))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     const participationStats = {
       total: activity._count.participations,
@@ -96,7 +98,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Activity detail API error:', error)
+    logger.error('Activity detail API error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

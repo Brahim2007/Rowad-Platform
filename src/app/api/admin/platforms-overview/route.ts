@@ -5,14 +5,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+export async function GET(_request: NextRequest) {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN') {
     return NextResponse.json({ success: false, message: 'الإدارة العليا فقط' }, { status: 403 })
   }
 
@@ -23,51 +23,51 @@ export async function GET(request: NextRequest) {
     const prevYear = curMonth === 1 ? curYear - 1 : curYear
     const prevMonth = curMonth === 1 ? 12 : curMonth - 1
 
-    const platforms = await (prisma as any).platform.findMany({
+    const platforms = await prisma.platform.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true, slug: true, color: true },
     })
 
-    const data = await Promise.all(platforms.map(async (p: any) => {
+    const data = await Promise.all(platforms.map(async (p) => {
       const [
         memberCount,
         pendingCount,
         allLogs,
         managedBy,
       ] = await Promise.all([
-        (prisma as any).beneficiary.count({ where: { platformId: p.id, status: 'ACTIVE' } }),
-        (prisma as any).impactLog.count({ where: { platformId: p.id, status: 'PENDING_REVIEW' } }),
-        (prisma as any).impactLog.findMany({
+        prisma.beneficiary.count({ where: { platformId: p.id, status: 'ACTIVE' } }),
+        prisma.impactLog.count({ where: { platformId: p.id, status: 'PENDING_REVIEW' } }),
+        prisma.impactLog.findMany({
           where: { platformId: p.id },
           select: { status: true, date: true, beneficiaryId: true },
         }),
-        (prisma as any).adminUser.findFirst({
+        prisma.adminUser.findFirst({
           where: { platformId: p.id, role: 'PLATFORM_MANAGER', isActive: true },
           select: { fullName: true, email: true },
         }),
       ])
 
       // هذا الشهر
-      const thisMonth = allLogs.filter((l: any) => {
+      const thisMonth = allLogs.filter((l) => {
         const d = new Date(l.date)
         return d.getFullYear() === curYear && d.getMonth() + 1 === curMonth
       })
       // الشهر السابق
-      const prevMonthLogs = allLogs.filter((l: any) => {
+      const prevMonthLogs = allLogs.filter((l) => {
         const d = new Date(l.date)
         return d.getFullYear() === prevYear && d.getMonth() + 1 === prevMonth
       })
 
-      const approved = allLogs.filter((l: any) => l.status === 'APPROVED').length
-      const thisMonthApproved = thisMonth.filter((l: any) => l.status === 'APPROVED').length
-      const prevMonthApproved = prevMonthLogs.filter((l: any) => l.status === 'APPROVED').length
+      const approved = allLogs.filter((l) => l.status === 'APPROVED').length
+      const thisMonthApproved = thisMonth.filter((l) => l.status === 'APPROVED').length
+      const prevMonthApproved = prevMonthLogs.filter((l) => l.status === 'APPROVED').length
 
-      const activeMembers = new Set(thisMonth.map((l: any) => l.beneficiaryId).filter(Boolean)).size
+      const activeMembers = new Set(thisMonth.map((l) => l.beneficiaryId).filter(Boolean)).size
 
       // الأنشطة المتأخرة (+7 أيام)
       const nowMs = now.getTime()
-      const stalePending = allLogs.filter((l: any) => l.status === 'PENDING_REVIEW' && (nowMs - new Date(l.date).getTime()) > 7 * 86400000).length
+      const stalePending = allLogs.filter((l) => l.status === 'PENDING_REVIEW' && (nowMs - new Date(l.date).getTime()) > 7 * 86400000).length
 
       // اتجاه الشهر
       const trend = prevMonthApproved > 0
@@ -93,16 +93,16 @@ export async function GET(request: NextRequest) {
     // إجماليات
     const totals = {
       platforms: data.length,
-      totalMembers: data.reduce((s: number, d: any) => s + d.memberCount, 0),
-      totalPending: data.reduce((s: number, d: any) => s + d.pendingCount, 0),
-      totalApproved: data.reduce((s: number, d: any) => s + d.totalApproved, 0),
-      mostActive: data.sort((a: any, b: any) => b.thisMonthApproved - a.thisMonthApproved)[0]?.platformName || '—',
-      mostAtRisk: data.filter((d: any) => d.stalePending > 0).length,
+      totalMembers: data.reduce((s, d) => s + d.memberCount, 0),
+      totalPending: data.reduce((s, d) => s + d.pendingCount, 0),
+      totalApproved: data.reduce((s, d) => s + d.totalApproved, 0),
+      mostActive: data.sort((a, b) => b.thisMonthApproved - a.thisMonthApproved)[0]?.platformName || '—',
+      mostAtRisk: data.filter((d) => d.stalePending > 0).length,
     }
 
     return NextResponse.json({ success: true, data: { platforms: data, totals } })
   } catch (error) {
-    console.error('Platforms overview error:', error)
+    logger.error('Platforms overview error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

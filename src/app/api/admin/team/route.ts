@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { TeamMemberSchema } from '@/lib/validations/team'
+import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
-}
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/)
@@ -20,12 +13,13 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
 }
 
 export async function GET() {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
+    const scope = getPlatformScope(auth.user)
     const members = await prisma.beneficiary.findMany({
-      where: { type: { in: ['TEAM', 'BOTH'] } },
+      where: { ...platformWhere(scope), type: { in: ['TEAM', 'BOTH'] } },
       orderBy: { sortOrder: 'asc' },
     })
     // Map to the shape the admin page expects (with name merged)
@@ -43,14 +37,15 @@ export async function GET() {
       isActive: m.status === 'ACTIVE',
     }))
     return NextResponse.json({ success: true, data: mapped })
-  } catch {
+  } catch (error) {
+    logger.error('Team GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
@@ -61,6 +56,10 @@ export async function POST(request: NextRequest) {
 
     // Generate code if not provided
     const code = validated.code || `TM-${validated.slug}`
+    const platformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : null
+    if (auth.user.role === 'PLATFORM_MANAGER' && !platformId) {
+      return NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 })
+    }
 
     const member = await prisma.beneficiary.create({
       data: {
@@ -76,6 +75,7 @@ export async function POST(request: NextRequest) {
         status: validated.isActive ? 'ACTIVE' : 'INACTIVE',
         memberSince: new Date(),
         code,
+        platformId,
       },
     })
     return NextResponse.json({ success: true, data: { ...member, name: `${member.firstName} ${member.lastName}` } }, { status: 201 })
@@ -83,18 +83,24 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, errors: error.flatten() }, { status: 400 })
     }
+    logger.error('Team POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const body = await request.json()
     const { id, name, ...data } = body
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
+    const current = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!current) return NextResponse.json({ success: false, message: 'عضو الفريق غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, current.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     const updateData: Record<string, unknown> = {}
     if (name) {
@@ -117,21 +123,28 @@ export async function PUT(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, errors: error.flatten() }, { status: 400 })
     }
+    logger.error('Team PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
+    const member = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
+    if (!member) return NextResponse.json({ success: false, message: 'عضو الفريق غير موجود' }, { status: 404 })
+    if (!(await verifyPlatformOwnership(auth.user, member.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
     await prisma.beneficiary.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error) {
+    logger.error('Team DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

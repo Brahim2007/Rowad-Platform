@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Shield, LogOut, User, TrendingUp, Star, Medal, Send, Clock, CheckCircle, XCircle, Activity, FileText, Settings, Hourglass, ClipboardCheck } from 'lucide-react'
+import { Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ═══════════════════════════════════════════════
@@ -25,6 +25,14 @@ interface ActivityItem {
   quality: string; status: string; date: string; note: string | null; rejectionReason: string | null
 }
 
+interface ImpactAction {
+  id: string
+  name: string
+  category: string
+  points: number
+  isActive: boolean
+}
+
 const QUALITY_LABELS: Record<string, string> = { WEAK: 'ضعيف', ACCEPTABLE: 'مقبول', GOOD: 'جيد', EXCELLENT: 'ممتاز', EXCEPTIONAL: 'استثنائي' }
 const STATUS_LABELS: Record<string, string> = { APPROVED: 'معتمد', PENDING_REVIEW: 'قيد المراجعة', REJECTED: 'مرفوض' }
 const CATEGORY_LABELS: Record<string, string> = { DIGITAL_ACTIVITY: 'النشاط الرقمي', SCIENTIFIC_EVENTS: 'المشاركة العلمية', INITIATIVES: 'المبادرات والإنتاج', DISCIPLINE: 'الالتزام' }
@@ -43,8 +51,7 @@ export default function MemberPortalPage() {
   const [member, setMember] = useState<MemberInfo | null>(null)
   const [stats, setStats] = useState<MemberStats | null>(null)
   const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [actions, setActions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [actions, setActions] = useState<ImpactAction[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   // Submit form
@@ -65,7 +72,6 @@ export default function MemberPortalPage() {
 
   const fetchData = useCallback(async () => {
     if (!member?.id) return
-    setLoading(true)
     try {
       const url = `/api/member/dashboard?memberId=${member.id}&tab=${tab === 'dashboard' ? 'dashboard' : 'activities'}&status=${statusFilter}`
       const res = await fetch(url)
@@ -81,7 +87,6 @@ export default function MemberPortalPage() {
         }
       }
     } catch { /* fallback */ }
-    finally { setLoading(false) }
   }, [member?.id, tab, statusFilter])
 
   // Load member session on mount
@@ -120,7 +125,6 @@ export default function MemberPortalPage() {
     if (!member) return
     setSubmitting(true)
     try {
-      const action = actions.find(a => a.id === subForm.actionId)
       const res = await fetch('/api/admin/impact/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -310,7 +314,7 @@ export default function MemberPortalPage() {
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع النشاط</label>
                 <select required value={subForm.actionId} onChange={e => setSubForm({ ...subForm, actionId: e.target.value })} className="input-field">
                   <option value="">— اختر النشاط —</option>
-                  {actions.filter((a: any) => a.isActive).map((a: any) => (
+                  {actions.filter(a => a.isActive).map(a => (
                     <option key={a.id} value={a.id}>{a.name} ({a.points} نقطة)</option>
                   ))}
                 </select>

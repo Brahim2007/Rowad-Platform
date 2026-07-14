@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { ArrowLeft, BookOpen, CheckCircle2, Clock, FileText, ImageOff, Layers, User } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import FadeIn from '@/components/motion/FadeIn'
@@ -112,10 +113,13 @@ export default function CourseDetailPage() {
       <div className="min-h-screen bg-neutral-50">
         <section className="relative overflow-hidden bg-neutral-950 pt-28 text-white">
           {courseImage ? (
-            <img
+            <Image
               src={courseImage}
               alt={activity.name}
+              fill
+              sizes="100vw"
               className="absolute inset-0 h-full w-full object-cover opacity-40 brightness-110 saturate-125"
+              unoptimized
             />
           ) : (
             <div className="surface-pattern absolute inset-0 bg-gradient-soft opacity-30" />
@@ -166,9 +170,9 @@ export default function CourseDetailPage() {
 
             <FadeIn delay={0.1}>
               <div className="overflow-hidden rounded-lg border border-white/20 bg-white shadow-card-hover">
-                <div className="aspect-square bg-neutral-50">
+                <div className="relative aspect-square bg-neutral-50">
                   {courseImage ? (
-                    <img src={courseImage} alt={activity.name} className="h-full w-full object-contain" />
+                    <Image src={courseImage} alt={activity.name} fill sizes="420px" className="object-contain" unoptimized />
                   ) : (
                     <div className="flex h-full items-center justify-center">
                       <ImageOff className="h-16 w-16 text-primary-300" />
@@ -239,9 +243,9 @@ export default function CourseDetailPage() {
                     <div className="space-y-3">
                       {relatedActivities.map((item) => (
                         <Link key={item.id} href={`/platforms/${platformSlug}/courses/${item.slug}`} className="flex items-center gap-3 no-underline">
-                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-neutral-50">
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-neutral-50">
                             {item.icon ? (
-                              <img src={item.icon} alt={item.name} className="h-full w-full object-contain" loading="lazy" />
+                              <Image src={item.icon} alt={item.name} fill sizes="56px" className="object-contain" unoptimized />
                             ) : (
                               <div className="flex h-full items-center justify-center bg-primary-50">
                                 <BookOpen className="h-5 w-5 text-primary-400" />

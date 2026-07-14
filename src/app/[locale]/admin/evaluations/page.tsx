@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
-  Activity, Award, BadgeCheck, Blocks, CheckCircle, ClipboardCheck,
+  Activity, BadgeCheck, Blocks, CheckCircle, ClipboardCheck,
   FolderKanban, Pencil, Plus, Star, Target, Trash2, UserCheck, X,
 } from 'lucide-react'
 import { toast } from 'sonner'

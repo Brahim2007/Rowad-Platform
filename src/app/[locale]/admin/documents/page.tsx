@@ -11,7 +11,7 @@ import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import {
   FileText, Upload, Search, Archive, Download, Trash2, Pencil,
-  Eye, Calendar, Building, Filter, History
+  History
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════
@@ -40,10 +40,6 @@ const DOC_TYPES: Record<string, string> = {
   WORK_PLAN: 'خطة عمل', ANNOUNCEMENT: 'إعلان', NEWSLETTER: 'نشرة', OTHER: 'أخرى',
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'bg-neutral-50 text-neutral-600', APPROVED: 'bg-green-50 text-green-700', ARCHIVED: 'bg-red-50 text-red-700',
-}
-
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 
 function formatSize(bytes: number | null): string {
@@ -65,7 +61,7 @@ export default function DocumentsPage() {
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab') || 'all'
 
-  const userRole = (session?.user as any)?.role || 'EDITOR'
+  const userRole = (session?.user as { role?: string } | undefined)?.role || 'EDITOR'
   const isManager = userRole === 'PLATFORM_MANAGER'
 
   const [docs, setDocs] = useState<DocumentItem[]>([])
@@ -76,7 +72,6 @@ export default function DocumentsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [yearFilter, setYearFilter] = useState('')
-  const [monthFilter, setMonthFilter] = useState('')
 
   // Upload/Edit
   const [showModal, setShowModal] = useState(false)
@@ -98,7 +93,6 @@ export default function DocumentsPage() {
       if (search) params.set('search', search)
       if (typeFilter) params.set('type', typeFilter)
       if (yearFilter) params.set('year', yearFilter)
-      if (monthFilter) params.set('month', monthFilter)
       params.set('limit', '200')
 
       const res = await fetch(`/api/admin/documents?${params}`)
@@ -108,7 +102,7 @@ export default function DocumentsPage() {
       }
     } catch { /* fallback */ }
     finally { setLoading(false) }
-  }, [search, typeFilter, yearFilter, monthFilter])
+  }, [search, typeFilter, yearFilter])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 

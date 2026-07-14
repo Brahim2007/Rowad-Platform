@@ -6,8 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { ImpactApprovalStatus, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 // ═══════════════════════════════════════════════════
 // أنواع الإرجاع
@@ -22,16 +24,6 @@ interface PendingActivity {
   quality: string
   date: string
   note: string | null
-}
-
-interface MemberInfo {
-  id: string
-  code: string
-  firstName: string
-  lastName: string
-  networkRole: string | null
-  status: string
-  joinDate: string | null
 }
 
 interface ActivityInfo {
@@ -53,19 +45,16 @@ interface ActivityInfo {
 // ═══════════════════════════════════════════════════
 
 export async function GET(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'PLATFORM_MANAGER') {
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN' && auth.user.role !== 'PLATFORM_MANAGER') {
     return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
   }
 
   try {
     const { searchParams } = new URL(request.url)
-    const platformId = searchParams.get('platformId') || user.platformId
+    const platformId = searchParams.get('platformId') || auth.user.platformId
     const tab = searchParams.get('tab') || 'dashboard'
     const search = searchParams.get('search') || ''
     const statusFilter = searchParams.get('status') || ''
@@ -73,13 +62,16 @@ export async function GET(request: NextRequest) {
     if (!platformId) {
       return NextResponse.json({ success: false, message: 'معرف المنصة مطلوب' }, { status: 400 })
     }
+    if (!(await verifyPlatformOwnership(auth.user, platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     if (tab === 'members') return handleMembers(platformId, search)
     if (tab === 'activities') return handleActivities(platformId, search, statusFilter)
 
     return handleDashboard(platformId)
   } catch (error) {
-    console.error('Platform stats error:', error)
+    logger.error('Platform stats error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
@@ -94,9 +86,9 @@ async function handleDashboard(platformId: string) {
   const curMonth = now.getMonth() + 1
 
   const [memberCount, platformData, pendingLogs, allLogs] = await Promise.all([
-    (prisma as any).beneficiary.count({ where: { platformId, status: 'ACTIVE' } }),
-    (prisma as any).platform.findUnique({ where: { id: platformId }, select: { id: true, name: true, slug: true } }),
-    (prisma as any).impactLog.findMany({
+    prisma.beneficiary.count({ where: { platformId, status: 'ACTIVE' } }),
+    prisma.platform.findUnique({ where: { id: platformId }, select: { id: true, name: true, slug: true } }),
+    prisma.impactLog.findMany({
       where: { platformId, status: 'PENDING_REVIEW' },
       orderBy: { date: 'desc' },
       take: 50,
@@ -105,22 +97,22 @@ async function handleDashboard(platformId: string) {
         beneficiary: { select: { firstName: true, lastName: true, code: true } },
       },
     }),
-    (prisma as any).impactLog.findMany({
+    prisma.impactLog.findMany({
       where: { platformId },
       select: { status: true, date: true, beneficiaryId: true },
     }),
   ])
 
-  const thisMonthLogs = allLogs.filter((l: any) => {
+  const thisMonthLogs = allLogs.filter((l) => {
     const d = new Date(l.date)
     return d.getFullYear() === curYear && d.getMonth() + 1 === curMonth
   })
 
-  const activeBeneficiaryIds = new Set(thisMonthLogs.map((l: any) => l.beneficiaryId).filter(Boolean))
-  const approvedCount = allLogs.filter((l: any) => l.status === 'APPROVED').length
-  const thisMonthApproved = thisMonthLogs.filter((l: any) => l.status === 'APPROVED').length
+  const activeBeneficiaryIds = new Set(thisMonthLogs.map((l) => l.beneficiaryId).filter(Boolean))
+  const approvedCount = allLogs.filter((l) => l.status === 'APPROVED').length
+  const thisMonthApproved = thisMonthLogs.filter((l) => l.status === 'APPROVED').length
 
-  const pendingActivities: PendingActivity[] = pendingLogs.map((l: any) => ({
+  const pendingActivities: PendingActivity[] = pendingLogs.map((l) => ({
     id: l.id,
     beneficiaryName: l.beneficiary ? `${l.beneficiary.firstName} ${l.beneficiary.lastName}` : '—',
     beneficiaryCode: l.beneficiary?.code || '—',
@@ -152,7 +144,7 @@ async function handleDashboard(platformId: string) {
 // ═══════════════════════════════════════════════════
 
 async function handleMembers(platformId: string, search: string) {
-  const where: any = { platformId, status: 'ACTIVE' }
+  const where: Prisma.BeneficiaryWhereInput = { platformId, status: 'ACTIVE' }
   if (search) {
     where.OR = [
       { firstName: { contains: search, mode: 'insensitive' } },
@@ -161,7 +153,7 @@ async function handleMembers(platformId: string, search: string) {
     ]
   }
 
-  const members = await (prisma as any).beneficiary.findMany({
+  const members = await prisma.beneficiary.findMany({
     where,
     orderBy: { registeredAt: 'desc' },
     select: {
@@ -172,7 +164,7 @@ async function handleMembers(platformId: string, search: string) {
 
   return NextResponse.json({
     success: true,
-    data: members.map((m: any) => ({
+    data: members.map((m) => ({
       ...m,
       name: `${m.firstName} ${m.lastName}`.trim(),
     })),
@@ -184,10 +176,12 @@ async function handleMembers(platformId: string, search: string) {
 // ═══════════════════════════════════════════════════
 
 async function handleActivities(platformId: string, search: string, statusFilter: string) {
-  const where: any = { platformId }
-  if (statusFilter) where.status = statusFilter
+  const where: Prisma.ImpactLogWhereInput = { platformId }
+  if (Object.values(ImpactApprovalStatus).includes(statusFilter as ImpactApprovalStatus)) {
+    where.status = statusFilter as ImpactApprovalStatus
+  }
 
-  const logs = await (prisma as any).impactLog.findMany({
+  const logs = await prisma.impactLog.findMany({
     where,
     orderBy: { date: 'desc' },
     take: 200,
@@ -197,7 +191,7 @@ async function handleActivities(platformId: string, search: string, statusFilter
     },
   })
 
-  let data: ActivityInfo[] = logs.map((l: any) => ({
+  let data: ActivityInfo[] = logs.map((l) => ({
     id: l.id,
     beneficiaryName: l.beneficiary ? `${l.beneficiary.firstName} ${l.beneficiary.lastName}` : '—',
     beneficiaryCode: l.beneficiary?.code || '—',

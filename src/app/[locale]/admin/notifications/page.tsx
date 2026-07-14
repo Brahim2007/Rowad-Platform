@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Bell, CheckCheck, Mail, Users, Target, Megaphone, Clock } from 'lucide-react'
+import { Bell, CheckCheck, Megaphone, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 

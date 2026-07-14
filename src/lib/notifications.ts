@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 interface CreateNotificationParams {
   recipientId: string
@@ -17,9 +18,9 @@ interface CreateNotificationParams {
 
 export async function createNotification(params: CreateNotificationParams): Promise<void> {
   try {
-    await (prisma as any).notification.create({ data: params })
+    await prisma.notification.create({ data: params })
   } catch (e) {
-    console.error('[notification] create error:', e)
+    logger.error('[notification] create error', e)
   }
 }
 
@@ -31,7 +32,7 @@ export async function notifyNewSubmission(data: {
   platformId: string
 }) {
   // إرسال لمدير المنصة المعنية
-  const managers = await (prisma as any).adminUser.findMany({
+  const managers = await prisma.adminUser.findMany({
     where: { platformId: data.platformId, role: 'PLATFORM_MANAGER', isActive: true },
     select: { id: true },
   })
@@ -46,7 +47,7 @@ export async function notifyNewSubmission(data: {
     })
   }
   // إرسال لجميع المشرفين
-  const superAdmins = await (prisma as any).adminUser.findMany({
+  const superAdmins = await prisma.adminUser.findMany({
     where: { role: 'SUPER_ADMIN', isActive: true },
     select: { id: true },
   })

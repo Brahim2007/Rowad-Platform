@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { clientIp, rateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 // Simple user-agent parser
 function parseUA(ua: string) {
@@ -55,10 +57,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, data: { tracked: false } })
     }
 
-    // Get IP from headers
-    const forwarded = request.headers.get('x-forwarded-for')
-    const realIp = request.headers.get('x-real-ip')
-    const ipAddress = forwarded?.split(',')[0]?.trim() || realIp || ''
+    const ipAddress = clientIp(request)
+    const visitorKey = visitorId ? `visitor:${String(visitorId).slice(0, 120)}` : `ip:${ipAddress}`
+    const limit = rateLimit(`visit:${visitorKey}`, 120, 10 * 60 * 1000)
+    if (!limit.success) {
+      return rateLimitResponse('Too many tracking requests', limit.retryAfter)
+    }
 
     // Geo IP lookup (parallel with UA parsing)
     const ip = ipAddress && ipAddress !== '127.0.0.1' && ipAddress !== '::1' ? ipAddress : ''
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: { tracked: true } })
   } catch (error) {
-    console.error('Visit tracking error:', error)
+    logger.error('Visit tracking error', error)
     return NextResponse.json({ success: false, message: 'Tracking failed' }, { status: 500 })
   }
 }

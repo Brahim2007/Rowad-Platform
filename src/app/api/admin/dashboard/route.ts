@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireGlobalDashboardAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'PLATFORM_MANAGER' || auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — لوحة الشبكة متاحة للإدارة فقط' }, { status: 403 }),
+    }
   }
-  return null
+  return auth
 }
 
 export async function GET() {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireGlobalDashboardAccess()
+  if (!auth.ok) return auth.error
 
   try {
     // ─── All queries in a single parallel batch ───
@@ -280,7 +285,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Dashboard API Error:', error)
+    logger.error('Dashboard API Error', error)
     return NextResponse.json(
       { success: false, message: 'خطأ في تحميل بيانات لوحة التحكم' },
       { status: 500 }

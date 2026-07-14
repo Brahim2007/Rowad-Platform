@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TrendingUp, TrendingDown, Blocks, Users, Activity, Clock, AlertTriangle, CheckCircle, Star, Shield, BarChart3 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Blocks, Users, Clock, AlertTriangle, CheckCircle, Star, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 interface PlatformRow {

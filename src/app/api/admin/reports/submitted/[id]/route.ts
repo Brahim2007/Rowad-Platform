@@ -1,21 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
-}
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await checkAuth()
-  if (authError) return authError
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
   try {
     const { id } = await params
@@ -32,10 +25,13 @@ export async function GET(
     if (!report) {
       return NextResponse.json({ success: false, message: 'التقرير غير موجود' }, { status: 404 })
     }
+    if (!(await verifyPlatformOwnership(auth.user, report.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
 
     return NextResponse.json({ success: true, data: report })
   } catch (error) {
-    console.error('Submitted report GET by id error:', error)
+    logger.error('Submitted report GET by id error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

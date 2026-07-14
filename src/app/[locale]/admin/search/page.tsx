@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Users, Activity, FileText, Eye } from 'lucide-react'
+import { Search, Users, Activity, FileText } from 'lucide-react'
 
 interface ResultItem {
   id: string; type: 'member' | 'activity' | 'document'
@@ -18,7 +18,6 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const q = searchParams.get('q') || ''
   const [results, setResults] = useState<{ members: ResultItem[]; activities: ResultItem[]; documents: ResultItem[] } | null>(null)
   const [loading, setLoading] = useState(true)

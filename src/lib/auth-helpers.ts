@@ -16,6 +16,46 @@
 
 import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+
+const SESSION_REVALIDATE_MS = 5 * 60 * 1000
+const sessionUserCache = new Map<string, { expiresAt: number; user: SessionUser | null }>()
+
+async function revalidateSessionUser(sessionUser: SessionUser): Promise<SessionUser | null> {
+  if (sessionUser.id === 'dev-admin' && process.env.NODE_ENV === 'development') return sessionUser
+
+  const cached = sessionUserCache.get(sessionUser.id)
+  if (cached && cached.expiresAt > Date.now()) return cached.user
+
+  try {
+    const current = await prisma.adminUser.findUnique({
+      where: { id: sessionUser.id },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        role: true,
+        isActive: true,
+        platformId: true,
+        platform: { select: { name: true } },
+      },
+    })
+    const user: SessionUser | null = current?.isActive ? {
+      id: current.id,
+      email: current.email,
+      name: current.fullName,
+      role: current.role,
+      platformId: current.platformId,
+      platformName: current.platform?.name ?? null,
+    } : null
+    sessionUserCache.set(sessionUser.id, { expiresAt: Date.now() + SESSION_REVALIDATE_MS, user })
+    return user
+  } catch (error) {
+    logger.error('[auth] Failed to revalidate administrative session', error)
+    return null
+  }
+}
 
 // ═══════════════════════════════════════════════════
 // أنواع الجلسة
@@ -34,8 +74,8 @@ export interface SessionUser {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth()
   if (!session?.user) return null
-  const u = session.user as any
-  return {
+  const u = session.user as typeof session.user & Partial<SessionUser>
+  const sessionUser: SessionUser = {
     id: u.id || '',
     email: u.email || '',
     name: u.name || '',
@@ -43,6 +83,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     platformId: u.platformId ?? null,
     platformName: u.platformName ?? null,
   }
+  if (!sessionUser.id) return null
+  return revalidateSessionUser(sessionUser)
 }
 
 // ═══════════════════════════════════════════════════

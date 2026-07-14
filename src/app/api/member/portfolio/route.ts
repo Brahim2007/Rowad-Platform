@@ -5,6 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { levelOf, nextLevelGap, levelProgress } from '@/lib/impact-scoring'
+import { logger } from '@/lib/logger'
+import { memberImpactTotals, memberLogPoints } from '@/lib/member-impact'
 
 const CATEGORY_LABELS: Record<string, string> = {
   DIGITAL_ACTIVITY: 'النشاط الرقمي',
@@ -21,18 +24,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'رمز العضو مطلوب' }, { status: 400 })
     }
 
-    const member = await (prisma as any).beneficiary.findUnique({
+    const member = await prisma.beneficiary.findUnique({
       where: { code: code.trim() },
       select: {
-        firstName: true, lastName: true, code: true, networkRole: true, joinDate: true,
+        id: true, firstName: true, lastName: true, code: true, networkRole: true, joinDate: true,
         platform: { select: { name: true } },
-        impactAwards: { select: { title: true, date: true, type: true }, orderBy: { date: 'desc' }, take: 10 },
-        impactLogs: {
-          where: { status: 'APPROVED' },
-          select: { action: { select: { name: true, category: true, points: true } }, date: true, count: true, quality: true },
-          orderBy: { date: 'desc' },
-          take: 20,
-        },
       },
     })
 
@@ -40,44 +36,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
     }
 
+    const [impactLogs, recentLogs, awards, awardsCount, activitiesCount] = await Promise.all([
+      prisma.impactLog.findMany({
+        where: { beneficiaryId: member.id, status: 'APPROVED' },
+        select: { beneficiaryId: true, status: true, action: { select: { name: true, category: true, points: true } }, date: true, count: true, quality: true },
+      }),
+      prisma.impactLog.findMany({
+        where: { beneficiaryId: member.id, status: 'APPROVED' },
+        select: { action: { select: { name: true, category: true } }, date: true },
+        orderBy: { date: 'desc' },
+        take: 10,
+      }),
+      prisma.impactAward.findMany({
+        where: { beneficiaryId: member.id },
+        select: { title: true, date: true, type: true },
+        orderBy: { date: 'desc' },
+        take: 10,
+      }),
+      prisma.impactAward.count({ where: { beneficiaryId: member.id } }),
+      prisma.impactLog.count({ where: { beneficiaryId: member.id, status: 'APPROVED' } }),
+    ])
+
     const now = new Date()
-    const curYear = now.getFullYear()
-    const curMonth = now.getMonth() + 1
-
-    const bonus: Record<string, number> = { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
-
-    let totalPoints = 0
-    let monthlyPoints = 0
+    const { totalPoints, monthlyPoints } = memberImpactTotals(impactLogs, now)
     const byCategory: Record<string, number> = {}
-    const recentActivities: Array<{ actionName: string; date: string; category: string }> = []
+    const recentActivities = recentLogs.map(log => ({
+      actionName: log.action?.name || '—',
+      date: log.date.toISOString().slice(0, 10),
+      category: CATEGORY_LABELS[log.action?.category] || 'أخرى',
+    }))
 
-    for (const log of member.impactLogs) {
-      const pts = (log.count || 1) * (log.action?.points || 0) + (bonus[log.quality] || 0)
-      totalPoints += pts
-      const d = new Date(log.date)
-      if (d.getFullYear() === curYear && d.getMonth() + 1 === curMonth) monthlyPoints += pts
+    for (const log of impactLogs) {
+      const pts = memberLogPoints(log)
       const catLabel = CATEGORY_LABELS[log.action?.category] || 'أخرى'
       byCategory[catLabel] = (byCategory[catLabel] || 0) + pts
-      if (recentActivities.length < 10) {
-        recentActivities.push({
-          actionName: log.action?.name || '—',
-          date: d.toISOString().slice(0, 10),
-          category: catLabel,
-        })
-      }
     }
 
-    const levels = [
-      { name: 'عضو جديد', from: 0, to: 99 },
-      { name: 'عضو نشط', from: 100, to: 299 },
-      { name: 'عضو مؤثر', from: 300, to: 599 },
-      { name: 'عضو متميز', from: 600, to: 999 },
-      { name: 'رائد ذهبي', from: 1000, to: 1999 },
-      { name: 'سفير الرواد', from: 2000, to: 9999999 },
-    ]
-    const lvl = levels.find(l => totalPoints >= l.from && totalPoints <= l.to) || levels[levels.length - 1]
-    const nextIdx = levels.findIndex(l => l.name === lvl.name) + 1
-    const nextLevel = levels[nextIdx] || null
+    const lvl = levelOf(totalPoints)
+    const gap = nextLevelGap(totalPoints)
 
     return NextResponse.json({
       success: true,
@@ -90,18 +86,18 @@ export async function GET(request: NextRequest) {
         totalPoints,
         monthlyPoints,
         level: lvl.name,
-        levelProgress: lvl.to >= 9999999 ? 100 : Math.min(100, Math.max(0, ((totalPoints - lvl.from) / (lvl.to - lvl.from + 1)) * 100)),
-        nextLevel: nextLevel?.name || null,
-        gapToNext: nextLevel ? Math.max(0, nextLevel.from - totalPoints) : null,
-        activitiesCount: member.impactLogs.length,
-        awardsCount: member.impactAwards.length,
-        awards: member.impactAwards.map((a: any) => ({ title: a.title, date: a.date instanceof Date ? a.date.toISOString() : a.date })),
+        levelProgress: levelProgress(totalPoints),
+        nextLevel: gap?.name || null,
+        gapToNext: gap?.gap ?? null,
+        activitiesCount,
+        awardsCount,
+        awards: awards.map(a => ({ title: a.title, date: a.date instanceof Date ? a.date.toISOString() : a.date })),
         recentActivities,
         byCategory,
       },
     })
   } catch (error) {
-    console.error('Portfolio error:', error)
+    logger.error('Portfolio error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

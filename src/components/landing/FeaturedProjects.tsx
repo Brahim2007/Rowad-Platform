@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { ArrowLeft, BookOpen, Handshake, Rocket, Sparkles } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
@@ -121,10 +122,13 @@ export default function FeaturedProjects() {
                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary-100 to-secondary-50">
                       {coverImage ? (
                         <>
-                          <img
+                          <Image
                             src={coverImage}
                             alt={title}
+                            fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                             className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
+                            unoptimized
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                         </>

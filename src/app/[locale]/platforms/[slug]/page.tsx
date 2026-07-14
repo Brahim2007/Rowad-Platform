@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { MouseEvent } from 'react'
 import { useParams } from 'next/navigation'
+import Image from 'next/image'
 import { Activity, ArrowLeft, ChevronDown, Clock, User, BookText, ImageOff, PlayCircle } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import FadeIn from '@/components/motion/FadeIn'
@@ -56,11 +58,13 @@ function CourseCard({ activity, platformSlug }: { activity: ActivityItem; platfo
       {/* Course Image */}
       {hasImage ? (
         <div className="relative aspect-square overflow-hidden border-b border-neutral-100 bg-neutral-50">
-          <img
+          <Image
             src={activity.icon!}
             alt={activity.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
+            unoptimized
           />
         </div>
       ) : (
@@ -109,7 +113,7 @@ function CourseCard({ activity, platformSlug }: { activity: ActivityItem; platfo
         <Link
           href={`/platforms/${platformSlug}/courses/${activity.slug}`}
           className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-primary-700 no-underline hover:text-primary-900"
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation()}
         >
           عرض محتوى الدورة
           <ArrowLeft size={15} className="rtl-flip" />
@@ -133,12 +137,14 @@ function DiplomaCard({ program, platformSlug }: { program: Program; platformSlug
         <div className="grid gap-5 p-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center sm:p-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           {/* Diploma Image Thumbnail */}
           {hasImage ? (
-            <div className="aspect-square w-full overflow-hidden rounded-lg border border-neutral-100 bg-neutral-50 shadow-soft sm:max-w-[220px]">
-              <img
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-neutral-100 bg-neutral-50 shadow-soft sm:max-w-[220px]">
+              <Image
                 src={program.image!}
                 alt={program.name}
+                fill
+                sizes="220px"
                 className="h-full w-full object-contain"
-                loading="lazy"
+                unoptimized
               />
             </div>
           ) : (
@@ -253,10 +259,13 @@ export default function PlatformDetailPage() {
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-neutral-950 pt-28 text-white">
           {heroImage ? (
-            <img
+            <Image
               src={heroImage}
               alt={platform.name}
+              fill
+              sizes="100vw"
               className="absolute inset-0 h-full w-full object-cover opacity-95 brightness-110 saturate-150"
+              unoptimized
             />
           ) : (
             <div className="surface-pattern absolute inset-0 bg-gradient-soft" />
@@ -297,10 +306,13 @@ export default function PlatformDetailPage() {
 
                 <div className="relative min-h-[280px] overflow-hidden rounded-lg border border-white/20 bg-white/10 shadow-card-hover sm:min-h-[380px] lg:min-h-[480px]">
                   {heroImage ? (
-                    <img
+                    <Image
                       src={heroImage}
                       alt={platform.name}
+                      fill
+                      sizes="(min-width: 1024px) 50vw, 100vw"
                       className="absolute inset-0 h-full w-full object-cover brightness-110 saturate-150"
+                      unoptimized
                     />
                   ) : (
                     <div className="surface-pattern absolute inset-0 flex items-center justify-center bg-gradient-soft">

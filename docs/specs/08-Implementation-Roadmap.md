@@ -44,7 +44,7 @@ npm install next-intl
 npm install zustand sonner
 
 # Auth & Security
-npm install next-auth@beta bcryptjs
+npm install next-auth@5.0.0-beta.30 bcryptjs
 npm install -D @types/bcryptjs
 ```
 

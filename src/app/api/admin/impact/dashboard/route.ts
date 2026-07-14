@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import {
   buildActionMap,
   memberTotal,
@@ -24,23 +25,37 @@ import {
   type ImpactLogEntry,
 } from '@/lib/impact-scoring'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+async function requireImpactDashboardAccess() {
+  const auth = await requireAuth()
+  if (!auth.ok) return auth
+  if (auth.user.role === 'EDITOR') {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — الصلاحية محدودة' }, { status: 403 }),
+    }
   }
-  return null
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
+    }
+  }
+  return auth
 }
 
 function sourceKey(sourceType?: string | null, sourceId?: string | null, actionId?: string | null) {
   return sourceType && sourceId && actionId ? `${sourceType}:${sourceId}:${actionId}` : ''
 }
 
-async function buildDashboardData(scope: Scope) {
+async function buildDashboardData(scope: Scope, platformId?: string | null) {
   // تحميل متدرج لتجنب فتح عدد كبير من اتصالات قاعدة البيانات في البيئة المجانية.
   const actions = await prisma.impactAction.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } })
   const beneficiaries = await prisma.beneficiary.findMany({
-    where: { status: 'ACTIVE', type: { in: ['BENEFICIARY', 'BOTH'] } },
+    where: {
+      status: 'ACTIVE',
+      type: { in: ['BENEFICIARY', 'BOTH'] },
+      ...(platformId ? { platformId } : {}),
+    },
     select: {
       id: true,
       code: true,
@@ -52,8 +67,14 @@ async function buildDashboardData(scope: Scope) {
       status: true,
     },
   })
-  const shieldAwardCount = await prisma.impactAward.count({ where: { type: 'SHIELD' } })
+  const shieldAwardCount = await prisma.impactAward.count({
+    where: {
+      type: 'SHIELD',
+      ...(platformId ? { beneficiary: { platformId } } : {}),
+    },
+  })
   const gates = await prisma.impactGate.findMany({
+    where: platformId ? { beneficiary: { platformId } } : undefined,
     select: { beneficiaryId: true, year: true, month: true, passed: true },
   })
   const settings = await prisma.impactSettings.findUnique({ where: { id: 1 } })
@@ -89,7 +110,11 @@ async function buildDashboardData(scope: Scope) {
     : []
   const enrollments = beneficiaryIds.length
     ? await prisma.enrollment.findMany({
-        where: { beneficiaryId: { in: beneficiaryIds }, status: 'COMPLETED' },
+        where: {
+          beneficiaryId: { in: beneficiaryIds },
+          status: 'COMPLETED',
+          ...(platformId ? { program: { platformId } } : {}),
+        },
         select: {
           id: true,
           beneficiaryId: true,
@@ -107,7 +132,11 @@ async function buildDashboardData(scope: Scope) {
     : []
   const participations = beneficiaryIds.length
     ? await prisma.participation.findMany({
-        where: { beneficiaryId: { in: beneficiaryIds }, status: { in: ['ATTENDED', 'COMPLETED'] } },
+        where: {
+          beneficiaryId: { in: beneficiaryIds },
+          status: { in: ['ATTENDED', 'COMPLETED'] },
+          ...(platformId ? { activity: { program: { platformId } } } : {}),
+        },
         select: {
           id: true,
           beneficiaryId: true,
@@ -154,7 +183,7 @@ async function buildDashboardData(scope: Scope) {
   }
 
   const membersData = beneficiaries.map(b => {
-    const beneficiaryLogs = logsByBeneficiary.get(b.id) || []
+    const beneficiaryLogs = (logsByBeneficiary.get(b.id) || []).filter(log => !platformId || log.platformId === platformId)
     const persistedKeys = new Set(
       beneficiaryLogs
         .map(log => sourceKey(log.sourceType, log.sourceId, log.actionId))
@@ -334,8 +363,8 @@ function dashboardScopeKey(scope: Scope) {
 
 export async function GET(request: NextRequest) {
   try {
-    const authError = await checkAuth()
-    if (authError) return authError
+    const auth = await requireImpactDashboardAccess()
+    if (!auth.ok) return auth.error
 
     const { searchParams } = new URL(request.url)
     const scopeType = (searchParams.get('scope') || 'all') as 'all' | 'month' | 'week'
@@ -349,14 +378,17 @@ export async function GET(request: NextRequest) {
       scope.ref = searchParams.get('ref') || new Date().toISOString().split('T')[0]
     }
 
-    const data = await getCachedDashboardData(dashboardScopeKey(scope), scope)
+    const platformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : null
+    const data = platformId
+      ? await buildDashboardData(scope, platformId)
+      : await getCachedDashboardData(dashboardScopeKey(scope), scope)
 
     return NextResponse.json(
       { success: true, data },
       { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=30' } },
     )
   } catch (error) {
-    console.error('ImpactDashboard GET error:', error)
+    logger.error('ImpactDashboard GET error', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { success: false, message: 'تعذر تحميل لوحة الأثر', error: message },

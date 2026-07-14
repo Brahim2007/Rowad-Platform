@@ -51,14 +51,12 @@ export default function AboutNetwork() {
   const aboutText = content ? htmlToText(content.content) : ''
 
   return (
-    <section className="section-padding relative overflow-hidden bg-white">
-      <div className="pointer-events-none absolute left-0 top-0 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-50/50 blur-3xl" />
-      <div className="pointer-events-none absolute right-0 bottom-0 h-80 w-80 translate-x-1/3 translate-y-1/3 rounded-full bg-secondary-50/50 blur-3xl" />
-
+    <section className="section-padding section-band relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-primary-200 to-transparent" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <FadeIn>
-            <span className="mb-3 inline-flex rounded-full bg-primary-50 px-4 py-1.5 text-sm font-bold text-primary-700">
+            <span className="section-kicker">
               من نحن
             </span>
             <h2 className="section-title">{content?.title || t('title')}</h2>
@@ -82,7 +80,7 @@ export default function AboutNetwork() {
 
                 return (
                   <FadeIn key={platform.id} delay={index * 0.1}>
-                    <div className="group rounded-xl border border-primary-100 bg-gradient-to-br from-white to-primary-50/50 px-5 py-5 shadow-soft transition-all duration-300 hover:shadow-md hover:border-primary-200">
+                    <div className="group border border-primary-100 bg-white px-5 py-5 shadow-soft transition-all duration-300 hover:shadow-md hover:border-primary-200">
                       <div className="mb-3 flex items-center gap-2.5">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg text-white shadow-sm transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: color }}>
                           <Icon size={20} />
@@ -138,7 +136,7 @@ export default function AboutNetwork() {
 
         {!loading && featuredPlatforms.length > 0 && (
           <FadeIn delay={0.25}>
-            <div className="mt-16 grid gap-4 rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50/60 via-white to-primary-50/60 px-6 py-6 sm:grid-cols-4">
+            <div className="mt-16 grid gap-4 border-y border-primary-100 bg-primary-50/45 px-6 py-6 sm:grid-cols-4">
               {featuredPlatforms.slice(0, 4).map((platform, index) => {
                 const Icon = platformIcons[index % platformIcons.length]
                 const color = platform.color || '#527F47'

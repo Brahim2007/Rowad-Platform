@@ -30,7 +30,7 @@
   }
 
   body {
-    @apply font-arabic bg-white text-neutral-900;
+    @apply font-arabic bg-neutral-50 text-neutral-900;
     line-height: 1.7;
   }
 
@@ -123,7 +123,7 @@
   .badge-info { @apply badge bg-info-50 text-info-700; }
 
   .section-title {
-    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900;
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-950;
     letter-spacing: 0;
   }
 
@@ -133,6 +133,22 @@
 
   .section-padding {
     @apply py-16 md:py-20 lg:py-24;
+  }
+
+  .section-kicker {
+    @apply mb-3 inline-flex items-center gap-2 border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm font-bold text-primary-700;
+  }
+
+  .section-band {
+    @apply bg-white;
+  }
+
+  .section-band-muted {
+    @apply bg-neutral-50;
+  }
+
+  .metric-tile {
+    @apply border border-neutral-200 bg-white p-5 shadow-sm;
   }
 
   .report-html-content {
@@ -226,8 +242,8 @@
 
 @layer utilities {
   .surface-pattern {
-    background-image: radial-gradient(rgb(82 127 71 / 0.13) 1px, transparent 1px);
-    background-size: 26px 26px;
+    background-image: linear-gradient(rgb(82 127 71 / 0.08) 1px, transparent 1px), linear-gradient(90deg, rgb(82 127 71 / 0.08) 1px, transparent 1px);
+    background-size: 42px 42px;
   }
 
   .text-balance {
@@ -280,21 +296,6 @@
   }
   100% {
     transform: translateX(-50%);
-  }
-}
-
-@keyframes floatOrb {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  25% {
-    transform: translate(20px, -20px) scale(1.05);
-  }
-  50% {
-    transform: translate(-10px, 15px) scale(0.95);
-  }
-  75% {
-    transform: translate(15px, 10px) scale(1.02);
   }
 }
 

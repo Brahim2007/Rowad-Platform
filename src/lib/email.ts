@@ -10,6 +10,7 @@
 
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
+import { logger } from '@/lib/logger'
 
 // ═══════════════════════════════════════════════════
 // الـ Transporter — يُنشأ مرة واحدة
@@ -27,7 +28,7 @@ function getTransporter(): Transporter {
 
   // إن لم تكن الإعدادات موجودة، نستخدم إعدادات وهمية (للتطوير)
   if (!host || !user) {
-    console.warn('[email] SMTP غير مهيأ — سيتم تسجيل البريد بدل الإرسال')
+    logger.warn('[email] SMTP غير مهيأ — سيتم تسجيل البريد بدل الإرسال')
     // إنشاء transporter لا يفعل شيئاً (للتطوير)
     transporter = nodemailer.createTransport({
       host: 'localhost',
@@ -68,8 +69,8 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
     })
   } catch (error) {
     // في بيئة التطوير أو عند الفشل: نسجّل فقط
-    console.log(`[email] TO: ${opts.to} | SUBJECT: ${opts.subject}`)
-    console.error('[email] Send error:', error)
+    logger.info('[email] Send fallback', { to: opts.to, subject: opts.subject })
+    logger.error('[email] Send error', error)
   }
 }
 

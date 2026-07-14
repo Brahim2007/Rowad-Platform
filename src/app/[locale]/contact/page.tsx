@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { Mail, MapPin, Send, Linkedin, MessageSquare, CheckCircle2, ArrowLeft, Sparkles } from 'lucide-react'
+import { Mail, MapPin, Send, Linkedin, MessageSquare, CheckCircle2, Sparkles } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
 import PageLayout from '@/components/shared/PageLayout'
 

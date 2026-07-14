@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 import { recordActivityLog } from '@/lib/activity-log'
+import { requireAuth, type SessionUser } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
-async function checkAuth() {
-  const session = await auth()
-  if (!session?.user) {
-    return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
-  }
-  return null
+function requireGlobalSnapshotAccess(user: SessionUser) {
+  if (user.role === 'SUPER_ADMIN') return null
+  if (user.role === 'ADMIN') return null
+  return NextResponse.json({ success: false, message: 'هذه الميزة متاحة للإدارة العامة فقط' }, { status: 403 })
 }
 
 export async function GET() {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalSnapshotAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -37,7 +38,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalSnapshotAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -71,24 +74,25 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    const session = await auth()
     await recordActivityLog({
       entity: 'analytics_snapshot',
       entityId: snapshot.id,
       action: 'CREATE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: auth.user.email || auth.user.name,
       changes: snapshot,
     })
 
     return NextResponse.json({ success: true, data: snapshot }, { status: 201 })
   } catch (error) {
-    console.error('Analytics snapshot POST error:', error)
+    logger.error('Analytics snapshot POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const authError = await checkAuth()
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
+  const authError = requireGlobalSnapshotAccess(auth.user)
   if (authError) return authError
 
   try {
@@ -98,16 +102,16 @@ export async function DELETE(request: NextRequest) {
 
     await prisma.analyticsSnapshot.delete({ where: { id } })
 
-    const session = await auth()
     await recordActivityLog({
       entity: 'analytics_snapshot',
       entityId: id,
       action: 'DELETE',
-      actor: session?.user?.email || session?.user?.name,
+      actor: auth.user.email || auth.user.name,
     })
 
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (error) {
+    logger.error('Analytics snapshot DELETE error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
 }

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Activity, ArrowLeft, Blocks, BookOpen, Sparkles } from 'lucide-react'
+import Image from 'next/image'
+import { Activity, ArrowLeft, Blocks, BookOpen } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import FadeIn from '@/components/motion/FadeIn'
 import PageLayout from '@/components/shared/PageLayout'
@@ -88,11 +89,13 @@ export default function PlatformsPage() {
                         <div className="relative min-h-[240px] overflow-hidden bg-gradient-to-br from-primary-100 to-secondary-50 sm:min-h-[270px]">
                           {image ? (
                             <>
-                              <img
+                              <Image
                                 src={image}
                                 alt={platform.name}
+                                fill
+                                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                                 className="absolute inset-0 h-full w-full object-contain bg-neutral-50 p-4 transition-all duration-500 group-hover:scale-105"
-                                loading="lazy"
+                                unoptimized
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             </>

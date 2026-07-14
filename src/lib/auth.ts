@@ -2,15 +2,18 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { blockRateLimit, clearRateLimit, isRateLimited, rateLimit } from '@/lib/rate-limit'
 
-const DEV_ADMIN = {
-  email: 'admin@rowad-network.org',
-  password: 'Admin@2024!',
-  id: 'dev-admin',
-  name: 'المدير',
-  role: 'SUPER_ADMIN',
-  platformId: null as string | null,
-  platformName: null as string | null,
+const ADMIN_LOGIN_MAX_ATTEMPTS = 5
+const ADMIN_LOGIN_WINDOW_MS = 5 * 60 * 1000
+const ADMIN_BLOCK_DURATION_MS = 15 * 60 * 1000
+
+type AuthClaims = {
+  id?: string
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+  platformId?: string | null
+  platformName?: string | null
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -24,13 +27,31 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const email = credentials.email as string
+        const email = String(credentials.email).trim().toLowerCase()
         const password = credentials.password as string
+        const attemptKey = `admin-login:email:${email}`
+        const blockKey = `admin-login:block:${email}`
 
-        // Development fallback — يُعطَّل في الإنتاج عبر المتغير البيئي
-        if ((process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_LOGIN === 'true') && process.env.DISABLE_DEV_LOGIN !== 'true') {
-          if (email === DEV_ADMIN.email && password === DEV_ADMIN.password) {
-            return { id: DEV_ADMIN.id, email: DEV_ADMIN.email, name: DEV_ADMIN.name, role: DEV_ADMIN.role, platformId: DEV_ADMIN.platformId, platformName: DEV_ADMIN.platformName }
+        if (isRateLimited(blockKey)) return null
+        const attempt = rateLimit(attemptKey, ADMIN_LOGIN_MAX_ATTEMPTS, ADMIN_LOGIN_WINDOW_MS)
+        if (!attempt.success) {
+          blockRateLimit(blockKey, ADMIN_BLOCK_DURATION_MS)
+          return null
+        }
+
+        // Development-only fallback. Production must authenticate against the database.
+        if (process.env.NODE_ENV === 'development' && process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD) {
+          if (email === process.env.DEV_ADMIN_EMAIL && password === process.env.DEV_ADMIN_PASSWORD) {
+            clearRateLimit(attemptKey)
+            clearRateLimit(blockKey)
+            return {
+              id: 'dev-admin',
+              email,
+              name: process.env.DEV_ADMIN_NAME || 'Dev Admin',
+              role: 'SUPER_ADMIN',
+              platformId: null,
+              platformName: null,
+            }
           }
         }
 
@@ -46,6 +67,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!isValid) return null
 
+          clearRateLimit(attemptKey)
+          clearRateLimit(blockKey)
+
           await prisma.adminUser.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
@@ -60,7 +84,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             platformName: user.platform?.name ?? null,
           }
         } catch (error) {
-          console.error('[auth] Database error during login:', error)
+          logger.error('[auth] Database error during login', error)
           return null
         }
       },
@@ -69,20 +93,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        ;(token as any).role = (user as any).role
-        ;(token as any).id = user.id
-        ;(token as any).platformId = (user as any).platformId ?? null
-        ;(token as any).platformName = (user as any).platformName ?? null
+        const tokenClaims = token as AuthClaims
+        const userClaims = user as AuthClaims
+        tokenClaims.role = userClaims.role
+        tokenClaims.id = user.id
+        tokenClaims.platformId = userClaims.platformId ?? null
+        tokenClaims.platformName = userClaims.platformName ?? null
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        const u = session.user as any
-        u.role = (token as any).role
-        u.id = (token as any).id
-        u.platformId = (token as any).platformId
-        u.platformName = (token as any).platformName
+        const user = session.user as typeof session.user & AuthClaims
+        const tokenClaims = token as AuthClaims
+        user.role = tokenClaims.role
+        user.id = tokenClaims.id || ''
+        user.platformId = tokenClaims.platformId
+        user.platformName = tokenClaims.platformName
       }
       return session
     },
@@ -92,6 +119,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: 'jwt',
+    maxAge: 8 * 60 * 60,
   },
   secret: process.env.AUTH_SECRET,
 })

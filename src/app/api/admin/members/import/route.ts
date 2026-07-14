@@ -5,16 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 import bcrypt from 'bcryptjs'
 import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
-  const session = await auth()
-  if (!session?.user) return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+  const auth = await requireAuth()
+  if (!auth.ok) return auth.error
 
-  const user = session.user as any
-  if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.role !== 'PLATFORM_MANAGER') {
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN' && auth.user.role !== 'PLATFORM_MANAGER') {
     return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 403 })
   }
 
@@ -28,7 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'الحد الأقصى 100 عضو في المرة الواحدة' }, { status: 400 })
     }
 
-    const targetPlatformId = platformId || user.platformId
+    const targetPlatformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : platformId || null
+    if (auth.user.role === 'PLATFORM_MANAGER' && !targetPlatformId) {
+      return NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 })
+    }
+    if (targetPlatformId && !(await verifyPlatformOwnership(auth.user, targetPlatformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
     const results: Array<{ row: number; status: 'created' | 'error'; name: string; message: string }> = []
     let created = 0
 
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
         const memberCode = code || `R-${Date.now().toString(36).toUpperCase()}`
 
         // Check for duplicate
-        const existing = await (prisma as any).beneficiary.findFirst({
+        const existing = await prisma.beneficiary.findFirst({
           where: email ? { OR: [{ email }, { code: memberCode }] } : { code: memberCode },
         })
         if (existing) {
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
         const tempPassword = email ? (Math.random().toString(36).slice(2, 10) + 'A1!') : null
         const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null
 
-        const member = await (prisma as any).beneficiary.create({
+        await prisma.beneficiary.create({
           data: {
             firstName,
             lastName,
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
         // Send welcome email
         if (email && tempPassword) {
           try {
-            const platformName = user.platformName || 'شبكة رواد'
+            const platformName = auth.user.platformName || 'شبكة رواد'
             await sendWelcomeEmail({
               to: email,
               memberName: `${firstName} ${lastName}`.trim(),
@@ -92,14 +98,14 @@ export async function POST(request: NextRequest) {
 
         results.push({ row: i + 2, status: 'created', name: `${firstName} ${lastName}`.trim(), message: 'تم الإنشاء' })
         created++
-      } catch (e: any) {
-        results.push({ row: i + 2, status: 'error', name: `صف ${i + 2}`, message: e?.message || 'خطأ غير معروف' })
+      } catch (e: unknown) {
+        results.push({ row: i + 2, status: 'error', name: `صف ${i + 2}`, message: e instanceof Error ? e.message : 'خطأ غير معروف' })
       }
     }
 
     return NextResponse.json({ success: true, data: { created, total: rows.length, results } }, { status: 201 })
   } catch (error) {
-    console.error('Import error:', error)
+    logger.error('Members import error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الاستيراد' }, { status: 500 })
   }
 }

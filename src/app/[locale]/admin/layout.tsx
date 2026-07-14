@@ -14,7 +14,7 @@ import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
-  LayoutDashboard, FolderKanban, Blocks, Users, FileText, Shield,
+  FolderKanban, Blocks, Users, FileText, Shield,
   LogOut, Menu, TrendingUp, Activity, Star, BarChart3, Bot, CalendarDays, Search,
   Library, ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
   Medal, Settings, IdCard, UserCog, Archive, Bell,
@@ -199,14 +199,14 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex" dir="rtl">
+    <div className="min-h-screen bg-neutral-100 flex text-neutral-900" dir="rtl">
       {/* ─── Sidebar ─── */}
-      <aside className={`fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-neutral-200 transform transition-transform lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:relative`}>
+      <aside className={`fixed inset-y-0 right-0 z-50 w-72 border-l border-neutral-200 bg-white/95 shadow-xl shadow-neutral-950/5 backdrop-blur transform transition-transform lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:shadow-none`}>
         <div className="h-full flex flex-col">
           {/* Brand */}
-          <div className="p-5 border-b border-neutral-100">
+          <div className="p-5 border-b border-neutral-100 bg-gradient-to-l from-primary-50/80 to-white">
             <Link href="/admin/impact" className="no-underline">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Image
                   src="/images/Rowad-Logo.png"
                   alt="شبكة الرواد الإلكترونية"
@@ -216,7 +216,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                   priority
                 />
               </div>
-              <p className="text-xs text-neutral-400 mt-1">لوحة التحكم</p>
+              <p className="text-xs font-semibold text-primary-700 mt-2">لوحة التحكم التشغيلية</p>
             </Link>
           </div>
 
@@ -226,7 +226,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <Link
               href="/admin/impact"
               onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold bg-primary-600 text-white no-underline hover:bg-primary-700 transition-colors"
+              className="flex items-center gap-3 px-4 py-3 rounded-md text-sm font-bold bg-neutral-950 text-white no-underline hover:bg-primary-800 transition-colors"
             >
               <Shield size={20} />
               <span>لوحة أثر الرواد</span>
@@ -236,13 +236,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Sidebar sections */}
-          <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
             {visibleSections.map(section => (
               <div key={section.title}>
-                <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider px-4 mb-2">
+                <p className="text-[11px] font-bold text-neutral-400 px-4 mb-2">
                   {section.title}
                 </p>
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {section.links.map(({ href, label, icon: Icon }) => {
                     const active = pathname.startsWith(href)
                     return (
@@ -250,10 +250,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                         key={href}
                         href={href}
                         onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors no-underline ${
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors no-underline ${
                           active
-                            ? 'bg-primary-50 text-primary-700'
-                            : 'text-neutral-600 hover:bg-neutral-50'
+                            ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-100'
+                            : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950'
                         }`}
                       >
                         <Icon size={18} />
@@ -267,7 +267,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* User footer */}
-          <div className="p-4 border-t border-neutral-100">
+          <div className="p-4 border-t border-neutral-100 bg-neutral-50/80">
             <div className="flex items-center gap-3 mb-3">
               <NotificationBell recipientType={isPlatformManager ? 'PLATFORM_MANAGER' : 'ADMIN'} />
               <div className="flex-1 min-w-0">
@@ -279,7 +279,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-neutral-600 hover:text-error-600 hover:bg-error-50 rounded-lg transition-colors"
+              className="flex items-center gap-2 w-full px-4 py-2 text-sm font-semibold text-neutral-600 hover:text-error-600 hover:bg-error-50 rounded-md transition-colors"
             >
               <LogOut size={16} />
               <span>تسجيل الخروج</span>
@@ -304,24 +304,30 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* شريط البحث السريع — سطح المكتب */}
-        <div className="hidden lg:block bg-white border-b border-neutral-200 px-4 py-2 flex-shrink-0">
-          <div className="max-w-7xl mx-auto flex items-center gap-4">
-            <SearchGlobal />
+        <div className="hidden lg:block sticky top-0 z-30 border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur flex-shrink-0">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-neutral-950">مركز التحكم</p>
+              <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
+            </div>
+            <div className="min-w-[420px] rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+              <SearchGlobal />
+            </div>
           </div>
         </div>
 
         {/* ─── شريط تبويبات لوحة الأثر (للإدارة فقط) ─── */}
         {!isPlatformManager && (
-        <div className="bg-white border-b border-neutral-200 px-2 lg:px-4 flex-shrink-0 overflow-x-auto">
+        <div className="border-b border-neutral-200 bg-white px-2 lg:px-5 flex-shrink-0 overflow-x-auto">
           <div className="flex gap-0.5 items-end max-w-7xl mx-auto">
             {impactTabs.map(tab => (
               <Link
                 key={tab.id}
                 href={tab.href}
-                className={`flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap no-underline ${
+                className={`flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap no-underline ${
                   tabActive(tab.id)
-                    ? 'border-primary-600 text-primary-600 bg-primary-50/50'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50'
+                    ? 'border-primary-700 text-primary-800 bg-primary-50'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
                 }`}
               >
                 <tab.icon size={16} />
@@ -333,7 +339,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         )}
 
         {/* ─── محتوى الصفحة ─── */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-neutral-100">
           {children}
         </div>
       </div>

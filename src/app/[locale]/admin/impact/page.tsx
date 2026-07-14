@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import {
   Activity, Calculator, TrendingUp,
   CheckCircle, ClipboardCheck, Crown, Download, Eye,
@@ -146,6 +146,13 @@ const BADGE_CATALOG = [
 ]
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 const PAGE_SIZE = 50
+const DEFAULT_QUALITY_BONUS: Record<string, number> = {
+  WEAK: -3,
+  ACCEPTABLE: 0,
+  GOOD: 3,
+  EXCELLENT: 6,
+  EXCEPTIONAL: 10,
+}
 
 // ═══════════════════════════════════════════════
 // Helpers
@@ -182,7 +189,6 @@ function mergeUniqueById<T extends { id: string }>(current: T[], incoming: T[]) 
 
 export default function ImpactDashboardPage() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const tabParam = searchParams.get('tab') || 'dashboard'
   const [activeTab, setActiveTab] = useState(tabParam)
   const [loading, setLoading] = useState(true)
@@ -202,7 +208,7 @@ export default function ImpactDashboardPage() {
       params.set('tab', tab)
     }
     const qs = params.toString()
-    router.replace(`/ar/admin/impact${qs ? `?${qs}` : ''}`, { scroll: false })
+    window.history.replaceState(null, '', `/ar/admin/impact${qs ? `?${qs}` : ''}`)
   }
 
   // Data states
@@ -298,33 +304,50 @@ export default function ImpactDashboardPage() {
     setTabLoading(true)
     try {
       const newLoaded = new Set(loadedTabs)
+      const requests: Promise<void>[] = []
+
       if (tab === 'members' || tab === 'activities' || tab === 'card' || tab === 'pulse' || tab === 'rewards' || tab === 'reports') {
         if (!loadedTabs.has('members')) {
-          await loadMembersPage(1, false)
-          const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
-          if (actRes.success) setActions(actRes.data || [])
-          newLoaded.add('members')
+          requests.push((async () => {
+            const [, actRes] = await Promise.all([
+              loadMembersPage(1, false),
+              fetch('/api/admin/impact/actions').then(r => r.json()),
+            ])
+            if (actRes.success) setActions(actRes.data || [])
+            newLoaded.add('members')
+          })())
         }
       }
       if (tab === 'settings' && actions.length === 0) {
-        const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
-        if (actRes.success) setActions(actRes.data || [])
+        requests.push((async () => {
+          const actRes = await fetch('/api/admin/impact/actions').then(r => r.json())
+          if (actRes.success) setActions(actRes.data || [])
+        })())
       }
       if (tab === 'activities' || tab === 'card' || tab === 'pulse' || tab === 'rewards' || tab === 'reports' || tab === 'dashboard') {
         if (!loadedTabs.has('logs')) {
-          await loadLogsPage(1, false)
-          newLoaded.add('logs')
+          requests.push((async () => {
+            await loadLogsPage(1, false)
+            newLoaded.add('logs')
+          })())
         }
       }
       if (tab === 'rewards' || tab === 'card') {
         if (!loadedTabs.has('awards_gates')) {
-          const awdRes = await fetch('/api/admin/impact/awards').then(r => r.json())
-          if (awdRes.success) setAwards(awdRes.data || [])
-          const gateRes = await fetch('/api/admin/impact/gates').then(r => r.json())
-          if (gateRes.success) setGates(gateRes.data || [])
-          newLoaded.add('awards_gates')
+          requests.push((async () => {
+            const [awdRes, gateRes] = await Promise.all([
+              fetch('/api/admin/impact/awards').then(r => r.json()),
+              fetch('/api/admin/impact/gates').then(r => r.json()),
+            ])
+            if (awdRes.success) setAwards(awdRes.data || [])
+            if (gateRes.success) setGates(gateRes.data || [])
+            newLoaded.add('awards_gates')
+          })())
         }
       }
+
+      await Promise.all(requests)
+      newLoaded.add(tab)
       setLoadedTabs(newLoaded)
     } catch (e) {
       console.error('Failed to load tab data:', e)
@@ -386,7 +409,7 @@ export default function ImpactDashboardPage() {
   const [cardMemberId, setCardMemberId] = useState<string>('')
 
   /** إعدادات الجودة الديناميكية من ImpactSettings — إن لم تكن محفوظة، نستخدم الافتراضية */
-  const qualityBonus: Record<string, number> = dashData?.settings?.qualityBonus ?? { WEAK: -3, ACCEPTABLE: 0, GOOD: 3, EXCELLENT: 6, EXCEPTIONAL: 10 }
+  const qualityBonus: Record<string, number> = dashData?.settings?.qualityBonus ?? DEFAULT_QUALITY_BONUS
 
   if (loading) {
     return (
@@ -570,7 +593,6 @@ function MembersTab({
   onLoadMore: () => void
   loadingMore: boolean
 }) {
-  const router = useRouter()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -756,7 +778,7 @@ function MembersTab({
                           <Eye size={14} />
                         </button>
                         <button
-                          onClick={() => router.push('/ar/admin/impact?tab=activities')}
+                          onClick={() => switchTab('activities')}
                           className="p-1.5 text-neutral-400 hover:text-primary-600"
                           title="تسجيل نشاط سريع"
                         >

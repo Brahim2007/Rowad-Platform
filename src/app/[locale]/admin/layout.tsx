@@ -10,7 +10,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, type MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -324,7 +324,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.id}
                 href={tab.href}
-                className={`flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap no-underline ${
+                onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                  if (!isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                  event.preventDefault()
+                  const locale = pathname.split('/')[1] || 'ar'
+                  window.history.pushState(null, '', `/${locale}${tab.href}`)
+                }}
+                className={`cursor-pointer flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap no-underline ${
                   tabActive(tab.id)
                     ? 'border-primary-700 text-primary-800 bg-primary-50'
                     : 'border-transparent text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'

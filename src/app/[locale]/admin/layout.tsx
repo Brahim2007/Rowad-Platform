@@ -69,18 +69,27 @@ const sidebarSections = [
 function NotificationBell({ recipientType }: { recipientType: string }) {
   const [count, setCount] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => {
-      fetch(`/api/notifications?type=${recipientType}&limit=99`).then(r => r.json()).then(d => {
-        if (d.success) setCount(d.unreadCount || 0)
-      }).catch(() => {})
-    }, 30000)
-    fetch(`/api/notifications?type=${recipientType}&limit=99`).then(r => r.json()).then(d => {
-      if (d.success) setCount(d.unreadCount || 0)
-    }).catch(() => {})
-    return () => clearInterval(id)
+    let activeRequest: AbortController | null = null
+    const refresh = () => {
+      if (document.hidden || activeRequest) return
+      activeRequest = new AbortController()
+      fetch(`/api/notifications?type=${recipientType}&limit=99`, { signal: activeRequest.signal })
+        .then(r => r.json())
+        .then(d => { if (d.success) setCount(d.unreadCount || 0) })
+        .catch(() => {})
+        .finally(() => { activeRequest = null })
+    }
+    refresh()
+    const id = setInterval(refresh, 60000)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', refresh)
+      activeRequest?.abort()
+    }
   }, [recipientType])
   return (
-    <Link href="/admin/notifications" className="relative p-1.5 text-neutral-500 hover:text-primary-600 transition-colors" title="الإشعارات">
+    <Link href="/admin/notifications" prefetch={false} className="relative p-1.5 text-neutral-500 hover:text-primary-600 transition-colors" title="الإشعارات">
       <Bell size={18} />
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
@@ -208,7 +217,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="h-full flex flex-col">
           {/* Brand */}
           <div className="p-5 border-b border-neutral-100 bg-gradient-to-l from-primary-50/80 to-white">
-            <Link href="/admin/impact" className="no-underline">
+            <Link href="/admin/impact" prefetch={false} className="no-underline">
               <div className="flex items-center gap-3">
                 <Image
                   src="/images/Rowad-Logo.png"
@@ -228,6 +237,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="px-4 pt-4">
             <Link
               href="/admin/impact"
+              prefetch={false}
               onClick={() => setSidebarOpen(false)}
               className="flex items-center gap-3 px-4 py-3 rounded-md text-sm font-bold bg-neutral-950 text-white no-underline hover:bg-primary-800 transition-colors"
             >
@@ -252,6 +262,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                       <Link
                         key={href}
                         href={href}
+                        prefetch={false}
                         onClick={() => setSidebarOpen(false)}
                         className={`flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors no-underline ${
                           active
@@ -327,6 +338,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.id}
                 href={tab.href}
+                prefetch={false}
                 onClick={(event: MouseEvent<HTMLAnchorElement>) => {
                   if (!isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                   event.preventDefault()

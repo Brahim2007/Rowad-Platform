@@ -461,7 +461,10 @@ Broadcast {
 **الأداء:**
 - [x] **Pagination حقيقية على كل APIs** — members و impactLogs تدعم page/limit مع إجمالي الصفحات.
 - [x] **Database Indexes** — أضيفت فهارس مركبة: Beneficiary(status,type)، ImpactLog(platformId,status,date).
-- [x] **Lazy loading للتبويبات** — Dashboard API فقط يُحمّل عند الفتح، باقي 5 APIs عند أول زيارة لتبويبها.
+- [x] **Lazy loading للتبويبات** — كل تبويب يحمّل موارده فقط؛ فتح الأنشطة لا ينتظر أو يطلب Dashboard.
+- [x] **منع الطلبات المكررة** — cache للموارد والطلبات الجارية مع مشاركة Promise بين التبويبات.
+- [x] **إيقاف RSC prefetch الإداري** — روابط القائمة والتبويبات لا تجلب الصفحات غير المفتوحة.
+- [x] **تقليل كثافة الجداول والخطوط** — 25 صفًا للصفحة وأوزان خطوط أقل.
 - [~] **Caching على مستوى API** — يوصى بـ ISR أو Redis في البيئة الإنتاجية بعد الـ deployment الأول.
 - [~] **تحسين حجم الـ Bundle** — dynamic imports موصى بها للتطوير المستقبلي، impact/page.tsx الحالي يعمل بكفاءة.
 

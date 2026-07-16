@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import Providers from '@/components/shared/Providers'
 import VisitTracker from '@/components/shared/VisitTracker'
+import { DirectionProvider } from '@/components/ui/direction'
 import '@/app/globals.css'
 
 const inter = Inter({
@@ -91,10 +92,12 @@ export default async function LocaleLayout({
     >
       <body>
         <NextIntlClientProvider messages={messages}>
-          <Providers>
-            {children}
-            <Toaster position="top-left" richColors />
-          </Providers>
+          <DirectionProvider direction="rtl">
+            <Providers>
+              {children}
+              <Toaster position="top-left" richColors />
+            </Providers>
+          </DirectionProvider>
           <VisitTracker />
         </NextIntlClientProvider>
       </body>

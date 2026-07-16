@@ -7,12 +7,20 @@ import {
   Database, Activity, Fingerprint, ShieldCheck, Layers,
   Route, Search,
   Compass, FileText, CheckSquare, BarChart2, Clock, Target,
-  Users, Globe, BookOpen, Briefcase, X, BarChart3,
+  Users, Globe, BookOpen, Briefcase, BarChart3,
   CheckCircle, Calendar,
   AlertCircle, Handshake, ArrowUpRight,
   FolderSync, Eye, ImageOff
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 // ─── Types ───
 
@@ -124,26 +132,8 @@ const STATUS_LABEL: Record<string, string> = {
   ACTIVE: 'نشط', INACTIVE: 'غير نشط', SUSPENDED: 'معلق',
 }
 
-const STATUS_VARIANT: Record<string, string> = {
+const STATUS_VARIANT: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
   ACTIVE: 'success', INACTIVE: 'neutral', SUSPENDED: 'warning',
-}
-
-// ─── Badge Component ───
-
-const Badge = ({ children, variant = 'primary', className = '' }: { children: React.ReactNode; variant?: string; className?: string }) => {
-  const variants: Record<string, string> = {
-    primary: 'bg-primary-100 text-primary-700',
-    success: 'bg-success-50 text-success-700',
-    warning: 'bg-warning-50 text-warning-700',
-    neutral: 'bg-neutral-100 text-neutral-600',
-    info: 'bg-info-50 text-info-700',
-    error: 'bg-error-50 text-error-700',
-  }
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant] || variants.primary} ${className}`}>
-      {children}
-    </span>
-  )
 }
 
 // ─── Journey Modal ───
@@ -157,18 +147,15 @@ function JourneyModal({ beneficiary, onClose }: { beneficiary: Beneficiary | nul
     : -1
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
-          <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-h-[90vh] max-w-lg gap-0 overflow-y-auto p-0">
+        <DialogHeader className="border-b border-neutral-200 bg-neutral-50 px-6 py-4 pe-14">
+          <DialogTitle className="flex items-center gap-2">
             <Route className="text-primary-600" size={20} />
             مسار تطور العضو
-          </h3>
-          <button onClick={onClose} className="p-1.5 text-neutral-400 hover:text-error-500 hover:bg-error-50 rounded-lg transition-colors">
-            <X size={18} />
-          </button>
-        </div>
+          </DialogTitle>
+          <DialogDescription>تفاصيل رحلة العضو والمراحل التي أكملها داخل الشبكة.</DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6">
@@ -215,11 +202,11 @@ function JourneyModal({ beneficiary, onClose }: { beneficiary: Beneficiary | nul
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-200 flex justify-end">
-          <button onClick={onClose} className="btn-ghost btn-sm">إغلاق</button>
-        </div>
-      </div>
-    </div>
+        <DialogFooter className="border-t border-neutral-200 bg-neutral-50 px-6 py-4">
+          <Button onClick={onClose} variant="ghost" size="sm">إغلاق</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -249,12 +236,14 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
-            <p className="mt-4 text-neutral-500">جاري تحميل لوحة البيانات...</p>
-          </div>
+        <div className="mb-6 space-y-3">
+          <Skeleton className="h-9 w-72 max-w-full" />
+          <Skeleton className="h-5 w-[34rem] max-w-full" />
         </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => <Skeleton key={index} className="h-32" />)}
+        </div>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2"><Skeleton className="h-[32rem]" /><Skeleton className="h-[32rem]" /></div>
       </div>
     )
   }
@@ -266,7 +255,7 @@ export default function AdminDashboardPage() {
           <div className="text-center">
             <AlertCircle size={40} className="text-error-500 mx-auto mb-4" />
             <p className="text-neutral-600">تعذر تحميل البيانات. يرجى المحاولة لاحقاً.</p>
-            <button onClick={fetchData} className="btn-primary btn-sm mt-4">إعادة المحاولة</button>
+            <Button onClick={fetchData} size="sm" className="mt-4">إعادة المحاولة</Button>
           </div>
         </div>
       </div>
@@ -304,7 +293,7 @@ export default function AdminDashboardPage() {
 
       {/* ─── Top KPIs ─── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="card">
+        <Card className="p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="w-9 h-9 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
               <Fingerprint size={18} />
@@ -315,9 +304,9 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-neutral-500 text-xs font-medium mb-0.5">ملفات موحدة (ID) نشطة</p>
           <h3 className="text-2xl font-bold text-neutral-900">{overview.totalBeneficiaries.toLocaleString('ar')}</h3>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card className="p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="w-9 h-9 bg-secondary-100 text-secondary-600 rounded-lg flex items-center justify-center">
               <ShieldCheck size={18} />
@@ -328,9 +317,9 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-neutral-500 text-xs font-medium mb-0.5">جودة البيانات</p>
           <h3 className="text-2xl font-bold text-neutral-900">{data.dataQuality}%</h3>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card className="p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="w-9 h-9 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center">
               <BarChart3 size={18} />
@@ -339,9 +328,9 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-neutral-500 text-xs font-medium mb-0.5">متوسط التقييم المؤسسي</p>
           <h3 className="text-2xl font-bold text-neutral-900">{data.avgScore}%</h3>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card className="p-6">
           <div className="flex justify-between items-start mb-3">
             <div className="w-9 h-9 bg-secondary-100 text-secondary-600 rounded-lg flex items-center justify-center">
               <Layers size={18} />
@@ -352,7 +341,7 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-neutral-500 text-xs font-medium mb-0.5">الأعضاء النشطون</p>
           <h3 className="text-2xl font-bold text-neutral-900">{overview.activeBeneficiaries.toLocaleString('ar')}</h3>
-        </div>
+        </Card>
       </div>
 
       {/* ─── Summary Stats ─── */}
@@ -367,7 +356,7 @@ export default function AdminDashboardPage() {
           { label: 'فريق العمل', value: overview.totalTeam, icon: Users, color: 'bg-info-50 text-info-500' },
           { label: 'الشركاء', value: overview.partners, icon: Globe, color: 'bg-success-50 text-success-500' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card flex items-center gap-3 p-4">
+          <Card key={label} className="flex items-center gap-3 p-4">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
               <Icon size={18} />
             </div>
@@ -375,7 +364,7 @@ export default function AdminDashboardPage() {
               <div className="text-xl font-bold text-neutral-900">{value}</div>
               <div className="text-xs text-neutral-500 truncate">{label}</div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -563,12 +552,7 @@ export default function AdminDashboardPage() {
                       <span className="text-neutral-700 font-medium">{item.label}</span>
                       <span className="font-bold text-primary-600">{item.count} عضو</span>
                     </div>
-                    <div className="w-full bg-neutral-100 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-1000 ${stageConfig?.barColor || 'bg-primary-500'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                    <Progress value={pct} indicatorClassName={stageConfig?.barColor || 'bg-primary-500'} />
                   </div>
                 )
               })}
@@ -610,60 +594,59 @@ export default function AdminDashboardPage() {
               <ShieldCheck size={12} />
               {data.duplicateRate <= 1 ? 'قاعدة خالية من التكرار' : `${data.duplicateRate}% تكرار`}
             </Badge>
-            <Link
-              href="/ar/admin/members"
-              className="btn-primary btn-sm flex items-center gap-1.5 no-underline"
-            >
-              <Users size={14} />
-              إدارة الأعضاء
-              <ArrowUpRight size={13} />
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/ar/admin/members" className="no-underline">
+                <Users size={14} />
+                إدارة الأعضاء
+                <ArrowUpRight size={13} />
+              </Link>
+            </Button>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative mb-4 max-w-xs">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
+          <Input
             type="text"
             placeholder="بحث بالاسم أو الكود..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="input-field pr-9 pl-3 py-2 text-sm"
+            className="pe-9 ps-3"
           />
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse text-sm">
-            <thead>
-              <tr className="text-neutral-600 border-b-2 border-neutral-200 bg-neutral-50">
-                <th className="p-3 font-bold text-xs">الرقم الموحد (ID)</th>
-                <th className="p-3 font-bold text-xs">اسم العضو</th>
-                <th className="p-3 font-bold text-xs hidden md:table-cell">الدولة</th>
-                <th className="p-3 font-bold text-xs">المسار (Journey)</th>
-                <th className="p-3 font-bold text-xs hidden sm:table-cell">النشاط</th>
-                <th className="p-3 font-bold text-xs text-center">الحالة</th>
-                <th className="p-3 font-bold text-xs text-center">إدارة</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="text-start">
+            <TableHeader>
+              <TableRow className="border-b-2 border-neutral-200 bg-neutral-50 hover:bg-neutral-50">
+                <TableHead>الرقم الموحد (ID)</TableHead>
+                <TableHead>اسم العضو</TableHead>
+                <TableHead className="hidden md:table-cell">الدولة</TableHead>
+                <TableHead>المسار (Journey)</TableHead>
+                <TableHead className="hidden sm:table-cell">النشاط</TableHead>
+                <TableHead className="text-center">الحالة</TableHead>
+                <TableHead className="text-center">إدارة</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {filteredBeneficiaries.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-8 text-center text-neutral-400 text-xs">لا يوجد أعضاء</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={7} className="p-8 text-center text-xs text-neutral-400">لا يوجد أعضاء</TableCell>
+                </TableRow>
               ) : (
                 filteredBeneficiaries.map(b => {
                   const stageLabel = b.currentStage ? STAGE_LABEL[b.currentStage] : 'لم يبدأ'
                   const stageConfig = JOURNEY_STAGES.find(s => s.key === b.currentStage)
 
                   return (
-                    <tr key={b.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-                      <td className="p-3">
+                    <TableRow key={b.id}>
+                      <TableCell>
                         <span className="font-mono font-bold text-primary-600 text-xs">{b.code}</span>
-                      </td>
-                      <td className="p-3 font-medium text-neutral-900">{b.name}</td>
-                      <td className="p-3 text-neutral-500 hidden md:table-cell">{b.country || '—'}</td>
-                      <td className="p-3">
+                      </TableCell>
+                      <TableCell className="font-medium text-neutral-900">{b.name}</TableCell>
+                      <TableCell className="hidden text-neutral-500 md:table-cell">{b.country || '—'}</TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-semibold ${stageConfig?.textColor || 'text-neutral-500'}`}>
                             {stageLabel}
@@ -676,19 +659,19 @@ export default function AdminDashboardPage() {
                             <Route size={14} />
                           </button>
                         </div>
-                      </td>
-                      <td className="p-3 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-2 text-xs text-neutral-500">
                           <span className="flex items-center gap-0.5"><Briefcase size={11} />{b.enrollmentsCount}</span>
                           <span className="flex items-center gap-0.5"><Activity size={11} />{b.participationsCount}</span>
                         </div>
-                      </td>
-                      <td className="p-3 text-center">
+                      </TableCell>
+                      <TableCell className="text-center">
                         <Badge variant={STATUS_VARIANT[b.status] || 'neutral'} className="text-[10px]">
                           {STATUS_LABEL[b.status] || b.status}
                         </Badge>
-                      </td>
-                      <td className="p-3 text-center">
+                      </TableCell>
+                      <TableCell className="text-center">
                         <Link
                           href={`/ar/admin/members/${b.id}`}
                           className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-700 hover:text-primary-900 bg-primary-50 hover:bg-primary-100 px-2 py-1 rounded-lg no-underline"
@@ -696,13 +679,13 @@ export default function AdminDashboardPage() {
                           <Users size={11} />
                           فتح الملف
                         </Link>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 

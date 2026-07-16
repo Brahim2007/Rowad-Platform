@@ -6,6 +6,9 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { ArrowLeft, BookOpen, CheckCircle2, Layers, Network, Users } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Stats {
   platforms: number
@@ -89,19 +92,21 @@ export default function Hero() {
 
             <FadeIn delay={0.34}>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/platforms" className="btn-secondary btn-lg no-underline group">
-                  استكشف المنصات
-                  <ArrowLeft size={20} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-1" />
-                </Link>
-                <Link href="/projects" className="inline-flex items-center justify-center gap-2 border border-white/25 bg-white/10 px-8 py-4 text-lg font-semibold text-white no-underline backdrop-blur-md transition-colors hover:bg-white/16">
-                  المشاريع
-                </Link>
+                <Button asChild variant="secondary" size="lg" className="group">
+                  <Link href="/platforms" className="no-underline">
+                    استكشف المنصات
+                    <ArrowLeft size={20} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-1" />
+                  </Link>
+                </Button>
+                <Button asChild variant="glass" size="lg">
+                  <Link href="/projects" className="no-underline">المشاريع</Link>
+                </Button>
               </div>
             </FadeIn>
           </div>
 
           <FadeIn delay={0.3} direction="right">
-            <div className="border border-white/15 bg-neutral-950/36 p-5 backdrop-blur-md">
+            <Card className="rounded-2xl border-white/15 bg-neutral-950/36 p-5 text-white shadow-2xl backdrop-blur-md">
               <div className="grid grid-cols-3 gap-2">
                 {signals.map(({ icon: Icon, label }) => (
                   <div key={label} className="border border-white/10 bg-white/8 p-3 text-center">
@@ -122,7 +127,7 @@ export default function Hero() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           </FadeIn>
         </div>
 
@@ -131,7 +136,7 @@ export default function Hero() {
             {heroStats.map(({ value, label }) => (
               <div key={label} className="border-b border-white/12 px-5 py-4 sm:border-b-0 sm:border-l sm:last:border-l-0">
                 <div className="text-3xl font-bold text-white">
-                  {statsLoading ? '--' : value.toLocaleString('ar-SA')}
+                  {statsLoading ? <Skeleton className="h-9 w-16 bg-white/15" /> : value.toLocaleString('ar-SA')}
                 </div>
                 <div className="mt-1 text-sm font-semibold text-white/58">{label}</div>
               </div>

@@ -19,6 +19,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const navLinks = [
   { key: 'home', href: '/', icon: Home },
@@ -97,39 +98,28 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/contact"
-              className={`hidden sm:inline-flex btn-sm no-underline group ${
-                floatingOnHero
-                  ? 'btn border border-white/20 bg-white/12 text-white backdrop-blur-md hover:bg-white/20 focus:ring-white/20'
-                  : 'btn-primary'
-              }`}
-            >
-              {t('contact')}
-              <ArrowLeft size={16} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-0.5" />
-            </Link>
-            <Link
-              href="/admin/login"
-              className={`hidden sm:inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-semibold no-underline shadow-sm transition-all duration-200 hover:shadow-md ${
-                floatingOnHero
-                  ? 'border-white/18 bg-white/10 text-white/82 backdrop-blur-md hover:bg-white/16 hover:text-white'
-                  : 'border-neutral-200 bg-white/60 text-neutral-600 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700'
-              }`}
-            >
-              <Lock size={14} />
-              دخول الإدارة
-            </Link>
-            <button
-              className={`rounded-xl border p-2.5 shadow-sm transition-all duration-200 md:hidden ${
-                floatingOnHero
-                  ? 'border-white/18 bg-white/10 text-white backdrop-blur-md hover:bg-white/16'
-                  : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-              }`}
+            <Button asChild size="sm" variant={floatingOnHero ? 'glass' : 'default'} className="hidden sm:inline-flex">
+              <Link href="/contact" className="group no-underline">
+                {t('contact')}
+                <ArrowLeft size={16} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-0.5" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant={floatingOnHero ? 'glass' : 'outline'} className="hidden sm:inline-flex">
+              <Link href="/admin/login" className="no-underline">
+                <Lock size={14} />
+                دخول الإدارة
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant={floatingOnHero ? 'glass' : 'outline'}
+              className="md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
             >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -154,22 +144,18 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Link
-                href="/contact"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 btn-primary btn-sm text-center no-underline"
-              >
-                {t('contact')}
-                <ArrowLeft size={16} className="rtl-flip" />
-              </Link>
-              <Link
-                href="/admin/login"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-700 no-underline transition-colors hover:border-primary-300 hover:text-primary-700"
-              >
-                <Lock size={16} />
-                دخول الإدارة
-              </Link>
+              <Button asChild>
+                <Link href="/contact" onClick={() => setMobileOpen(false)} className="no-underline">
+                  {t('contact')}
+                  <ArrowLeft size={16} className="rtl-flip" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/admin/login" onClick={() => setMobileOpen(false)} className="no-underline">
+                  <Lock size={16} />
+                  دخول الإدارة
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

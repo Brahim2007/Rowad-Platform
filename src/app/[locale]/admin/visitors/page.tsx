@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
@@ -240,7 +245,7 @@ export default function AdminVisitorsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <select
+          <NativeSelect
             value={period}
             onChange={e => setPeriod(e.target.value)}
             className="input-field text-sm py-2"
@@ -249,11 +254,11 @@ export default function AdminVisitorsPage() {
             <option value="30">آخر 30 يوم</option>
             <option value="90">آخر 3 أشهر</option>
             <option value="365">آخر سنة</option>
-          </select>
-          <button onClick={fetchData} className="btn-primary btn-sm flex items-center gap-1.5" disabled={loading}>
+          </NativeSelect>
+          <Button unstyled onClick={fetchData} className="btn-primary btn-sm flex items-center gap-1.5" disabled={loading}>
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             تحديث
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -516,7 +521,7 @@ export default function AdminVisitorsPage() {
 
         <div className="relative mb-4">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-field pr-9"
@@ -527,27 +532,27 @@ export default function AdminVisitorsPage() {
         <div className="overflow-x-auto">
           {data && data.recentVisits.length > 0 ? (
             <>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-neutral-50 border-b border-neutral-200">
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الصفحة</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الدولة</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الجهاز</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">المتصفح</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">نظام التشغيل</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الشاشة</th>
-                    <th className="text-right py-3 px-3 text-xs font-bold text-neutral-500">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="bg-neutral-50 border-b border-neutral-200">
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الصفحة</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الدولة</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الجهاز</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">المتصفح</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">نظام التشغيل</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">الشاشة</TableHead>
+                    <TableHead className="text-right py-3 px-3 text-xs font-bold text-neutral-500">التاريخ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {data.recentVisits.map((visit) => (
-                    <tr key={visit.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                      <td className="py-2.5 px-3">
+                    <TableRow key={visit.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                      <TableCell className="py-2.5 px-3">
                         <span className="text-xs text-neutral-700 block max-w-[200px] truncate" dir="ltr">
                           {visit.path.replace(/^\/(ar)\/?/, '/')}
                         </span>
-                      </td>
-                      <td className="py-2.5 px-3">
+                      </TableCell>
+                      <TableCell className="py-2.5 px-3">
                         <span className="flex items-center gap-1.5 text-xs text-neutral-700">
                           {visit.country ? (
                             <>
@@ -559,20 +564,20 @@ export default function AdminVisitorsPage() {
                             <span className="text-neutral-400">--</span>
                           )}
                         </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-neutral-600">
+                      </TableCell>
+                      <TableCell className="py-2.5 px-3 text-xs text-neutral-600">
                         {DEVICE_LABELS[visit.deviceType || ''] || visit.deviceType || '--'}
-                      </td>
-                      <td className="py-2.5 px-3 text-xs text-neutral-600">{visit.browser || '--'}</td>
-                      <td className="py-2.5 px-3 text-xs text-neutral-600">{visit.os || '--'}</td>
-                      <td className="py-2.5 px-3 text-xs text-neutral-400">{visit.screenSize || '--'}</td>
-                      <td className="py-2.5 px-3 text-xs text-neutral-400 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-2.5 px-3 text-xs text-neutral-600">{visit.browser || '--'}</TableCell>
+                      <TableCell className="py-2.5 px-3 text-xs text-neutral-600">{visit.os || '--'}</TableCell>
+                      <TableCell className="py-2.5 px-3 text-xs text-neutral-400">{visit.screenSize || '--'}</TableCell>
+                      <TableCell className="py-2.5 px-3 text-xs text-neutral-400 whitespace-nowrap">
                         {dateLabel(visit.timestamp)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
 
               {/* Pagination */}
               {data.pagination.totalPages > 1 && (
@@ -582,20 +587,20 @@ export default function AdminVisitorsPage() {
                     {' '}({data.pagination.total.toLocaleString('ar-SA')} زيارة)
                   </p>
                   <div className="flex gap-2">
-                    <button
+                    <Button unstyled
                       onClick={() => setPage(p => Math.max(1, p - 1))}
                       disabled={page <= 1}
                       className="px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       السابق
-                    </button>
-                    <button
+                    </Button>
+                    <Button unstyled
                       onClick={() => setPage(p => p + 1)}
                       disabled={page >= data.pagination.totalPages}
                       className="px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       التالي
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}

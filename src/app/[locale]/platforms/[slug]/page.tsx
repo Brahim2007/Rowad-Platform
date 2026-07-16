@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { useParams } from 'next/navigation'
@@ -130,7 +132,7 @@ function DiplomaCard({ program, platformSlug }: { program: Program; platformSlug
   return (
     <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm transition-all hover:border-neutral-300 hover:shadow-card-hover">
       {/* Program Header */}
-      <button
+      <Button unstyled
         onClick={() => setExpanded(!expanded)}
         className="w-full text-right"
       >
@@ -183,7 +185,7 @@ function DiplomaCard({ program, platformSlug }: { program: Program; platformSlug
             )}
           </div>
         </div>
-      </button>
+      </Button>
 
       {/* Expanded: Course Cards Grid */}
       {expanded && (

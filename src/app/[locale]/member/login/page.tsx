@@ -1,5 +1,8 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Shield, LogIn } from 'lucide-react'
@@ -57,7 +60,7 @@ export default function MemberLoginPage() {
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني</label>
-              <input
+              <Input
                 type="email"
                 required
                 value={email}
@@ -70,7 +73,7 @@ export default function MemberLoginPage() {
 
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">كلمة المرور</label>
-              <input
+              <Input
                 type="password"
                 required
                 value={password}
@@ -81,7 +84,7 @@ export default function MemberLoginPage() {
               />
             </div>
 
-            <button
+            <Button unstyled
               type="submit"
               disabled={loading}
               className="w-full btn-primary flex items-center justify-center gap-2 py-3"
@@ -92,7 +95,7 @@ export default function MemberLoginPage() {
                 <LogIn size={18} />
               )}
               {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

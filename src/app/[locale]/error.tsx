@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { AlertTriangle } from 'lucide-react'
 
 export default function ErrorPage({
@@ -16,9 +18,9 @@ export default function ErrorPage({
         </div>
         <h2 className="text-xl font-bold text-neutral-900 mb-2">حدث خطأ غير متوقع</h2>
         <p className="text-sm text-neutral-500 mb-6">يرجى المحاولة مرة أخرى</p>
-        <button onClick={reset} className="btn-primary btn-sm">
+        <Button unstyled onClick={reset} className="btn-primary btn-sm">
           إعادة المحاولة
-        </button>
+        </Button>
       </div>
     </div>
   )

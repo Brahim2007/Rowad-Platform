@@ -1,5 +1,8 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Image from 'next/image'
@@ -376,7 +379,7 @@ export default function AdminLoginPage() {
                         const Icon = account.icon
                         const isLoading = demoLoadingIdx === idx
                         return (
-                          <button
+                          <Button unstyled
                             key={idx}
                             type="button"
                             onClick={() => handleDemoLogin(idx)}
@@ -395,7 +398,7 @@ export default function AdminLoginPage() {
                               </span>
                             </span>
                             <ArrowLeft size={14} className="shrink-0 text-neutral-400" />
-                          </button>
+                          </Button>
                         )
                       })}
                     </div>
@@ -414,7 +417,7 @@ export default function AdminLoginPage() {
                     <label className="mb-1 block text-sm font-semibold text-neutral-700">
                       البريد الإلكتروني
                     </label>
-                    <input
+                    <Input
                       type="email"
                       required
                       value={email}
@@ -428,7 +431,7 @@ export default function AdminLoginPage() {
                     <label className="mb-1 block text-sm font-semibold text-neutral-700">
                       كلمة المرور
                     </label>
-                    <input
+                    <Input
                       type="password"
                       required
                       value={password}
@@ -445,7 +448,7 @@ export default function AdminLoginPage() {
                     </div>
                   )}
 
-                  <button
+                  <Button unstyled
                     type="submit"
                     disabled={loading || demoLoadingIdx !== null}
                     className="btn-primary btn-md w-full"
@@ -461,7 +464,7 @@ export default function AdminLoginPage() {
                         <ShieldCheck size={16} />
                       </>
                     )}
-                  </button>
+                  </Button>
                 </form>
 
                 <div className="mt-4 grid grid-cols-3 gap-1.5 sm:gap-2 border-t border-neutral-200 pt-4 text-center">

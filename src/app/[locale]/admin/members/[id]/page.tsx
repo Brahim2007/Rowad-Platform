@@ -1,5 +1,8 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -385,14 +388,14 @@ export default function AdminMemberDetailPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button unstyled
             onClick={() => refreshMember({ sync: true, quiet: false, loadingState: false })}
             disabled={syncing}
             className="btn-primary btn-sm flex items-center gap-1.5"
           >
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'تحديث المسار...' : 'تحديث Journey'}
-          </button>
+          </Button>
           <Link href={`/ar/admin/members?search=${encodeURIComponent(member.code)}`} className="btn-ghost btn-sm no-underline flex items-center gap-1.5">
             <FileText size={14} />
             تعديل البيانات
@@ -577,42 +580,42 @@ export default function AdminMemberDetailPage() {
               <EmptyState icon={Activity} text="لا توجد مشاركات أنشطة لهذا العضو بعد" />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50">
-                      <th className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">النشاط</th>
-                      <th className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">البرنامج</th>
-                      <th className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">الحالة</th>
-                      <th className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">النتيجة</th>
-                      <th className="text-center py-3 px-3 text-xs text-neutral-500 font-bold">الشهادة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b border-neutral-200 bg-neutral-50">
+                      <TableHead className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">النشاط</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">البرنامج</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">الحالة</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-xs text-neutral-500 font-bold">النتيجة</TableHead>
+                      <TableHead className="text-center py-3 px-3 text-xs text-neutral-500 font-bold">الشهادة</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {data.participations.map(participation => {
                       const status = PARTICIPATION_STATUS[participation.status] || PARTICIPATION_STATUS.REGISTERED
                       return (
-                        <tr key={participation.id} className="border-b border-neutral-100">
-                          <td className="py-3 px-3">
+                        <TableRow key={participation.id} className="border-b border-neutral-100">
+                          <TableCell className="py-3 px-3">
                             <p className="font-semibold text-neutral-900 text-xs">{participation.activity.name}</p>
                             <div className="flex flex-wrap gap-2 text-[10px] text-neutral-400 mt-1">
                               <span>{ACTIVITY_TYPES[participation.activity.type] || participation.activity.type}</span>
                               <span>{participation.activity.isOnline ? 'عن بعد' : participation.activity.location || 'حضوري'}</span>
                               <span>{dateLabel(participation.activity.startDate || participation.createdAt)}</span>
                             </div>
-                          </td>
-                          <td className="py-3 px-3">
+                          </TableCell>
+                          <TableCell className="py-3 px-3">
                             <Link href={`/ar/admin/platforms/${participation.activity.program.platform.slug}`} className="text-primary-700 hover:text-primary-900 no-underline font-semibold text-xs">
                               {participation.activity.program.name}
                             </Link>
                             <p className="text-[10px] text-neutral-400">{participation.activity.program.platform.name}</p>
-                          </td>
-                          <td className="py-3 px-3">
+                          </TableCell>
+                          <TableCell className="py-3 px-3">
                             <Badge className={status.color}>{status.label}</Badge>
-                          </td>
-                          <td className="py-3 px-3 text-neutral-600">
+                          </TableCell>
+                          <TableCell className="py-3 px-3 text-neutral-600">
                             {participation.score !== null ? participation.score : 'غير محدد'}
-                          </td>
-                          <td className="py-3 px-3 text-center">
+                          </TableCell>
+                          <TableCell className="py-3 px-3 text-center">
                             {participation.certificateUrl ? (
                               <a href={participation.certificateUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-success-700 bg-success-50 hover:bg-success-100 px-2 py-1 rounded-lg no-underline">
                                 <BadgeCheck size={12} />
@@ -621,12 +624,12 @@ export default function AdminMemberDetailPage() {
                             ) : (
                               <span className="text-[10px] text-neutral-300">لا يوجد</span>
                             )}
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       )
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </section>

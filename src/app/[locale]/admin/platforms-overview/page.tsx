@@ -1,5 +1,7 @@
 'use client'
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, Blocks, Users, Clock, AlertTriangle, CheckCircle, Star, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
@@ -69,42 +71,42 @@ export default function PlatformsOverviewPage() {
       <div className="card">
         <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Blocks size={18} className="text-primary-600" /> أداء المنصات — شهرياً</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200">
-                <th className="text-right p-3 text-neutral-500">المنصة</th>
-                <th className="text-center p-3 text-neutral-500">المدير</th>
-                <th className="text-center p-3 text-neutral-500">الأعضاء</th>
-                <th className="text-center p-3 text-neutral-500">النشطون</th>
-                <th className="text-center p-3 text-neutral-500">معلق</th>
-                <th className="text-center p-3 text-neutral-500">متأخر +7</th>
-                <th className="text-center p-3 text-neutral-500">المعتمدة (الشهر)</th>
-                <th className="text-center p-3 text-neutral-500">الاتجاه</th>
-                <th className="text-center p-3 text-neutral-500">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full text-sm">
+            <TableHeader>
+              <TableRow className="border-b border-neutral-200">
+                <TableHead className="text-right p-3 text-neutral-500">المنصة</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">المدير</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">الأعضاء</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">النشطون</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">معلق</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">متأخر +7</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">المعتمدة (الشهر)</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">الاتجاه</TableHead>
+                <TableHead className="text-center p-3 text-neutral-500">إجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {platforms.map(p => (
-                <tr key={p.platformId} className={`border-b border-neutral-100 hover:bg-neutral-50 ${p.stalePending > 0 ? 'bg-red-50/30' : ''}`}>
-                  <td className="p-3 font-semibold">
+                <TableRow key={p.platformId} className={`border-b border-neutral-100 hover:bg-neutral-50 ${p.stalePending > 0 ? 'bg-red-50/30' : ''}`}>
+                  <TableCell className="p-3 font-semibold">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }} />
                       {p.platformName}
                     </div>
-                  </td>
-                  <td className="p-3 text-center text-xs">
+                  </TableCell>
+                  <TableCell className="p-3 text-center text-xs">
                     {p.managedBy ? (
                       <span className="text-neutral-600">{p.managedBy}</span>
                     ) : (
                       <Badge className="bg-red-50 text-red-600">غير معيّن</Badge>
                     )}
-                  </td>
-                  <td className="p-3 text-center font-mono">{p.memberCount}</td>
-                  <td className="p-3 text-center font-mono">{p.activeMembers}</td>
-                  <td className="p-3 text-center">
+                  </TableCell>
+                  <TableCell className="p-3 text-center font-mono">{p.memberCount}</TableCell>
+                  <TableCell className="p-3 text-center font-mono">{p.activeMembers}</TableCell>
+                  <TableCell className="p-3 text-center">
                     <span className={`font-mono font-bold ${p.pendingCount > 0 ? 'text-amber-600' : 'text-neutral-400'}`}>{p.pendingCount}</span>
-                  </td>
-                  <td className="p-3 text-center">
+                  </TableCell>
+                  <TableCell className="p-3 text-center">
                     {p.stalePending > 0 ? (
                       <span className="inline-flex items-center gap-1 text-red-600 font-bold">
                         <AlertTriangle size={12} /> {p.stalePending}
@@ -112,9 +114,9 @@ export default function PlatformsOverviewPage() {
                     ) : (
                       <span className="text-neutral-300">—</span>
                     )}
-                  </td>
-                  <td className="p-3 text-center font-mono font-bold text-primary-700">{p.thisMonthApproved}</td>
-                  <td className="p-3 text-center">
+                  </TableCell>
+                  <TableCell className="p-3 text-center font-mono font-bold text-primary-700">{p.thisMonthApproved}</TableCell>
+                  <TableCell className="p-3 text-center">
                     {p.trend > 0 ? (
                       <span className="inline-flex items-center gap-1 text-green-600 font-semibold"><TrendingUp size={12} /> +{p.trend}%</span>
                     ) : p.trend < 0 ? (
@@ -122,14 +124,14 @@ export default function PlatformsOverviewPage() {
                     ) : (
                       <span className="text-neutral-400">—</span>
                     )}
-                  </td>
-                  <td className="p-3 text-center">
+                  </TableCell>
+                  <TableCell className="p-3 text-center">
                     <Link href={`/admin/impact?tab=activities`} className="text-xs text-primary-600 hover:underline">تفاصيل</Link>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 

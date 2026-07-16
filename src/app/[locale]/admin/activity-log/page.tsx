@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
@@ -126,10 +131,10 @@ export default function AdminActivityLogPage() {
             أرشفة تشغيلية للتغييرات المهمة داخل النظام: التقارير، المؤشرات، اللقطات التحليلية، والتقييمات.
           </p>
         </div>
-        <button onClick={fetchLogs} className="btn-primary btn-sm flex items-center gap-1.5" disabled={loading}>
+        <Button unstyled onClick={fetchLogs} className="btn-primary btn-sm flex items-center gap-1.5" disabled={loading}>
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           تحديث
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -155,25 +160,25 @@ export default function AdminActivityLogPage() {
         <div className="grid md:grid-cols-[1fr_180px_180px] gap-3">
           <div className="relative">
             <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
+            <Input
               value={search}
               onChange={event => setSearch(event.target.value)}
               className="input-field pr-9"
               placeholder="بحث في السجل..."
             />
           </div>
-          <select value={entity} onChange={event => setEntity(event.target.value)} className="input-field">
+          <NativeSelect value={entity} onChange={event => setEntity(event.target.value)} className="input-field">
             <option value="">كل الكيانات</option>
             {entityOptions.map(item => (
               <option key={item} value={item}>{labelFor(ENTITY_LABELS, item)}</option>
             ))}
-          </select>
-          <select value={action} onChange={event => setAction(event.target.value)} className="input-field">
+          </NativeSelect>
+          <NativeSelect value={action} onChange={event => setAction(event.target.value)} className="input-field">
             <option value="">كل العمليات</option>
             {actionOptions.map(item => (
               <option key={item} value={item}>{labelFor(ACTION_LABELS, item)}</option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -190,40 +195,40 @@ export default function AdminActivityLogPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200">
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">العملية</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الكيان</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المستخدم</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">التاريخ</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المعرف</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="bg-neutral-50 border-b border-neutral-200">
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">العملية</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الكيان</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المستخدم</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">التاريخ</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المعرف</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredLogs.map(log => (
-                  <tr key={log.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="py-3 px-4">
+                  <TableRow key={log.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="py-3 px-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${ACTION_COLORS[log.action] || 'bg-neutral-100 text-neutral-600'}`}>
                         {labelFor(ACTION_LABELS, log.action)}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
                       <p className="font-semibold text-neutral-900 text-xs">{labelFor(ENTITY_LABELS, log.entity)}</p>
                       <p className="text-[10px] text-neutral-400 font-mono">{log.entity}</p>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
                       <span className="inline-flex items-center gap-1 text-xs text-neutral-600">
                         <User size={12} />
                         {log.actor || 'النظام'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-neutral-500">{dateLabel(log.createdAt)}</td>
-                    <td className="py-3 px-4 text-[10px] text-neutral-400 font-mono max-w-[180px] truncate">{log.entityId}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-xs text-neutral-500">{dateLabel(log.createdAt)}</TableCell>
+                    <TableCell className="py-3 px-4 text-[10px] text-neutral-400 font-mono max-w-[180px] truncate">{log.entityId}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

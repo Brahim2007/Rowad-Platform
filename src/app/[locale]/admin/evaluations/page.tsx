@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
@@ -246,10 +251,10 @@ export default function AdminEvaluationsPage() {
             تقييم مستقل للمنصات والبرامج والأنشطة والمشاريع لدعم تحسين الجودة واتخاذ القرار.
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+        <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
           <Plus size={15} />
           تقييم جديد
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -270,7 +275,7 @@ export default function AdminEvaluationsPage() {
         <div className="card text-center py-12 text-neutral-400">
           <ClipboardCheck size={36} className="mx-auto mb-3 text-neutral-300" />
           <p>لا توجد تقييمات بعد</p>
-          <button onClick={openCreate} className="btn-primary btn-sm mt-4">إضافة تقييم</button>
+          <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-4">إضافة تقييم</Button>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
@@ -293,12 +298,12 @@ export default function AdminEvaluationsPage() {
                     <p className="text-xs text-neutral-500 mt-1">{targetName}</p>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => openEdit(evaluation)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                    <Button unstyled onClick={() => openEdit(evaluation)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                       <Pencil size={14} />
-                    </button>
-                    <button onClick={() => deleteEvaluation(evaluation.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                    </Button>
+                    <Button unstyled onClick={() => deleteEvaluation(evaluation.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -344,58 +349,58 @@ export default function AdminEvaluationsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <h2 className="text-lg font-bold text-neutral-900">{editing ? 'تعديل تقييم' : 'تقييم جديد'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">عنوان التقييم</label>
-                <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
+                <Input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النوع</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
+                  <NativeSelect value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
                     {Object.entries(TYPE_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
+                  <NativeSelect value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
                     {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ التقييم</label>
-                  <input type="date" value={form.evaluatedAt} onChange={e => setForm({ ...form, evaluatedAt: e.target.value })} className="input-field" />
+                  <Input type="date" value={form.evaluatedAt} onChange={e => setForm({ ...form, evaluatedAt: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العنصر المرتبط</label>
                 {form.type === 'PLATFORM' && (
-                  <select value={form.platformId} onChange={e => setForm({ ...form, platformId: e.target.value })} className="input-field">
+                  <NativeSelect value={form.platformId} onChange={e => setForm({ ...form, platformId: e.target.value })} className="input-field">
                     <option value="">اختر منصة...</option>
                     {platforms.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
+                  </NativeSelect>
                 )}
                 {form.type === 'PROGRAM' && (
-                  <select value={form.programId} onChange={e => setForm({ ...form, programId: e.target.value })} className="input-field">
+                  <NativeSelect value={form.programId} onChange={e => setForm({ ...form, programId: e.target.value })} className="input-field">
                     <option value="">اختر برنامج...</option>
                     {programs.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
+                  </NativeSelect>
                 )}
                 {form.type === 'ACTIVITY' && (
-                  <select value={form.activityId} onChange={e => setForm({ ...form, activityId: e.target.value })} className="input-field">
+                  <NativeSelect value={form.activityId} onChange={e => setForm({ ...form, activityId: e.target.value })} className="input-field">
                     <option value="">اختر نشاط...</option>
                     {activities.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
+                  </NativeSelect>
                 )}
                 {form.type === 'PROJECT' && (
-                  <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} className="input-field">
+                  <NativeSelect value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} className="input-field">
                     <option value="">اختر مشروع...</option>
                     {projects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-                  </select>
+                  </NativeSelect>
                 )}
                 {(form.type === 'SELF' || form.type === 'PEER') && (
                   <p className="rounded-xl bg-neutral-50 border border-neutral-100 p-3 text-xs text-neutral-500">هذا النوع لا يحتاج ربطه بعنصر محدد.</p>
@@ -404,38 +409,38 @@ export default function AdminEvaluationsPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المقيم</label>
-                  <input required value={form.evaluator} onChange={e => setForm({ ...form, evaluator: e.target.value })} className="input-field" />
+                  <Input required value={form.evaluator} onChange={e => setForm({ ...form, evaluator: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">دور المقيم</label>
-                  <select value={form.evaluatorRole} onChange={e => setForm({ ...form, evaluatorRole: e.target.value })} className="input-field">
+                  <NativeSelect value={form.evaluatorRole} onChange={e => setForm({ ...form, evaluatorRole: e.target.value })} className="input-field">
                     <option value="INTERNAL">داخلي</option>
                     <option value="EXTERNAL">طرف ثالث/خارجي</option>
                     <option value="PEER">أقران</option>
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النتيجة</label>
-                  <input type="number" step="0.01" value={form.score} onChange={e => setForm({ ...form, score: e.target.value })} className="input-field" />
+                  <Input type="number" step="0.01" value={form.score} onChange={e => setForm({ ...form, score: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الدرجة القصوى</label>
-                  <input type="number" step="0.01" value={form.maxScore} onChange={e => setForm({ ...form, maxScore: e.target.value })} className="input-field" />
+                  <Input type="number" step="0.01" value={form.maxScore} onChange={e => setForm({ ...form, maxScore: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الملاحظات</label>
-                <textarea rows={3} value={form.feedback} onChange={e => setForm({ ...form, feedback: e.target.value })} className="input-field" />
+                <Textarea rows={3} value={form.feedback} onChange={e => setForm({ ...form, feedback: e.target.value })} className="input-field" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">التوصيات</label>
-                <textarea rows={3} value={form.recommendations} onChange={e => setForm({ ...form, recommendations: e.target.value })} className="input-field" />
+                <Textarea rows={3} value={form.recommendations} onChange={e => setForm({ ...form, recommendations: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>

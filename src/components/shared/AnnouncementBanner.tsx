@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useState } from 'react'
 import { Megaphone, X } from 'lucide-react'
 
@@ -47,13 +49,13 @@ export default function AnnouncementBanner() {
           <span className="font-semibold">{banner.text}</span>
         )}
       </span>
-      <button
+      <Button unstyled
         onClick={() => { dismissBanner(banner.id); setDismissed(true) }}
         className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-black/10 rounded"
         aria-label="إغلاق"
       >
         <X size={14} />
-      </button>
+      </Button>
     </div>
   )
 }

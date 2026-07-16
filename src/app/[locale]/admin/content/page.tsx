@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useEffect, useState, useCallback } from 'react'
 import { Pencil, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -73,32 +78,32 @@ export default function AdminContentPage() {
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-neutral-900">تعديل المحتوى: {editingPage?.title}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 text-neutral-400 hover:text-neutral-600"><X size={20} /></button>
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1 text-neutral-400 hover:text-neutral-600"><X size={20} /></Button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">العنوان</label>
-                <input className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
+                <Input className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">الرابط المختصر</label>
-                <input className="input-field" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required dir="ltr" />
+                <Input className="input-field" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required dir="ltr" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">المحتوى</label>
-                <textarea className="input-field" rows={10} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} required />
+                <Textarea className="input-field" rows={10} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">الوصف (SEO)</label>
-                <input className="input-field" value={form.metaDesc} onChange={e => setForm({ ...form, metaDesc: e.target.value })} />
+                <Input className="input-field" value={form.metaDesc} onChange={e => setForm({ ...form, metaDesc: e.target.value })} />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="isPublished" checked={form.isPublished} onChange={e => setForm({ ...form, isPublished: e.target.checked })} />
+                <Input type="checkbox" id="isPublished" checked={form.isPublished} onChange={e => setForm({ ...form, isPublished: e.target.checked })} />
                 <label htmlFor="isPublished" className="text-sm text-neutral-700">منشور</label>
               </div>
-              <button type="submit" className="btn-primary w-full justify-center" disabled={submitting}>
+              <Button unstyled type="submit" className="btn-primary w-full justify-center" disabled={submitting}>
                 {submitting ? 'جارٍ الحفظ...' : 'تحديث'}
-              </button>
+              </Button>
             </form>
           </div>
         </div>
@@ -106,40 +111,40 @@ export default function AdminContentPage() {
 
       <div className="card p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50">
-                <th className="text-right px-4 py-3 font-medium text-neutral-600">الصفحة</th>
-                <th className="text-right px-4 py-3 font-medium text-neutral-600">الرابط</th>
-                <th className="text-right px-4 py-3 font-medium text-neutral-600">الحالة</th>
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full text-sm">
+            <TableHeader>
+              <TableRow className="border-b border-neutral-200 bg-neutral-50">
+                <TableHead className="text-right px-4 py-3 font-medium text-neutral-600">الصفحة</TableHead>
+                <TableHead className="text-right px-4 py-3 font-medium text-neutral-600">الرابط</TableHead>
+                <TableHead className="text-right px-4 py-3 font-medium text-neutral-600">الحالة</TableHead>
+                <TableHead className="text-left px-4 py-3 font-medium text-neutral-600">إجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {loading ? (
-                <tr><td colSpan={4} className="text-center py-8 text-neutral-400">جارٍ التحميل...</td></tr>
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-neutral-400">جارٍ التحميل...</TableCell></TableRow>
               ) : pages.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-8 text-neutral-400">لا توجد صفحات محتوى</td></tr>
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-neutral-400">لا توجد صفحات محتوى</TableCell></TableRow>
               ) : (
                 pages.map((page) => (
-                  <tr key={page.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-medium text-neutral-900">{page.title}</td>
-                    <td className="px-4 py-3 text-neutral-500 dir-ltr">/{page.slug}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={page.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="px-4 py-3 font-medium text-neutral-900">{page.title}</TableCell>
+                    <TableCell className="px-4 py-3 text-neutral-500 dir-ltr">/{page.slug}</TableCell>
+                    <TableCell className="px-4 py-3">
                       <span className={`badge ${page.isPublished ? 'badge-success' : 'badge-warning'}`}>
                         {page.isPublished ? 'منشور' : 'مسودة'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => openEdit(page)} className="p-1.5 text-neutral-400 hover:text-primary-600 transition-colors" aria-label="تعديل">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Button unstyled onClick={() => openEdit(page)} className="p-1.5 text-neutral-400 hover:text-primary-600 transition-colors" aria-label="تعديل">
                         <Pencil size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
     </div>

@@ -1,5 +1,11 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useEffect, useState, useCallback } from 'react'
 import {
   Plus, Pencil, Trash2, X, FolderKanban, FolderOpen,
@@ -213,10 +219,10 @@ export default function AdminProjectsPage() {
             إدارة المشاريع، تصنيفها، وربطها بالمنصات والبرامج.
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-2">
+        <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-2">
           <Plus size={18} />
           مشروع جديد
-        </button>
+        </Button>
       </div>
 
       {/* ─── Stats Cards ─── */}
@@ -296,30 +302,30 @@ export default function AdminProjectsPage() {
           <div className="py-12 text-center">
             <FolderOpen size={36} className="text-neutral-300 mx-auto mb-3" />
             <p className="text-neutral-500 text-sm">لا توجد مشاريع</p>
-            <button onClick={openCreate} className="btn-primary btn-sm mt-3"><Plus size={16} /> إضافة مشروع</button>
+            <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-3"><Plus size={16} /> إضافة مشروع</Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 bg-neutral-50">
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs">المشروع</th>
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden md:table-cell">المنصة / البرنامج</th>
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden lg:table-cell">التصنيف</th>
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs">الحالة</th>
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden sm:table-cell">المرتبطات</th>
-                  <th className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden xl:table-cell">مميز</th>
-                  <th className="text-center py-3 px-4 font-bold text-neutral-600 text-xs">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200 bg-neutral-50">
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs">المشروع</TableHead>
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden md:table-cell">المنصة / البرنامج</TableHead>
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden lg:table-cell">التصنيف</TableHead>
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs">الحالة</TableHead>
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden sm:table-cell">المرتبطات</TableHead>
+                  <TableHead className="text-right py-3 px-4 font-bold text-neutral-600 text-xs hidden xl:table-cell">مميز</TableHead>
+                  <TableHead className="text-center py-3 px-4 font-bold text-neutral-600 text-xs">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {projects.map(p => {
                   const statusConfig = STATUS_CONFIG[p.status] || STATUS_CONFIG.ACTIVE
                   const StatusIcon = statusConfig.icon
                   const catColor = CATEGORY_COLORS[p.category] || 'bg-neutral-100 text-neutral-600'
                   return (
-                    <tr key={p.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-                      <td className="py-3 px-4">
+                    <TableRow key={p.id} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+                      <TableCell className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="shrink-0 w-8 h-8 rounded-lg bg-primary-50 border border-primary-100 flex items-center justify-center text-primary-500">
                             <FolderKanban size={14} />
@@ -329,8 +335,8 @@ export default function AdminProjectsPage() {
                             <div className="text-[10px] text-neutral-400 font-mono" dir="ltr">{p.slug}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden md:table-cell">
                         <div className="space-y-1">
                           {p.platform ? (
                             <div className="flex items-center gap-1">
@@ -347,19 +353,19 @@ export default function AdminProjectsPage() {
                             <div className="text-[10px] text-neutral-400 pr-2.5">{p.program.name}</div>
                           )}
                         </div>
-                      </td>
-                      <td className="py-3 px-4 hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden lg:table-cell">
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${catColor}`}>
                           {p.category || '—'}
                         </span>
-                      </td>
-                      <td className="py-3 px-4">
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${statusConfig.color}`}>
                           <StatusIcon size={10} />
                           {statusConfig.label}
                         </span>
-                      </td>
-                      <td className="py-3 px-4 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden sm:table-cell">
                         <div className="flex items-center gap-2.5 text-xs text-neutral-500">
                           <span className="flex items-center gap-1" title="مواد معرفية">
                             <BookOpen size={12} className="text-primary-500" /> {p._count.knowledgeItems}
@@ -371,30 +377,30 @@ export default function AdminProjectsPage() {
                             <BarChart3 size={12} className="text-info-500" /> {p._count.evaluations}
                           </span>
                         </div>
-                      </td>
-                      <td className="py-3 px-4 hidden xl:table-cell">
+                      </TableCell>
+                      <TableCell className="py-3 px-4 hidden xl:table-cell">
                         {p.isFeatured ? (
                           <Star size={14} className="text-secondary-500 fill-secondary-500" />
                         ) : (
                           <span className="text-neutral-300">—</span>
                         )}
-                      </td>
-                      <td className="py-3 px-4">
+                      </TableCell>
+                      <TableCell className="py-3 px-4">
                         <div className="flex items-center justify-center gap-0.5">
-                          <button
+                          <Button unstyled
                             onClick={() => openEdit(p)}
                             className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                             title="تعديل"
                           >
                             <Pencil size={14} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button unstyled
                             onClick={() => handleDelete(p.id)}
                             className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-colors"
                             title="حذف"
                           >
                             <Trash2 size={14} />
-                          </button>
+                          </Button>
                           <a
                             href={`/projects/${p.slug}`}
                             target="_blank"
@@ -404,12 +410,12 @@ export default function AdminProjectsPage() {
                             <ExternalLink size={14} />
                           </a>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -424,9 +430,9 @@ export default function AdminProjectsPage() {
                 <FolderKanban size={20} className="text-primary-600" />
                 {editing ? 'تعديل المشروع' : 'مشروع جديد'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
                 <X size={20} />
-              </button>
+              </Button>
             </div>
 
             {/* Modal Body */}
@@ -437,7 +443,7 @@ export default function AdminProjectsPage() {
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">
                     عنوان المشروع <span className="text-error-500">*</span>
                   </label>
-                  <input
+                  <Input
                     required
                     value={form.title}
                     onChange={e => setForm({ ...form, title: e.target.value })}
@@ -453,7 +459,7 @@ export default function AdminProjectsPage() {
                   </label>
                   <div className="relative">
                     <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input
+                    <Input
                       required
                       dir="ltr"
                       value={form.slug}
@@ -469,7 +475,7 @@ export default function AdminProjectsPage() {
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">
                     التصنيف <span className="text-error-500">*</span>
                   </label>
-                  <select
+                  <NativeSelect
                     required
                     value={form.category}
                     onChange={e => setForm({ ...form, category: e.target.value })}
@@ -479,7 +485,7 @@ export default function AdminProjectsPage() {
                     {Object.keys(CATEGORY_LABELS).map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
 
@@ -488,7 +494,7 @@ export default function AdminProjectsPage() {
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
                   الوصف <span className="text-error-500">*</span>
                 </label>
-                <textarea
+                <Textarea
                   required
                   rows={3}
                   value={form.description}
@@ -502,7 +508,7 @@ export default function AdminProjectsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المنصة</label>
-                  <select
+                  <NativeSelect
                     value={form.platformId}
                     onChange={e => setForm({ ...form, platformId: e.target.value })}
                     className="input-field"
@@ -511,11 +517,11 @@ export default function AdminProjectsPage() {
                     {platforms.map(pl => (
                       <option key={pl.id} value={pl.id}>{pl.name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">البرنامج</label>
-                  <select
+                  <NativeSelect
                     value={form.programId}
                     onChange={e => setForm({ ...form, programId: e.target.value })}
                     className="input-field"
@@ -524,7 +530,7 @@ export default function AdminProjectsPage() {
                     {programs.map(pr => (
                       <option key={pr.id} value={pr.id}>{pr.name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
 
@@ -532,7 +538,7 @@ export default function AdminProjectsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
-                  <select
+                  <NativeSelect
                     value={form.status}
                     onChange={e => setForm({ ...form, status: e.target.value })}
                     className="input-field"
@@ -541,11 +547,11 @@ export default function AdminProjectsPage() {
                     <option value="COMPLETED">مكتمل</option>
                     <option value="ON_HOLD">معلق</option>
                     <option value="PLANNING">تخطيط</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ البداية</label>
-                  <input
+                  <Input
                     type="date"
                     value={form.startDate}
                     onChange={e => setForm({ ...form, startDate: e.target.value })}
@@ -554,7 +560,7 @@ export default function AdminProjectsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ النهاية</label>
-                  <input
+                  <Input
                     type="date"
                     value={form.endDate}
                     onChange={e => setForm({ ...form, endDate: e.target.value })}
@@ -569,7 +575,7 @@ export default function AdminProjectsPage() {
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">صورة الغلاف (رابط)</label>
                   <div className="relative">
                     <ImageIcon size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input
+                    <Input
                       dir="ltr"
                       value={form.coverImage}
                       onChange={e => setForm({ ...form, coverImage: e.target.value })}
@@ -580,7 +586,7 @@ export default function AdminProjectsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">ترتيب الفرز</label>
-                  <input
+                  <Input
                     type="number"
                     value={form.sortOrder}
                     onChange={e => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })}
@@ -592,7 +598,7 @@ export default function AdminProjectsPage() {
               {/* Full Content */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">المحتوى الكامل</label>
-                <textarea
+                <Textarea
                   rows={4}
                   value={form.fullContent}
                   onChange={e => setForm({ ...form, fullContent: e.target.value })}
@@ -604,7 +610,7 @@ export default function AdminProjectsPage() {
               {/* Partner Logos */}
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">شعارات الشركاء (JSON)</label>
-                <input
+                <Input
                   dir="ltr"
                   value={form.partnerLogos}
                   onChange={e => setForm({ ...form, partnerLogos: e.target.value })}
@@ -615,7 +621,7 @@ export default function AdminProjectsPage() {
 
               {/* Featured checkbox */}
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="checkbox"
                   id="featured"
                   checked={form.isFeatured}
@@ -630,12 +636,12 @@ export default function AdminProjectsPage() {
 
               {/* Submit */}
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">
                   إلغاء
-                </button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">
+                </Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">
                   {submitting ? 'جاري الحفظ...' : editing ? 'تحديث المشروع' : 'إضافة المشروع'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

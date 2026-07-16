@@ -1,5 +1,11 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -228,9 +234,9 @@ function Modal({ show, onClose, title, icon: ModalIcon, iconColor, children }: {
             </div>
             {title}
           </h2>
-          <button onClick={onClose} className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-all">
+          <Button unstyled onClick={onClose} className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-all">
             <X size={18} />
-          </button>
+          </Button>
         </div>
         {children}
       </div>
@@ -572,13 +578,13 @@ export default function AdminPlatformDetailPage() {
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">إدارة البرامج والدورات والأنشطة المرتبطة بالمنصة.</p>
             </div>
-            <button
+            <Button unstyled
               onClick={openAddProgram}
               className="h-9 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-all hover:shadow-md hover:-translate-y-0.5"
             >
               <Plus size={14} />
               إضافة برنامج
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -590,9 +596,9 @@ export default function AdminPlatformDetailPage() {
               </div>
               <p className="text-sm font-semibold text-neutral-600">لا توجد برامج في هذه المنصة</p>
               <p className="text-xs text-neutral-400 mt-1">أضف برنامجاً جديداً لبدء بناء المحتوى.</p>
-              <button onClick={openAddProgram} className="btn-primary btn-sm mt-4">
+              <Button unstyled onClick={openAddProgram} className="btn-primary btn-sm mt-4">
                 <Plus size={14} /> إضافة برنامج
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="space-y-5">
@@ -693,20 +699,20 @@ export default function AdminPlatformDetailPage() {
 
                           {/* Action buttons */}
                           <div className="flex shrink-0 items-start gap-1" onClick={e => e.stopPropagation()}>
-                            <button
+                            <Button unstyled
                               onClick={(e) => { e.stopPropagation(); openEditProgram(program) }}
                               className="rounded-lg p-2 text-neutral-400 hover:bg-primary-50 hover:text-primary-600 transition-all"
                               title="تعديل البرنامج"
                             >
                               <Pencil size={14} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button unstyled
                               onClick={(e) => { e.stopPropagation(); handleDeleteProgram(program.id) }}
                               className="rounded-lg p-2 text-neutral-400 hover:bg-error-50 hover:text-error-600 transition-all"
                               title="حذف البرنامج"
                             >
                               <Trash2 size={14} />
-                            </button>
+                            </Button>
                             <div className={`p-2 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
                               <ChevronDown size={16} className="text-neutral-400" />
                             </div>
@@ -729,13 +735,13 @@ export default function AdminPlatformDetailPage() {
                               <p className="text-[10px] text-neutral-400">{program.activities.length} نشاط</p>
                             </div>
                           </div>
-                          <button
+                          <Button unstyled
                             onClick={() => openAddActivity(program.id)}
                             className="h-8 px-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-[11px] flex items-center gap-1.5 transition-all hover:shadow-md hover:-translate-y-0.5"
                           >
                             <Plus size={12} />
                             إضافة دورة/نشاط
-                          </button>
+                          </Button>
                         </div>
 
                         {/* Activity cards - VISUAL GRID WITH LARGE IMAGES */}
@@ -782,20 +788,20 @@ export default function AdminPlatformDetailPage() {
                                   </div>
                                   {/* Hover actions */}
                                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
+                                    <Button unstyled
                                       onClick={(e) => { e.stopPropagation(); openEditActivity(activity, program.id) }}
                                       className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-primary-50 hover:text-primary-600 border border-white/50 shadow-sm transition-all"
                                       title="تعديل النشاط"
                                     >
                                       <Pencil size={12} />
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button unstyled
                                       onClick={(e) => { e.stopPropagation(); handleDeleteActivity(activity.id) }}
                                       className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-error-50 hover:text-error-600 border border-white/50 shadow-sm transition-all"
                                       title="حذف النشاط"
                                     >
                                       <Trash2 size={12} />
-                                    </button>
+                                    </Button>
                                   </div>
                                 </div>
 
@@ -851,18 +857,18 @@ export default function AdminPlatformDetailPage() {
                                       <ArrowLeft size={11} />
                                     </Link>
                                     <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                      <button
+                                      <Button unstyled
                                         onClick={(e) => { e.stopPropagation(); openEditActivity(activity, program.id) }}
                                         className="text-[11px] font-semibold text-primary-600 hover:text-primary-800 flex items-center gap-1"
                                       >
                                         <Pencil size={10} /> تعديل
-                                      </button>
-                                      <button
+                                      </Button>
+                                      <Button unstyled
                                         onClick={(e) => { e.stopPropagation(); handleDeleteActivity(activity.id) }}
                                         className="text-[11px] font-semibold text-error-500 hover:text-error-700 flex items-center gap-1"
                                       >
                                         <Trash2 size={10} /> حذف
-                                      </button>
+                                      </Button>
                                     </div>
                                   </div>
                                 </div>
@@ -917,7 +923,7 @@ export default function AdminPlatformDetailPage() {
               </h2>
               <div className="relative">
                 <Search size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
+                <Input
                   value={memberSearch}
                   onChange={e => setMemberSearch(e.target.value)}
                   className="h-9 pr-9 pl-3 rounded-xl border border-neutral-200 text-xs bg-neutral-50 w-full sm:w-[200px] placeholder:text-neutral-400 focus:outline-none focus:border-primary-300 focus:ring-2 focus:ring-primary-100 transition-all"
@@ -935,19 +941,19 @@ export default function AdminPlatformDetailPage() {
               </div>
             ) : (
               <div className="overflow-x-auto -mx-6">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="text-right py-3 px-6 text-[10px] text-neutral-500 font-bold">العضو</th>
-                      <th className="text-right py-3 px-3 text-[10px] text-neutral-500 font-bold">المسار</th>
-                      <th className="text-right py-3 px-3 text-[10px] text-neutral-500 font-bold">النشاط</th>
-                      <th className="text-center py-3 px-3 text-[10px] text-neutral-500 font-bold">الملف</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b border-neutral-100">
+                      <TableHead className="text-right py-3 px-6 text-[10px] text-neutral-500 font-bold">العضو</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-[10px] text-neutral-500 font-bold">المسار</TableHead>
+                      <TableHead className="text-right py-3 px-3 text-[10px] text-neutral-500 font-bold">النشاط</TableHead>
+                      <TableHead className="text-center py-3 px-3 text-[10px] text-neutral-500 font-bold">الملف</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filteredMembers.map(member => (
-                      <tr key={member.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors">
-                        <td className="py-3 px-6">
+                      <TableRow key={member.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors">
+                        <TableCell className="py-3 px-6">
                           <p className="font-semibold text-neutral-900 text-xs">{member.name}</p>
                           <p className="text-[10px] text-neutral-400 font-mono">{member.code}</p>
                           <div className="flex flex-wrap gap-1 mt-1">
@@ -955,31 +961,31 @@ export default function AdminPlatformDetailPage() {
                               <span key={p.id} className="text-[9px] bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-full">{p.name}</span>
                             ))}
                           </div>
-                        </td>
-                        <td className="py-3 px-3">
+                        </TableCell>
+                        <TableCell className="py-3 px-3">
                           <Badge className="bg-secondary-50 text-secondary-700 border-secondary-200 text-[10px]">
                             <Route size={10} />
                             {member.currentStage ? STAGE_LABELS[member.currentStage] || member.currentStage : 'لم يبدأ'}
                           </Badge>
-                        </td>
-                        <td className="py-3 px-3">
+                        </TableCell>
+                        <TableCell className="py-3 px-3">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-[11px] text-neutral-600">{member.enrollmentsCount} تسجيلات</span>
                             <span className="text-[11px] text-neutral-600">{member.participationsCount} مشاركات</span>
                           </div>
-                        </td>
-                        <td className="py-3 px-3 text-center">
+                        </TableCell>
+                        <TableCell className="py-3 px-3 text-center">
                           <Link
                             href={`/ar/admin/members/${member.id}`}
                             className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 text-[10px] font-bold no-underline transition-colors"
                           >
                             الملف
                           </Link>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
@@ -1047,31 +1053,31 @@ export default function AdminPlatformDetailPage() {
         <form onSubmit={handleProgramSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الاسم <span className="text-error-500">*</span></label>
-            <input className="input-field" value={programForm.name} onChange={e => setProgramForm({ ...programForm, name: e.target.value })} required placeholder="اسم البرنامج" />
+            <Input className="input-field" value={programForm.name} onChange={e => setProgramForm({ ...programForm, name: e.target.value })} required placeholder="اسم البرنامج" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الرابط المختصر <span className="text-error-500">*</span></label>
-              <input className="input-field font-mono text-xs" value={programForm.slug} onChange={e => setProgramForm({ ...programForm, slug: e.target.value })} required dir="ltr" placeholder="program-slug" />
+              <Input className="input-field font-mono text-xs" value={programForm.slug} onChange={e => setProgramForm({ ...programForm, slug: e.target.value })} required dir="ltr" placeholder="program-slug" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الترتيب</label>
-              <input type="number" className="input-field" value={programForm.sortOrder} onChange={e => setProgramForm({ ...programForm, sortOrder: parseInt(e.target.value) || 0 })} />
+              <Input type="number" className="input-field" value={programForm.sortOrder} onChange={e => setProgramForm({ ...programForm, sortOrder: parseInt(e.target.value) || 0 })} />
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الوصف <span className="text-error-500">*</span></label>
-            <textarea className="input-field" rows={2} value={programForm.description} onChange={e => setProgramForm({ ...programForm, description: e.target.value })} required placeholder="وصف البرنامج..." />
+            <Textarea className="input-field" rows={2} value={programForm.description} onChange={e => setProgramForm({ ...programForm, description: e.target.value })} required placeholder="وصف البرنامج..." />
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">رابط الصورة</label>
-            <input className="input-field text-xs" value={programForm.image || ''} onChange={e => setProgramForm({ ...programForm, image: e.target.value })} dir="ltr" placeholder="https://example.com/image.jpg" />
+            <Input className="input-field text-xs" value={programForm.image || ''} onChange={e => setProgramForm({ ...programForm, image: e.target.value })} dir="ltr" placeholder="https://example.com/image.jpg" />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
-            <button type="button" onClick={() => setShowProgramModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-            <button type="submit" className="btn-primary btn-sm" disabled={submitting}>
+            <Button unstyled type="button" onClick={() => setShowProgramModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+            <Button unstyled type="submit" className="btn-primary btn-sm" disabled={submitting}>
               {submitting ? 'جارٍ الحفظ...' : editingProgram ? 'تحديث البرنامج' : 'إضافة البرنامج'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -1087,57 +1093,57 @@ export default function AdminPlatformDetailPage() {
         <form onSubmit={handleActivitySubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الاسم <span className="text-error-500">*</span></label>
-            <input className="input-field" value={activityForm.name} onChange={e => setActivityForm({ ...activityForm, name: e.target.value })} required placeholder="اسم النشاط" />
+            <Input className="input-field" value={activityForm.name} onChange={e => setActivityForm({ ...activityForm, name: e.target.value })} required placeholder="اسم النشاط" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الرابط المختصر <span className="text-error-500">*</span></label>
-              <input className="input-field font-mono text-xs" value={activityForm.slug} onChange={e => setActivityForm({ ...activityForm, slug: e.target.value })} required dir="ltr" placeholder="activity-slug" />
+              <Input className="input-field font-mono text-xs" value={activityForm.slug} onChange={e => setActivityForm({ ...activityForm, slug: e.target.value })} required dir="ltr" placeholder="activity-slug" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الترتيب</label>
-              <input type="number" className="input-field" value={activityForm.sortOrder} onChange={e => setActivityForm({ ...activityForm, sortOrder: parseInt(e.target.value) || 0 })} />
+              <Input type="number" className="input-field" value={activityForm.sortOrder} onChange={e => setActivityForm({ ...activityForm, sortOrder: parseInt(e.target.value) || 0 })} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">نوع النشاط</label>
-              <select className="input-field" value={activityForm.type} onChange={e => setActivityForm({ ...activityForm, type: e.target.value })}>
+              <NativeSelect className="input-field" value={activityForm.type} onChange={e => setActivityForm({ ...activityForm, type: e.target.value })}>
                 {ACTIVITY_TYPE_LIST.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الحد الأقصى للمشاركين</label>
-              <input type="number" className="input-field" value={activityForm.maxParticipants} onChange={e => setActivityForm({ ...activityForm, maxParticipants: e.target.value })} placeholder="اختياري" />
+              <Input type="number" className="input-field" value={activityForm.maxParticipants} onChange={e => setActivityForm({ ...activityForm, maxParticipants: e.target.value })} placeholder="اختياري" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الموقع</label>
-            <input className="input-field" value={activityForm.location} onChange={e => setActivityForm({ ...activityForm, location: e.target.value })} placeholder="المقر، المدينة، أو رابط اللقاء" />
+            <Input className="input-field" value={activityForm.location} onChange={e => setActivityForm({ ...activityForm, location: e.target.value })} placeholder="المقر، المدينة، أو رابط اللقاء" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الوصف <span className="text-error-500">*</span></label>
-            <textarea className="input-field" rows={2} value={activityForm.description} onChange={e => setActivityForm({ ...activityForm, description: e.target.value })} required placeholder="وصف النشاط..." />
+            <Textarea className="input-field" rows={2} value={activityForm.description} onChange={e => setActivityForm({ ...activityForm, description: e.target.value })} required placeholder="وصف النشاط..." />
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">رابط الصورة</label>
-            <input className="input-field text-xs" value={activityForm.icon} onChange={e => setActivityForm({ ...activityForm, icon: e.target.value })} dir="ltr" placeholder="https://example.com/image.jpg" />
+            <Input className="input-field text-xs" value={activityForm.icon} onChange={e => setActivityForm({ ...activityForm, icon: e.target.value })} dir="ltr" placeholder="https://example.com/image.jpg" />
           </div>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={activityForm.isOnline} onChange={e => setActivityForm({ ...activityForm, isOnline: e.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
+              <Input type="checkbox" checked={activityForm.isOnline} onChange={e => setActivityForm({ ...activityForm, isOnline: e.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
               <span className="text-sm text-neutral-700 font-medium">نشاط عن بعد</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={activityForm.isActive} onChange={e => setActivityForm({ ...activityForm, isActive: e.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
+              <Input type="checkbox" checked={activityForm.isActive} onChange={e => setActivityForm({ ...activityForm, isActive: e.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
               <span className="text-sm text-neutral-700 font-medium">نشط</span>
             </label>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
-            <button type="button" onClick={() => setShowProgramModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-            <button type="submit" className="btn-primary btn-sm" disabled={submitting}>
+            <Button unstyled type="button" onClick={() => setShowProgramModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+            <Button unstyled type="submit" className="btn-primary btn-sm" disabled={submitting}>
               {submitting ? 'جارٍ الحفظ...' : editingActivity ? 'تحديث النشاط' : 'إضافة النشاط'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

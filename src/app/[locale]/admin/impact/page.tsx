@@ -1,5 +1,11 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 /**
  * لوحة أثر الرواد — Impact Dashboard
  * نظام النقاط والمستويات والمكافآت والدروع
@@ -404,10 +410,10 @@ export default function ImpactDashboardPage() {
           {tabLoading && (
             <div className="w-5 h-5 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           )}
-          <button onClick={fetchAll} className="btn-ghost btn-sm flex items-center gap-1.5" title="تحديث كل البيانات">
+          <Button unstyled onClick={fetchAll} className="btn-ghost btn-sm flex items-center gap-1.5" title="تحديث كل البيانات">
             <Download size={14} />
             تحديث
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -468,18 +474,18 @@ function DashboardTab({ dashData }: { dashData: DashboardData | null }) {
       <div className="card p-4 mb-6 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-3">
           <label className="text-sm font-semibold text-neutral-700">نطاق العرض:</label>
-          <select value={scope.type} onChange={e => setScope({ ...scope, type: e.target.value })} className="input-field max-w-[140px]">
+          <NativeSelect value={scope.type} onChange={e => setScope({ ...scope, type: e.target.value })} className="input-field max-w-[140px]">
             <option value="all">الإجمالي</option>
             <option value="month">شهري</option>
             <option value="week">أسبوعي</option>
-          </select>
+          </NativeSelect>
         </div>
         {scope.type === 'month' && (
           <div className="flex items-center gap-3">
-            <input type="number" value={scope.year || new Date().getFullYear()} className="input-field max-w-[100px]" placeholder="السنة" onChange={e => setScope({ ...scope, year: +e.target.value })} />
-            <select value={scope.month || new Date().getMonth() + 1} className="input-field max-w-[140px]" onChange={e => setScope({ ...scope, month: +e.target.value })}>
+            <Input type="number" value={scope.year || new Date().getFullYear()} className="input-field max-w-[100px]" placeholder="السنة" onChange={e => setScope({ ...scope, year: +e.target.value })} />
+            <NativeSelect value={scope.month || new Date().getMonth() + 1} className="input-field max-w-[140px]" onChange={e => setScope({ ...scope, month: +e.target.value })}>
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            </NativeSelect>
           </div>
         )}
         <Badge className="bg-neutral-100 text-neutral-600">{scopeLabel(scope)}</Badge>
@@ -503,30 +509,30 @@ function DashboardTab({ dashData }: { dashData: DashboardData | null }) {
         </div>
         {top10.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3 text-neutral-500 font-semibold">#</th>
-                  <th className="text-right p-3 text-neutral-500 font-semibold">العضو</th>
-                  <th className="text-right p-3 text-neutral-500 font-semibold">الصفة</th>
-                  <th className="text-center p-3 text-neutral-500 font-semibold">النقاط</th>
-                  <th className="text-center p-3 text-neutral-500 font-semibold">المستوى</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">#</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">العضو</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">الصفة</TableHead>
+                  <TableHead className="text-center p-3 text-neutral-500 font-semibold">النقاط</TableHead>
+                  <TableHead className="text-center p-3 text-neutral-500 font-semibold">المستوى</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {top10.map((m, i) => (
-                  <tr key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="p-3">
+                  <TableRow key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="p-3">
                       <span className={`w-7 h-7 rounded-full inline-flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-slate-400 text-white' : i === 2 ? 'bg-amber-700 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{i + 1}</span>
-                    </td>
-                    <td className="p-3 font-semibold">{m.name}</td>
-                    <td className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{m.networkRole || '—'}</Badge></td>
-                    <td className="p-3 text-center font-mono font-bold">{m.total}</td>
-                    <td className="p-3 text-center"><Badge className="bg-primary-100 text-primary-700">{m.level}</Badge></td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="p-3 font-semibold">{m.name}</TableCell>
+                    <TableCell className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{m.networkRole || '—'}</Badge></TableCell>
+                    <TableCell className="p-3 text-center font-mono font-bold">{m.total}</TableCell>
+                    <TableCell className="p-3 text-center"><Badge className="bg-primary-100 text-primary-700">{m.level}</Badge></TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء بعد</p>}
       </div>
@@ -687,7 +693,7 @@ function MembersTab({
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Users size={18} className="text-primary-600" /> سجل الأعضاء</h2>
           <div className="flex items-center gap-2">
-            <button
+            <Button unstyled
               onClick={() => {
                 const data = filtered.map(b => ({
                   name: fullName(b.firstName, b.lastName),
@@ -704,85 +710,85 @@ function MembersTab({
             >
               <Download size={14} />
               تصدير
-            </button>
-            <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+            </Button>
+            <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
               <Plus size={14} />
               إضافة عضو
-            </button>
+            </Button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
-            <input
+            <Input
               placeholder="🔍 بحث بالاسم أو الكود"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="input-field"
             />
           </div>
-          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input-field max-w-[200px]">
+          <NativeSelect value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input-field max-w-[200px]">
             <option value="">كل الصفات</option>
             {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          </NativeSelect>
         </div>
 
         {filtered.length > 0 ? (
           <>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3 text-neutral-500">الكود</th>
-                  <th className="text-right p-3 text-neutral-500">الاسم</th>
-                  <th className="text-right p-3 text-neutral-500">الصفة</th>
-                  <th className="text-right p-3 text-neutral-500">المنصة</th>
-                  <th className="text-center p-3 text-neutral-500">النقاط</th>
-                  <th className="text-center p-3 text-neutral-500">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3 text-neutral-500">الكود</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">الاسم</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">الصفة</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">المنصة</TableHead>
+                  <TableHead className="text-center p-3 text-neutral-500">النقاط</TableHead>
+                  <TableHead className="text-center p-3 text-neutral-500">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filtered.map(b => (
-                  <tr key={b.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="p-3 font-mono text-xs">{b.code}</td>
-                    <td className="p-3 font-semibold">{fullName(b.firstName, b.lastName)}</td>
-                    <td className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{b.networkRole || '—'}</Badge></td>
-                    <td className="p-3 text-xs">{b.platformName || b.platformId || '—'}</td>
-                    <td className="p-3 text-center font-mono font-bold">{memberPoints.get(b.id) || 0}</td>
-                    <td className="p-3 text-center">
+                  <TableRow key={b.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="p-3 font-mono text-xs">{b.code}</TableCell>
+                    <TableCell className="p-3 font-semibold">{fullName(b.firstName, b.lastName)}</TableCell>
+                    <TableCell className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{b.networkRole || '—'}</Badge></TableCell>
+                    <TableCell className="p-3 text-xs">{b.platformName || b.platformId || '—'}</TableCell>
+                    <TableCell className="p-3 text-center font-mono font-bold">{memberPoints.get(b.id) || 0}</TableCell>
+                    <TableCell className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button
+                        <Button unstyled
                           onClick={() => { setCardMemberId(b.id); switchTab('card') }}
                           className="p-1.5 text-neutral-400 hover:text-teal-600"
                           title="بطاقة الرائد"
                         >
                           <Eye size={14} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button unstyled
                           onClick={() => switchTab('activities')}
                           className="p-1.5 text-neutral-400 hover:text-primary-600"
                           title="تسجيل نشاط سريع"
                         >
                           <Plus size={14} />
-                        </button>
-                        <button onClick={() => openEdit(b)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل">
+                        </Button>
+                        <Button unstyled onClick={() => openEdit(b)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل">
                           <Pencil size={14} />
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
             <span className="text-neutral-500">
               المعروض: <b className="text-neutral-800">{beneficiaries.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
             </span>
             {pagination.hasMore && (
-              <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
+              <Button unstyled onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
                 {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
                 تحميل المزيد
-              </button>
+              </Button>
             )}
           </div>
           </>
@@ -795,29 +801,29 @@ function MembersTab({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">تحديث بيانات الأثر</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                  <select value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
+                  <NativeSelect value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
                     <option value="">— اختر الصفة —</option>
                     {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
-                  <input type="date" value={form.joinDate} onChange={e => setForm({ ...form, joinDate: e.target.value })} className="input-field" />
+                  <Input type="date" value={form.joinDate} onChange={e => setForm({ ...form, joinDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
-                <textarea rows={3} value={form.impactNote} onChange={e => setForm({ ...form, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات خاصة بلوحة الأثر..." />
+                <Textarea rows={3} value={form.impactNote} onChange={e => setForm({ ...form, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات خاصة بلوحة الأثر..." />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>
@@ -830,49 +836,49 @@ function MembersTab({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900 flex items-center gap-2"><UserCheck size={20} className="text-primary-600" /> إضافة عضو جديد</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
+              <Button unstyled onClick={() => setShowCreateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
             </div>
             <form onSubmit={handleCreate} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الاسم الأول *</label>
-                  <input required value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="input-field" placeholder="مثال: أحمد" />
+                  <Input required value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="input-field" placeholder="مثال: أحمد" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم العائلة *</label>
-                  <input required value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="input-field" placeholder="مثال: العمري" />
+                  <Input required value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="input-field" placeholder="مثال: العمري" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رمز العضو</label>
-                  <input value={createForm.code} onChange={e => setCreateForm({ ...createForm, code: e.target.value })} className="input-field" placeholder="R-001" />
+                  <Input value={createForm.code} onChange={e => setCreateForm({ ...createForm, code: e.target.value })} className="input-field" placeholder="R-001" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
-                  <input type="date" value={createForm.joinDate} onChange={e => setCreateForm({ ...createForm, joinDate: e.target.value })} className="input-field" />
+                  <Input type="date" value={createForm.joinDate} onChange={e => setCreateForm({ ...createForm, joinDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني</label>
-                  <input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
+                  <Input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
-                  <input type="tel" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
+                  <Input type="tel" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                <select value={createForm.networkRole} onChange={e => setCreateForm({ ...createForm, networkRole: e.target.value })} className="input-field">
+                <NativeSelect value={createForm.networkRole} onChange={e => setCreateForm({ ...createForm, networkRole: e.target.value })} className="input-field">
                   <option value="">— اختر الصفة —</option>
                   {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
-                <textarea rows={2} value={createForm.impactNote} onChange={e => setCreateForm({ ...createForm, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات أولية..." />
+                <Textarea rows={2} value={createForm.impactNote} onChange={e => setCreateForm({ ...createForm, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات أولية..." />
               </div>
 
               <div className="rounded-xl bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 flex items-start gap-2">
@@ -881,8 +887,8 @@ function MembersTab({
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</button>
+                <Button unstyled type="button" onClick={() => setShowCreateModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</Button>
               </div>
             </form>
           </div>
@@ -993,7 +999,7 @@ function ActivitiesTab({
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><ClipboardCheck size={18} className="text-primary-600" /> سجل الأنشطة</h2>
           <div className="flex items-center gap-2">
-            <button
+            <Button unstyled
               onClick={() => {
                 const data = filtered.map(l => ({
                   date: dateLabel(l.date),
@@ -1013,24 +1019,24 @@ function ActivitiesTab({
             >
               <Download size={14} />
               تصدير
-            </button>
-            <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> تسجيل نشاط</button>
+            </Button>
+            <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> تسجيل نشاط</Button>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 mb-4">
-          <select value={filterMember} onChange={e => setFilterMember(e.target.value)} className="input-field max-w-[220px]">
+          <NativeSelect value={filterMember} onChange={e => setFilterMember(e.target.value)} className="input-field max-w-[220px]">
             <option value="">كل الأعضاء</option>
             {beneficiaries.map(b => <option key={b.id} value={b.id}>{fullName(b.firstName, b.lastName)}</option>)}
-          </select>
-          <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input-field max-w-[200px]">
+          </NativeSelect>
+          <NativeSelect value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input-field max-w-[200px]">
             <option value="">كل المحاور</option>
             {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field max-w-[160px]">
+          </NativeSelect>
+          <NativeSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field max-w-[160px]">
             <option value="">كل الحالات</option>
             {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
-          </select>
+          </NativeSelect>
         </div>
 
         {filtered.length > 0 ? (
@@ -1041,53 +1047,53 @@ function ActivitiesTab({
               <span className="text-neutral-500">قيد المراجعة: <b className="text-amber-700">{filtered.filter(l => l.status === 'PENDING_REVIEW').length}</b></span>
             </div>
             <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3">العضو</th>
-                  <th className="text-right p-3">النشاط</th>
-                  <th className="text-right p-3">المحور</th>
-                  <th className="text-center p-3">العدد</th>
-                  <th className="text-right p-3">التاريخ</th>
-                  <th className="text-center p-3">الجودة</th>
-                  <th className="text-center p-3">النقاط</th>
-                  <th className="text-center p-3">الحالة</th>
-                  <th className="text-center p-3">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3">العضو</TableHead>
+                  <TableHead className="text-right p-3">النشاط</TableHead>
+                  <TableHead className="text-right p-3">المحور</TableHead>
+                  <TableHead className="text-center p-3">العدد</TableHead>
+                  <TableHead className="text-right p-3">التاريخ</TableHead>
+                  <TableHead className="text-center p-3">الجودة</TableHead>
+                  <TableHead className="text-center p-3">النقاط</TableHead>
+                  <TableHead className="text-center p-3">الحالة</TableHead>
+                  <TableHead className="text-center p-3">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filtered.map(log => {
                   const cat = log.action?.category || ''
                   const pts = calcPts(log)
                   return (
-                    <tr key={log.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                      <td className="p-3 font-semibold">{log.beneficiary ? fullName(log.beneficiary.firstName, log.beneficiary.lastName) : '—'}</td>
-                      <td className="p-3">{log.action?.name || '—'}</td>
-                      <td className="p-3"><Badge className={CATEGORY_COLORS[cat] || 'bg-neutral-100'}>{CATEGORY_LABELS[cat] || '—'}</Badge></td>
-                      <td className="p-3 text-center font-mono">{log.count}</td>
-                      <td className="p-3 text-xs">{dateLabel(log.date)}</td>
-                      <td className="p-3 text-center text-xs">{QUALITY_LABELS[log.quality] || log.quality}</td>
-                      <td className={`p-3 text-center font-mono font-bold ${pts < 0 ? 'text-red-600' : 'text-neutral-800'}`}>{pts}</td>
-                      <td className="p-3 text-center"><Badge className={STATUS_COLORS[log.status] || 'bg-neutral-50'}>{STATUS_LABELS[log.status] || log.status}</Badge></td>
-                      <td className="p-3 text-center">
-                        <button onClick={() => openEdit(log)} className="p-1 text-neutral-400 hover:text-primary-600"><Pencil size={13} /></button>
-                        <button onClick={() => delLog(log.id)} className="p-1 text-neutral-400 hover:text-red-600"><Trash size={13} /></button>
-                      </td>
-                    </tr>
+                    <TableRow key={log.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                      <TableCell className="p-3 font-semibold">{log.beneficiary ? fullName(log.beneficiary.firstName, log.beneficiary.lastName) : '—'}</TableCell>
+                      <TableCell className="p-3">{log.action?.name || '—'}</TableCell>
+                      <TableCell className="p-3"><Badge className={CATEGORY_COLORS[cat] || 'bg-neutral-100'}>{CATEGORY_LABELS[cat] || '—'}</Badge></TableCell>
+                      <TableCell className="p-3 text-center font-mono">{log.count}</TableCell>
+                      <TableCell className="p-3 text-xs">{dateLabel(log.date)}</TableCell>
+                      <TableCell className="p-3 text-center text-xs">{QUALITY_LABELS[log.quality] || log.quality}</TableCell>
+                      <TableCell className={`p-3 text-center font-mono font-bold ${pts < 0 ? 'text-red-600' : 'text-neutral-800'}`}>{pts}</TableCell>
+                      <TableCell className="p-3 text-center"><Badge className={STATUS_COLORS[log.status] || 'bg-neutral-50'}>{STATUS_LABELS[log.status] || log.status}</Badge></TableCell>
+                      <TableCell className="p-3 text-center">
+                        <Button unstyled onClick={() => openEdit(log)} className="p-1 text-neutral-400 hover:text-primary-600"><Pencil size={13} /></Button>
+                        <Button unstyled onClick={() => delLog(log.id)} className="p-1 text-neutral-400 hover:text-red-600"><Trash size={13} /></Button>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
             <span className="text-neutral-500">
               المعروض: <b className="text-neutral-800">{logs.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
             </span>
             {pagination.hasMore && (
-              <button onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
+              <Button unstyled onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
                 {loadingMore ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <ChevronDown size={14} />}
                 تحميل المزيد
-              </button>
+              </Button>
             )}
           </div>
           </>
@@ -1099,75 +1105,75 @@ function ActivitiesTab({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">{editing ? 'تعديل نشاط' : 'تسجيل نشاط جديد'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العضو</label>
-                  <select required value={form.beneficiaryId} onChange={e => setForm({ ...form, beneficiaryId: e.target.value })} className="input-field">
+                  <NativeSelect required value={form.beneficiaryId} onChange={e => setForm({ ...form, beneficiaryId: e.target.value })} className="input-field">
                     {beneficiaries.map(b => <option key={b.id} value={b.id}>{fullName(b.firstName, b.lastName)} ({b.code})</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع النشاط</label>
-                  <select required value={form.actionId} onChange={e => setForm({ ...form, actionId: e.target.value })} className="input-field">
+                  <NativeSelect required value={form.actionId} onChange={e => setForm({ ...form, actionId: e.target.value })} className="input-field">
                     {actions.filter(a => a.isActive).map(a => <option key={a.id} value={a.id}>{a.name} ({a.points} نقطة)</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">التاريخ</label>
-                  <input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input-field" />
+                  <Input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العدد</label>
-                  <input type="number" min="1" value={form.count} onChange={e => setForm({ ...form, count: e.target.value })} className="input-field" />
+                  <Input type="number" min="1" value={form.count} onChange={e => setForm({ ...form, count: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الجودة</label>
-                  <select value={form.quality} onChange={e => setForm({ ...form, quality: e.target.value })} className="input-field">
+                  <NativeSelect value={form.quality} onChange={e => setForm({ ...form, quality: e.target.value })} className="input-field">
                     {QUALITIES.map(q => <option key={q} value={q}>{QUALITY_LABELS[q] || q}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">حالة الاعتماد</label>
-                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
+                  <NativeSelect value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
                     {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المصدر</label>
-                  <select value={form.sourceType} onChange={e => setForm({ ...form, sourceType: e.target.value })} className="input-field">
+                  <NativeSelect value={form.sourceType} onChange={e => setForm({ ...form, sourceType: e.target.value })} className="input-field">
                     <option value="MANUAL">يدوي</option>
                     <option value="PARTICIPATION">مشاركة</option>
                     <option value="ENROLLMENT">تسجيل</option>
                     <option value="REPORT">تقرير</option>
                     <option value="EVALUATION">تقييم</option>
                     <option value="EXTERNAL">خارجي</option>
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               {form.status === 'REJECTED' && (
                 <div>
                   <label className="block text-sm font-semibold text-red-700 mb-1">سبب الرفض *</label>
-                  <textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
+                  <Textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
                 </div>
               )}
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الدليل</label>
-                <input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
+                <Input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
-                <textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>
@@ -1323,15 +1329,15 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
       <div className="card p-4 mb-6">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[220px]">
-            <select value={memberId} onChange={e => setCardMemberId(e.target.value)} className="input-field">
+            <NativeSelect value={memberId} onChange={e => setCardMemberId(e.target.value)} className="input-field">
               {beneficiaries.map(m => <option key={m.id} value={m.id}>{fullName(m.firstName, m.lastName)} ({m.code})</option>)}
-            </select>
+            </NativeSelect>
           </div>
           <div className="flex items-center gap-2">
-            <input type="number" value={cardYear} onChange={e => setCardYear(+e.target.value)} className="input-field max-w-[100px]" />
-            <select value={cardMonth} onChange={e => setCardMonth(+e.target.value)} className="input-field max-w-[140px]">
+            <Input type="number" value={cardYear} onChange={e => setCardYear(+e.target.value)} className="input-field max-w-[100px]" />
+            <NativeSelect value={cardMonth} onChange={e => setCardMonth(+e.target.value)} className="input-field max-w-[140px]">
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            </NativeSelect>
           </div>
         </div>
       </div>
@@ -1480,41 +1486,41 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
       <div className="card mb-6">
         <div className="flex items-center gap-3 mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Calculator size={18} className="text-primary-600" /> حاسبة الاستحقاق الشهري</h2>
-          <input type="number" value={rYear} onChange={e => setRYear(+e.target.value)} className="input-field max-w-[90px]" />
-          <select value={rMonth} onChange={e => setRMonth(+e.target.value)} className="input-field max-w-[130px]">
+          <Input type="number" value={rYear} onChange={e => setRYear(+e.target.value)} className="input-field max-w-[90px]" />
+          <NativeSelect value={rMonth} onChange={e => setRMonth(+e.target.value)} className="input-field max-w-[130px]">
             {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </select>
+          </NativeSelect>
         </div>
         {rewardRows.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3">العضو</th>
-                  <th className="text-center p-3">نقاط الشهر</th>
-                  <th className="text-center p-3">البوابة</th>
-                  <th className="text-center p-3">الاستحقاق</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3">العضو</TableHead>
+                  <TableHead className="text-center p-3">نقاط الشهر</TableHead>
+                  <TableHead className="text-center p-3">البوابة</TableHead>
+                  <TableHead className="text-center p-3">الاستحقاق</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rewardRows.map(r => (
-                  <tr key={r.id} className="border-b border-neutral-100">
-                    <td className="p-3 font-semibold">{fullName(r.firstName, r.lastName)}</td>
-                    <td className="p-3 text-center font-mono font-bold">{r.pts}</td>
-                    <td className="p-3 text-center">
-                      <button onClick={() => toggleGate(r.id, rYear, rMonth, r.gatePassed)} className={`btn-sm px-3 py-1 rounded-lg text-xs ${r.gatePassed ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                  <TableRow key={r.id} className="border-b border-neutral-100">
+                    <TableCell className="p-3 font-semibold">{fullName(r.firstName, r.lastName)}</TableCell>
+                    <TableCell className="p-3 text-center font-mono font-bold">{r.pts}</TableCell>
+                    <TableCell className="p-3 text-center">
+                      <Button unstyled onClick={() => toggleGate(r.id, rYear, rMonth, r.gatePassed)} className={`btn-sm px-3 py-1 rounded-lg text-xs ${r.gatePassed ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                         {r.gatePassed ? '✓ منجزة' : '✕ متعثرة'}
-                      </button>
-                    </td>
-                    <td className="p-3 text-center">
+                      </Button>
+                    </TableCell>
+                    <TableCell className="p-3 text-center">
                       <Badge className={r.eligible ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700'}>
                         {r.eligible ? r.tier : 'لا استحقاق'}
                       </Badge>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : <p className="text-center py-6 text-neutral-400">لا يوجد أعضاء</p>}
       </div>
@@ -1523,32 +1529,32 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Medal size={18} className="text-primary-600" /> سجل الدروع والمكافآت</h2>
-          <button onClick={() => { setAwardForm({ beneficiaryId: beneficiaries[0]?.id || '', type: 'SHIELD', title: BADGE_CATALOG[0], date: today(), value: '0', note: '' }); setShowAwardModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> منح درع/مكافأة</button>
+          <Button unstyled onClick={() => { setAwardForm({ beneficiaryId: beneficiaries[0]?.id || '', type: 'SHIELD', title: BADGE_CATALOG[0], date: today(), value: '0', note: '' }); setShowAwardModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> منح درع/مكافأة</Button>
         </div>
         {awards.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3">المستلم</th>
-                  <th className="text-center p-3">النوع</th>
-                  <th className="text-right p-3">المسمى</th>
-                  <th className="text-right p-3">التاريخ</th>
-                  <th className="text-center p-3">حذف</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3">المستلم</TableHead>
+                  <TableHead className="text-center p-3">النوع</TableHead>
+                  <TableHead className="text-right p-3">المسمى</TableHead>
+                  <TableHead className="text-right p-3">التاريخ</TableHead>
+                  <TableHead className="text-center p-3">حذف</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {awards.map(a => (
-                  <tr key={a.id} className="border-b border-neutral-100">
-                    <td className="p-3 font-semibold">{a.beneficiary ? fullName(a.beneficiary.firstName, a.beneficiary.lastName) : '—'}</td>
-                    <td className="p-3 text-center"><Badge className={a.type === 'SHIELD' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}>{(AWARD_TYPES as any)[a.type] || a.type}</Badge></td>
-                    <td className="p-3">{a.title}</td>
-                    <td className="p-3 text-xs">{dateLabel(a.date)}</td>
-                    <td className="p-3 text-center"><button onClick={() => delAward(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></button></td>
-                  </tr>
+                  <TableRow key={a.id} className="border-b border-neutral-100">
+                    <TableCell className="p-3 font-semibold">{a.beneficiary ? fullName(a.beneficiary.firstName, a.beneficiary.lastName) : '—'}</TableCell>
+                    <TableCell className="p-3 text-center"><Badge className={a.type === 'SHIELD' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}>{(AWARD_TYPES as any)[a.type] || a.type}</Badge></TableCell>
+                    <TableCell className="p-3">{a.title}</TableCell>
+                    <TableCell className="p-3 text-xs">{dateLabel(a.date)}</TableCell>
+                    <TableCell className="p-3 text-center"><Button unstyled onClick={() => delAward(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></Button></TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : <p className="text-center py-8 text-neutral-400"><Medal size={36} className="mx-auto mb-3 text-neutral-300" />لا توجد دروع أو مكافآت</p>}
       </div>
@@ -1558,44 +1564,44 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">منح درع أو مكافأة</h2>
-              <button onClick={() => setShowAwardModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button>
+              <Button unstyled onClick={() => setShowAwardModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
             </div>
             <form onSubmit={handleAwardSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العضو</label>
-                <select required value={awardForm.beneficiaryId} onChange={e => setAwardForm({ ...awardForm, beneficiaryId: e.target.value })} className="input-field">
+                <NativeSelect required value={awardForm.beneficiaryId} onChange={e => setAwardForm({ ...awardForm, beneficiaryId: e.target.value })} className="input-field">
                   {beneficiaries.map(b => <option key={b.id} value={b.id}>{fullName(b.firstName, b.lastName)}</option>)}
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">النوع</label>
-                <select value={awardForm.type} onChange={e => setAwardForm({ ...awardForm, type: e.target.value })} className="input-field">
+                <NativeSelect value={awardForm.type} onChange={e => setAwardForm({ ...awardForm, type: e.target.value })} className="input-field">
                   <option value="SHIELD">درع</option>
                   <option value="REWARD">مكافأة مالية</option>
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم الدرع / وصف المكافأة</label>
-                <input required value={awardForm.title} onChange={e => setAwardForm({ ...awardForm, title: e.target.value })} list="badgeList" className="input-field" />
+                <Input required value={awardForm.title} onChange={e => setAwardForm({ ...awardForm, title: e.target.value })} list="badgeList" className="input-field" />
                 <datalist id="badgeList">{BADGE_CATALOG.map(b => <option key={b} value={b} />)}</datalist>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">التاريخ</label>
-                  <input type="date" required value={awardForm.date} onChange={e => setAwardForm({ ...awardForm, date: e.target.value })} className="input-field" />
+                  <Input type="date" required value={awardForm.date} onChange={e => setAwardForm({ ...awardForm, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">القيمة (للمكافأة)</label>
-                  <input type="number" value={awardForm.value} onChange={e => setAwardForm({ ...awardForm, value: e.target.value })} className="input-field" />
+                  <Input type="number" value={awardForm.value} onChange={e => setAwardForm({ ...awardForm, value: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
-                <input value={awardForm.note} onChange={e => setAwardForm({ ...awardForm, note: e.target.value })} className="input-field" />
+                <Input value={awardForm.note} onChange={e => setAwardForm({ ...awardForm, note: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowAwardModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'منح'}</button>
+                <Button unstyled type="button" onClick={() => setShowAwardModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'منح'}</Button>
               </div>
             </form>
           </div>
@@ -1735,17 +1741,17 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
     <div>
       <div className="card p-4 mb-6">
         <div className="flex flex-wrap items-center gap-3">
-          <select value={repType} onChange={e => setRepType(e.target.value as any)} className="input-field max-w-[130px]">
+          <NativeSelect value={repType} onChange={e => setRepType(e.target.value as any)} className="input-field max-w-[130px]">
             <option value="monthly">تقرير شهري</option>
             <option value="yearly">تقرير سنوي</option>
-          </select>
-          <input type="number" value={repYear} onChange={e => setRepYear(+e.target.value)} className="input-field max-w-[90px]" />
+          </NativeSelect>
+          <Input type="number" value={repYear} onChange={e => setRepYear(+e.target.value)} className="input-field max-w-[90px]" />
           {repType === 'monthly' && (
-            <select value={repMonth} onChange={e => setRepMonth(+e.target.value)} className="input-field max-w-[120px]">
+            <NativeSelect value={repMonth} onChange={e => setRepMonth(+e.target.value)} className="input-field max-w-[120px]">
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            </NativeSelect>
           )}
-          <select value={repPlat} onChange={e => setRepPlat(e.target.value)} className="input-field max-w-[180px]">
+          <NativeSelect value={repPlat} onChange={e => setRepPlat(e.target.value)} className="input-field max-w-[180px]">
             <option value="">كل المنصات</option>
             {(() => {
               const platforms = new Map<string, string>() // id -> name
@@ -1756,17 +1762,17 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
               }
               return Array.from(platforms.entries()).map(([id, name]) => <option key={id} value={id}>{name}</option>)
             })()}
-          </select>
-          <select value={repRole} onChange={e => setRepRole(e.target.value)} className="input-field max-w-[150px]">
+          </NativeSelect>
+          <NativeSelect value={repRole} onChange={e => setRepRole(e.target.value)} className="input-field max-w-[150px]">
             <option value="">كل الصفات</option>
             {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
       {/* طباعة + التقرير */}
       <div className="flex justify-end mb-3">
-        <button
+        <Button unstyled
           onClick={() => {
             const printArea = document.getElementById('reportPrintArea')
             if (!printArea) return
@@ -1785,25 +1791,25 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
         >
           <Printer size={14} />
           طباعة التقرير
-        </button>
+        </Button>
         {isSuperAdmin && (
           <>
-            <button
+            <Button unstyled
               onClick={handleGenerateSummary}
               disabled={aiLoading}
               className="btn-ghost btn-sm flex items-center gap-1.5 text-primary-600"
             >
               {aiLoading ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <Star size={14} />}
               توليد ملخص ذكي
-            </button>
-            <button
+            </Button>
+            <Button unstyled
               onClick={handleAnalyze}
               disabled={aiLoading}
               className="btn-ghost btn-sm flex items-center gap-1.5 text-teal-600"
             >
               <TrendingUp size={14} />
               تحليل الاتجاهات
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -1817,7 +1823,7 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
             <span className="text-[10px] bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
           </div>
           <p className="text-neutral-700 text-sm leading-relaxed">{aiSummary}</p>
-          <button onClick={() => setAiSummary('')} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</button>
+          <Button unstyled onClick={() => setAiSummary('')} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</Button>
         </div>
       )}
 
@@ -1839,7 +1845,7 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
               ))}
             </ul>
           )}
-          <button onClick={() => setAiAnalysis(null)} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</button>
+          <Button unstyled onClick={() => setAiAnalysis(null)} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</Button>
         </div>
       )}
 
@@ -1885,14 +1891,14 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
 
         <h3 className="font-bold text-neutral-800 mb-3">أعلى الأعضاء أداءً</h3>
         {reportRows.filter(r => r.pts > 0).length > 0 ? (
-          <table className="w-full text-sm border">
-            <thead><tr className="bg-neutral-50"><th className="text-center p-2 border">#</th><th className="text-right p-2 border">الاسم</th><th className="text-right p-2 border">الصفة</th><th className="text-center p-2 border">الأنشطة</th><th className="text-center p-2 border">النقاط</th></tr></thead>
-            <tbody>
+          <Table className="w-full text-sm border">
+            <TableHeader><TableRow className="bg-neutral-50"><TableHead className="text-center p-2 border">#</TableHead><TableHead className="text-right p-2 border">الاسم</TableHead><TableHead className="text-right p-2 border">الصفة</TableHead><TableHead className="text-center p-2 border">الأنشطة</TableHead><TableHead className="text-center p-2 border">النقاط</TableHead></TableRow></TableHeader>
+            <TableBody>
               {reportRows.filter(r => r.pts > 0).slice(0, 20).map((r, i) => (
-                <tr key={r.id}><td className="text-center p-2 border">{i + 1}</td><td className="p-2 border font-semibold">{fullName(r.firstName, r.lastName)}</td><td className="p-2 border">{r.networkRole || '—'}</td><td className="text-center p-2 border">{r.actCount}</td><td className="text-center p-2 border font-mono font-bold">{r.pts}</td></tr>
+                <TableRow key={r.id}><TableCell className="text-center p-2 border">{i + 1}</TableCell><TableCell className="p-2 border font-semibold">{fullName(r.firstName, r.lastName)}</TableCell><TableCell className="p-2 border">{r.networkRole || '—'}</TableCell><TableCell className="text-center p-2 border">{r.actCount}</TableCell><TableCell className="text-center p-2 border font-mono font-bold">{r.pts}</TableCell></TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         ) : <p className="text-center py-8 text-neutral-400">لا توجد تفاعلات مسجلة</p>}
 
         <div className="mt-8 pt-4 border-t text-center text-xs text-neutral-400">
@@ -1968,10 +1974,10 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
     <div>
       <div className="flex items-center gap-2 mb-4 overflow-x-auto">
         {sectionOpts.map(s => (
-          <button key={s.key} onClick={() => setSection(s.key)}
+          <Button unstyled key={s.key} onClick={() => setSection(s.key)}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${section === s.key ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
             <s.icon size={14} /> {s.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -1979,16 +1985,16 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={18} className="text-primary-600" /> كتالوج الأنشطة</h2>
-            {showModal ? null : <button onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> إضافة نشاط</button>}
+            {showModal ? null : <Button unstyled onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> إضافة نشاط</Button>}
           </div>
           {Object.entries(grouped).map(([cat, items]) => (
             <div key={cat} className="mb-6">
               <h3 className="font-semibold text-neutral-700 mb-2 bg-neutral-50 p-2 rounded-lg">{CATEGORY_LABELS[cat] || cat}</h3>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-neutral-100"><th className="text-right p-2 text-neutral-500">اسم النشاط</th><th className="text-center p-2 text-neutral-500">النقاط</th><th className="text-right p-2 text-neutral-500">ملاحظات</th><th className="text-center p-2 text-neutral-500">حذف</th></tr></thead>
-                  <tbody>{items.map(a => (<tr key={a.id} className="border-b border-neutral-50 hover:bg-neutral-50"><td className="p-2 font-semibold">{a.name}</td><td className="p-2 text-center font-mono font-bold">{a.points}</td><td className="p-2 text-xs text-neutral-500">{a.note || '—'}</td><td className="p-2 text-center"><button onClick={() => delAction(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></button></td></tr>))}</tbody>
-                </table>
+                <Table className="w-full text-sm">
+                  <TableHeader><TableRow className="border-b border-neutral-100"><TableHead className="text-right p-2 text-neutral-500">اسم النشاط</TableHead><TableHead className="text-center p-2 text-neutral-500">النقاط</TableHead><TableHead className="text-right p-2 text-neutral-500">ملاحظات</TableHead><TableHead className="text-center p-2 text-neutral-500">حذف</TableHead></TableRow></TableHeader>
+                  <TableBody>{items.map(a => (<TableRow key={a.id} className="border-b border-neutral-50 hover:bg-neutral-50"><TableCell className="p-2 font-semibold">{a.name}</TableCell><TableCell className="p-2 text-center font-mono font-bold">{a.points}</TableCell><TableCell className="p-2 text-xs text-neutral-500">{a.note || '—'}</TableCell><TableCell className="p-2 text-center"><Button unstyled onClick={() => delAction(a.id)} className="text-neutral-400 hover:text-red-600"><Trash size={13} /></Button></TableCell></TableRow>))}</TableBody>
+                </Table>
               </div>
             </div>
           ))}
@@ -2003,7 +2009,7 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
             {Object.entries(settings.qualityBonus as Record<string, number>).map(([key, val]) => (
               <div key={key} className="flex items-center gap-3">
                 <span className="w-24 text-sm font-semibold text-neutral-700">{QUALITY_LABELS[key] || key}</span>
-                <input type="number" defaultValue={val} onBlur={e => {
+                <Input type="number" defaultValue={val} onBlur={e => {
                   const newVal = Number(e.target.value)
                   if (!isNaN(newVal) && newVal !== val) {
                     const updated = { ...settings.qualityBonus, [key]: newVal }
@@ -2026,14 +2032,14 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
               <div key={i} className="flex items-center gap-3">
                 <span className="w-32 text-sm font-semibold text-neutral-700">{lv.name}</span>
                 <span className="text-xs text-neutral-400">من</span>
-                <input type="number" defaultValue={lv.from} onBlur={e => {
+                <Input type="number" defaultValue={lv.from} onBlur={e => {
                   const n = Number(e.target.value); if (!isNaN(n)) {
                     const u = settings.levels.map((l: any, j: number) => j === i ? { ...l, from: n } : l)
                     setSettings({ ...settings, levels: u }); saveSettings('levels', u)
                   }
                 }} className="input-field max-w-[90px] text-center" />
                 <span className="text-xs text-neutral-400">إلى</span>
-                <input type="number" defaultValue={lv.to} onBlur={e => {
+                <Input type="number" defaultValue={lv.to} onBlur={e => {
                   const n = Number(e.target.value); if (!isNaN(n)) {
                     const u = settings.levels.map((l: any, j: number) => j === i ? { ...l, to: n } : l)
                     setSettings({ ...settings, levels: u }); saveSettings('levels', u)
@@ -2053,14 +2059,14 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
               <div key={i} className="flex items-center gap-3">
                 <span className="w-24 text-sm font-semibold text-neutral-700">{tier.name}</span>
                 <span className="text-xs text-neutral-400">من</span>
-                <input type="number" defaultValue={tier.from} onBlur={e => {
+                <Input type="number" defaultValue={tier.from} onBlur={e => {
                   const n = Number(e.target.value); if (!isNaN(n)) {
                     const u = settings.rewardTiers.map((t: any, j: number) => j === i ? { ...t, from: n } : t)
                     setSettings({ ...settings, rewardTiers: u }); saveSettings('rewardTiers', u)
                   }
                 }} className="input-field max-w-[90px] text-center" />
                 <span className="text-xs text-neutral-400">إلى</span>
-                <input type="number" defaultValue={tier.to} onBlur={e => {
+                <Input type="number" defaultValue={tier.to} onBlur={e => {
                   const n = Number(e.target.value); if (!isNaN(n)) {
                     const u = settings.rewardTiers.map((t: any, j: number) => j === i ? { ...t, to: n } : t)
                     setSettings({ ...settings, rewardTiers: u }); saveSettings('rewardTiers', u)
@@ -2075,12 +2081,12 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b"><h2 className="font-bold text-neutral-900">إضافة نشاط جديد</h2><button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></button></div>
+            <div className="flex items-center justify-between p-5 border-b"><h2 className="font-bold text-neutral-900">إضافة نشاط جديد</h2><Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button></div>
             <form onSubmit={handleAdd} className="p-5 space-y-4">
-              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">اسم النشاط</label><input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input-field" /></div>
-              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-semibold text-neutral-700 mb-1">النقاط</label><input type="number" value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} className="input-field" /></div><div><label className="block text-sm font-semibold text-neutral-700 mb-1">المحور</label><select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">{Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div></div>
-              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label><input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" /></div>
-              <div className="flex justify-end gap-3 pt-4 border-t"><button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button><button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة'}</button></div>
+              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">اسم النشاط</label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input-field" /></div>
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-semibold text-neutral-700 mb-1">النقاط</label><Input type="number" value={form.points} onChange={e => setForm({ ...form, points: e.target.value })} className="input-field" /></div><div><label className="block text-sm font-semibold text-neutral-700 mb-1">المحور</label><NativeSelect value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">{Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</NativeSelect></div></div>
+              <div><label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label><Input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" /></div>
+              <div className="flex justify-end gap-3 pt-4 border-t"><Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button><Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة'}</Button></div>
             </form>
           </div>
         </div>

@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 /**
  * لوحة مدير المنصة — Platform Manager Dashboard
  * تبويبات: الرئيسية | الأعضاء | الأنشطة
@@ -214,15 +219,15 @@ export default function MyPlatformDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <button onClick={() => switchTab('dashboard')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'dashboard' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+          <Button unstyled onClick={() => switchTab('dashboard')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'dashboard' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
             الرئيسية
-          </button>
-          <button onClick={() => switchTab('members')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'members' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+          </Button>
+          <Button unstyled onClick={() => switchTab('members')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'members' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
             الأعضاء
-          </button>
-          <button onClick={() => switchTab('activities')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'activities' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+          </Button>
+          <Button unstyled onClick={() => switchTab('activities')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'activities' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
             الأنشطة
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -259,39 +264,39 @@ export default function MyPlatformDashboard() {
 
             {pendingActivities.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200">
-                      <th className="text-right p-3 text-neutral-500">العضو</th>
-                      <th className="text-right p-3 text-neutral-500">النشاط</th>
-                      <th className="text-center p-3 text-neutral-500">العدد</th>
-                      <th className="text-right p-3 text-neutral-500">التاريخ</th>
-                      <th className="text-center p-3 text-neutral-500">الجودة</th>
-                      <th className="text-center p-3 text-neutral-500">إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="border-b border-neutral-200">
+                      <TableHead className="text-right p-3 text-neutral-500">العضو</TableHead>
+                      <TableHead className="text-right p-3 text-neutral-500">النشاط</TableHead>
+                      <TableHead className="text-center p-3 text-neutral-500">العدد</TableHead>
+                      <TableHead className="text-right p-3 text-neutral-500">التاريخ</TableHead>
+                      <TableHead className="text-center p-3 text-neutral-500">الجودة</TableHead>
+                      <TableHead className="text-center p-3 text-neutral-500">إجراء</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {pendingActivities.map(act => (
-                      <tr key={act.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                        <td className="p-3 font-semibold">{act.beneficiaryName} <span className="text-xs text-neutral-400 font-mono">{act.beneficiaryCode}</span></td>
-                        <td className="p-3">{act.actionName}</td>
-                        <td className="p-3 text-center font-mono">{act.count}</td>
-                        <td className="p-3 text-xs">{act.date}</td>
-                        <td className="p-3 text-center text-xs">{QUALITY_LABELS[act.quality] || act.quality}</td>
-                        <td className="p-3 text-center">
+                      <TableRow key={act.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                        <TableCell className="p-3 font-semibold">{act.beneficiaryName} <span className="text-xs text-neutral-400 font-mono">{act.beneficiaryCode}</span></TableCell>
+                        <TableCell className="p-3">{act.actionName}</TableCell>
+                        <TableCell className="p-3 text-center font-mono">{act.count}</TableCell>
+                        <TableCell className="p-3 text-xs">{act.date}</TableCell>
+                        <TableCell className="p-3 text-center text-xs">{QUALITY_LABELS[act.quality] || act.quality}</TableCell>
+                        <TableCell className="p-3 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => handleApprove(act.id)} className="px-3 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 font-semibold">
+                            <Button unstyled onClick={() => handleApprove(act.id)} className="px-3 py-1 rounded-md text-xs bg-green-50 text-green-700 hover:bg-green-100 font-semibold">
                               ✓ اعتماد
-                            </button>
-                            <button onClick={() => handleReject(act.id)} className="px-3 py-1 rounded-md text-xs bg-red-50 text-red-700 hover:bg-red-100 font-semibold">
+                            </Button>
+                            <Button unstyled onClick={() => handleReject(act.id)} className="px-3 py-1 rounded-md text-xs bg-red-50 text-red-700 hover:bg-red-100 font-semibold">
                               ✕ رفض
-                            </button>
+                            </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <p className="text-center py-8 text-neutral-400">
@@ -308,15 +313,15 @@ export default function MyPlatformDashboard() {
         <div className="card">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Users size={18} className="text-primary-600" /> أعضاء المنصة</h2>
-            <button onClick={() => setShowMemberModal(true)} className="btn-primary btn-sm flex items-center gap-1.5">
+            <Button unstyled onClick={() => setShowMemberModal(true)} className="btn-primary btn-sm flex items-center gap-1.5">
               <Plus size={14} /> إضافة عضو
-            </button>
+            </Button>
           </div>
 
           <div className="mb-4">
             <div className="relative max-w-xs">
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
+              <Input
                 placeholder="بحث بالاسم أو الكود"
                 value={memberSearch}
                 onChange={e => setMemberSearch(e.target.value)}
@@ -327,28 +332,28 @@ export default function MyPlatformDashboard() {
 
           {members.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200">
-                    <th className="text-right p-3 text-neutral-500">الكود</th>
-                    <th className="text-right p-3 text-neutral-500">الاسم</th>
-                    <th className="text-right p-3 text-neutral-500">الصفة</th>
-                    <th className="text-right p-3 text-neutral-500">البريد</th>
-                    <th className="text-right p-3 text-neutral-500">تاريخ الانضمام</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-neutral-200">
+                    <TableHead className="text-right p-3 text-neutral-500">الكود</TableHead>
+                    <TableHead className="text-right p-3 text-neutral-500">الاسم</TableHead>
+                    <TableHead className="text-right p-3 text-neutral-500">الصفة</TableHead>
+                    <TableHead className="text-right p-3 text-neutral-500">البريد</TableHead>
+                    <TableHead className="text-right p-3 text-neutral-500">تاريخ الانضمام</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {members.map(m => (
-                    <tr key={m.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                      <td className="p-3 font-mono text-xs">{m.code}</td>
-                      <td className="p-3 font-semibold">{m.name}</td>
-                      <td className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{m.networkRole || '—'}</Badge></td>
-                      <td className="p-3 text-xs text-neutral-500">{m.email || '—'}</td>
-                      <td className="p-3 text-xs">{m.joinDate ? new Date(m.joinDate).toLocaleDateString('ar') : '—'}</td>
-                    </tr>
+                    <TableRow key={m.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                      <TableCell className="p-3 font-mono text-xs">{m.code}</TableCell>
+                      <TableCell className="p-3 font-semibold">{m.name}</TableCell>
+                      <TableCell className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{m.networkRole || '—'}</Badge></TableCell>
+                      <TableCell className="p-3 text-xs text-neutral-500">{m.email || '—'}</TableCell>
+                      <TableCell className="p-3 text-xs">{m.joinDate ? new Date(m.joinDate).toLocaleDateString('ar') : '—'}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء بعد</p>
@@ -364,52 +369,52 @@ export default function MyPlatformDashboard() {
           <div className="flex flex-wrap items-center gap-4 mb-4">
             <div className="relative max-w-[220px]">
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input placeholder="بحث بالاسم" value={actSearch} onChange={e => setActSearch(e.target.value)} className="input-field pr-9" />
+              <Input placeholder="بحث بالاسم" value={actSearch} onChange={e => setActSearch(e.target.value)} className="input-field pr-9" />
             </div>
-            <select value={actStatusFilter} onChange={e => setActStatusFilter(e.target.value)} className="input-field max-w-[160px]">
+            <NativeSelect value={actStatusFilter} onChange={e => setActStatusFilter(e.target.value)} className="input-field max-w-[160px]">
               <option value="">كل الحالات</option>
               <option value="APPROVED">معتمد</option>
               <option value="PENDING_REVIEW">قيد المراجعة</option>
               <option value="REJECTED">مرفوض</option>
-            </select>
+            </NativeSelect>
           </div>
 
           {activities.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200">
-                    <th className="text-right p-3">العضو</th>
-                    <th className="text-right p-3">النشاط</th>
-                    <th className="text-center p-3">العدد</th>
-                    <th className="text-right p-3">التاريخ</th>
-                    <th className="text-center p-3">الجودة</th>
-                    <th className="text-center p-3">الحالة</th>
-                    <th className="text-right p-3">ملاحظات</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-neutral-200">
+                    <TableHead className="text-right p-3">العضو</TableHead>
+                    <TableHead className="text-right p-3">النشاط</TableHead>
+                    <TableHead className="text-center p-3">العدد</TableHead>
+                    <TableHead className="text-right p-3">التاريخ</TableHead>
+                    <TableHead className="text-center p-3">الجودة</TableHead>
+                    <TableHead className="text-center p-3">الحالة</TableHead>
+                    <TableHead className="text-right p-3">ملاحظات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {activities.map(act => (
-                    <tr key={act.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                      <td className="p-3 font-semibold">{act.beneficiaryName}</td>
-                      <td className="p-3">{act.actionName}</td>
-                      <td className="p-3 text-center font-mono">{act.count}</td>
-                      <td className="p-3 text-xs">{act.date}</td>
-                      <td className="p-3 text-center text-xs">{QUALITY_LABELS[act.quality] || act.quality}</td>
-                      <td className="p-3 text-center">
+                    <TableRow key={act.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                      <TableCell className="p-3 font-semibold">{act.beneficiaryName}</TableCell>
+                      <TableCell className="p-3">{act.actionName}</TableCell>
+                      <TableCell className="p-3 text-center font-mono">{act.count}</TableCell>
+                      <TableCell className="p-3 text-xs">{act.date}</TableCell>
+                      <TableCell className="p-3 text-center text-xs">{QUALITY_LABELS[act.quality] || act.quality}</TableCell>
+                      <TableCell className="p-3 text-center">
                         <Badge className={
                           act.status === 'APPROVED' ? 'bg-green-50 text-green-700' :
                           act.status === 'REJECTED' ? 'bg-red-50 text-red-700' :
                           'bg-amber-50 text-amber-700'
                         }>{STATUS_LABELS[act.status] || act.status}</Badge>
-                      </td>
-                      <td className="p-3 text-xs text-neutral-500 max-w-[200px] truncate">
+                      </TableCell>
+                      <TableCell className="p-3 text-xs text-neutral-500 max-w-[200px] truncate">
                         {act.rejectionReason ? <span className="text-red-600">رفض: {act.rejectionReason}</span> : act.note || '—'}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>
@@ -423,47 +428,47 @@ export default function MyPlatformDashboard() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900 flex items-center gap-2"><UserCheck size={20} className="text-primary-600" /> إضافة عضو جديد</h2>
-              <button onClick={() => setShowMemberModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600">
+              <Button unstyled onClick={() => setShowMemberModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600">
                 <span className="text-xl">✕</span>
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleCreateMember} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الاسم الأول *</label>
-                  <input required value={memberForm.firstName} onChange={e => setMemberForm({ ...memberForm, firstName: e.target.value })} className="input-field" />
+                  <Input required value={memberForm.firstName} onChange={e => setMemberForm({ ...memberForm, firstName: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم العائلة *</label>
-                  <input required value={memberForm.lastName} onChange={e => setMemberForm({ ...memberForm, lastName: e.target.value })} className="input-field" />
+                  <Input required value={memberForm.lastName} onChange={e => setMemberForm({ ...memberForm, lastName: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رمز العضو</label>
-                  <input value={memberForm.code} onChange={e => setMemberForm({ ...memberForm, code: e.target.value })} className="input-field" />
+                  <Input value={memberForm.code} onChange={e => setMemberForm({ ...memberForm, code: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
-                  <input type="date" value={memberForm.joinDate} onChange={e => setMemberForm({ ...memberForm, joinDate: e.target.value })} className="input-field" />
+                  <Input type="date" value={memberForm.joinDate} onChange={e => setMemberForm({ ...memberForm, joinDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني *</label>
-                  <input required type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
+                  <Input required type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
-                  <input type="tel" value={memberForm.phone} onChange={e => setMemberForm({ ...memberForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
+                  <Input type="tel" value={memberForm.phone} onChange={e => setMemberForm({ ...memberForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                <select value={memberForm.networkRole} onChange={e => setMemberForm({ ...memberForm, networkRole: e.target.value })} className="input-field">
+                <NativeSelect value={memberForm.networkRole} onChange={e => setMemberForm({ ...memberForm, networkRole: e.target.value })} className="input-field">
                   <option value="">— اختر الصفة —</option>
                   {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+                </NativeSelect>
               </div>
 
               <div className="rounded-xl bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 flex items-start gap-2">
@@ -472,8 +477,8 @@ export default function MyPlatformDashboard() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowMemberModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</button>
+                <Button unstyled type="button" onClick={() => setShowMemberModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</Button>
               </div>
             </form>
           </div>
@@ -504,7 +509,7 @@ export default function MyPlatformDashboard() {
             </div>
 
             <div className="flex justify-end gap-2 mt-5">
-              <button
+              <Button unstyled
                 type="button"
                 className="btn-secondary btn-sm flex items-center gap-1.5"
                 onClick={async () => {
@@ -515,8 +520,8 @@ export default function MyPlatformDashboard() {
                 }}
               >
                 <Copy size={14} /> نسخ البيانات
-              </button>
-              <button type="button" className="btn-primary btn-sm" onClick={() => setCreatedCredentials(null)}>تم</button>
+              </Button>
+              <Button unstyled type="button" className="btn-primary btn-sm" onClick={() => setCreatedCredentials(null)}>تم</Button>
             </div>
           </div>
         </div>

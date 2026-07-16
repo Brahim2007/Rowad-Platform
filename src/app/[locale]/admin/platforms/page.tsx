@@ -1,5 +1,9 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -133,20 +137,20 @@ const PlatformCard = ({ platform, onEdit, onDelete }: {
         </div>
 
         <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
+          <Button unstyled
             onClick={(event) => { event.preventDefault(); event.stopPropagation(); onEdit(platform) }}
             className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-primary-50 hover:text-primary-600 border border-neutral-200 shadow-sm transition-all"
             title="تعديل المنصة"
           >
             <Pencil size={13} />
-          </button>
-          <button
+          </Button>
+          <Button unstyled
             onClick={(event) => { event.preventDefault(); event.stopPropagation(); onDelete(platform.id) }}
             className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-error-50 hover:text-error-600 border border-neutral-200 shadow-sm transition-all"
             title="حذف المنصة"
           >
             <Trash2 size={13} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -221,9 +225,9 @@ const Modal = ({ show, onClose, title, icon: ModalIcon, iconColor, children }: {
             </div>
             {title}
           </h2>
-          <button onClick={onClose} className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-all">
+          <Button unstyled onClick={onClose} className="p-2 text-neutral-400 hover:text-neutral-600 rounded-xl hover:bg-neutral-100 transition-all">
             <X size={18} />
-          </button>
+          </Button>
         </div>
         {children}
       </div>
@@ -361,20 +365,20 @@ export default function AdminPlatformsPage() {
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               <div className="relative flex-1 md:min-w-[260px]">
                 <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-primary-300" />
-                <input
+                <Input
                   value={searchTerm}
                   onChange={event => setSearchTerm(event.target.value)}
                   className="w-full h-10 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl pr-10 pl-4 text-sm text-white placeholder:text-primary-300 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all"
                   placeholder="بحث في المنصات..."
                 />
               </div>
-              <button
+              <Button unstyled
                 onClick={openAdd}
                 className="h-10 px-5 bg-white text-primary-800 hover:bg-primary-50 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:-translate-y-0.5 shrink-0"
               >
                 <Plus size={18} />
                 إضافة منصة
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -407,9 +411,9 @@ export default function AdminPlatformsPage() {
             </div>
             <p className="text-lg font-semibold text-neutral-900 mb-1">لا توجد منصات بعد</p>
             <p className="text-sm text-neutral-500 mb-6 max-w-sm text-center">أضف منصتك الأولى لبدء بناء البرامج والدورات والأنشطة.</p>
-            <button onClick={openAdd} className="btn-primary btn-sm">
+            <Button unstyled onClick={openAdd} className="btn-primary btn-sm">
               <Plus size={16} /> إضافة منصة
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -444,46 +448,46 @@ export default function AdminPlatformsPage() {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الاسم <span className="text-error-500">*</span></label>
-            <input className="input-field" value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required placeholder="اسم المنصة" />
+            <Input className="input-field" value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required placeholder="اسم المنصة" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الرابط المختصر <span className="text-error-500">*</span></label>
-              <input className="input-field font-mono text-xs" value={form.slug} onChange={event => setForm({ ...form, slug: event.target.value })} required dir="ltr" placeholder="platform-slug" />
+              <Input className="input-field font-mono text-xs" value={form.slug} onChange={event => setForm({ ...form, slug: event.target.value })} required dir="ltr" placeholder="platform-slug" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">اللون</label>
               <div className="flex items-center gap-2">
-                <input type="color" className="h-10 w-14 rounded-lg border border-neutral-300 cursor-pointer" value={form.color} onChange={event => setForm({ ...form, color: event.target.value })} />
+                <Input type="color" className="h-10 w-14 rounded-lg border border-neutral-300 cursor-pointer" value={form.color} onChange={event => setForm({ ...form, color: event.target.value })} />
                 <span className="text-xs text-neutral-400 font-mono">{form.color}</span>
               </div>
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الوصف <span className="text-error-500">*</span></label>
-            <textarea className="input-field" rows={3} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} required placeholder="وصف المنصة..." />
+            <Textarea className="input-field" rows={3} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} required placeholder="وصف المنصة..." />
           </div>
           <div>
             <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الرؤية</label>
-            <textarea className="input-field" rows={2} value={form.vision} onChange={event => setForm({ ...form, vision: event.target.value })} placeholder="رؤية المنصة..." />
+            <Textarea className="input-field" rows={2} value={form.vision} onChange={event => setForm({ ...form, vision: event.target.value })} placeholder="رؤية المنصة..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1.5">الترتيب</label>
-              <input type="number" className="input-field" value={form.sortOrder} onChange={event => setForm({ ...form, sortOrder: parseInt(event.target.value) || 0 })} />
+              <Input type="number" className="input-field" value={form.sortOrder} onChange={event => setForm({ ...form, sortOrder: parseInt(event.target.value) || 0 })} />
             </div>
             <div className="flex items-end pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.isActive} onChange={event => setForm({ ...form, isActive: event.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
+                <Input type="checkbox" checked={form.isActive} onChange={event => setForm({ ...form, isActive: event.target.checked })} className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500" />
                 <span className="text-sm text-neutral-700 font-medium">منصة نشطة</span>
               </label>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100">
-            <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-            <button type="submit" className="btn-primary btn-sm" disabled={submitting}>
+            <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+            <Button unstyled type="submit" className="btn-primary btn-sm" disabled={submitting}>
               {submitting ? 'جارٍ الحفظ...' : editing ? 'تحديث المنصة' : 'إضافة المنصة'}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import { useEffect, useState, useCallback } from 'react'
 import {
   Plus, Pencil, Trash2, X, Search, BookOpen, FileText, Video,
@@ -162,10 +167,10 @@ export default function AdminKnowledgeLibraryPage() {
             أرشفة البيانات، المستندات، ومخرجات البرامج والمبادرات.
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-2">
+        <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-2">
           <Plus size={18} />
           إضافة محتوى
-        </button>
+        </Button>
       </div>
 
       {/* ─── Stats Cards ─── */}
@@ -209,18 +214,18 @@ export default function AdminKnowledgeLibraryPage() {
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px] relative">
             <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input type="text" placeholder="بحث بالعنوان أو الوصف أو المؤلف..." value={search} onChange={e => setSearch(e.target.value)} className="input-field pr-9 pl-3 py-2 text-sm" />
+            <Input type="text" placeholder="بحث بالعنوان أو الوصف أو المؤلف..." value={search} onChange={e => setSearch(e.target.value)} className="input-field pr-9 pl-3 py-2 text-sm" />
           </div>
-          <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="input-field min-w-[140px] text-sm py-2">
+          <NativeSelect value={filterCat} onChange={e => setFilterCat(e.target.value)} className="input-field min-w-[140px] text-sm py-2">
             <option value="">كل الفئات</option>
             {CATEGORY_LIST.map(c => (
               <option key={c} value={c}>{CATEGORIES_CONFIG[c]?.label || c}</option>
             ))}
-          </select>
-          <button onClick={() => { setSearch(''); setFilterCat('') }} className="btn-ghost btn-sm flex items-center gap-1.5 text-xs">
+          </NativeSelect>
+          <Button unstyled onClick={() => { setSearch(''); setFilterCat('') }} className="btn-ghost btn-sm flex items-center gap-1.5 text-xs">
             <X size={14} />
             مسح
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -236,7 +241,7 @@ export default function AdminKnowledgeLibraryPage() {
         <div className="py-12 text-center">
           <BookOpen size={36} className="text-neutral-300 mx-auto mb-3" />
           <p className="text-neutral-500 text-sm">المكتبة فارغة</p>
-          <button onClick={openCreate} className="btn-primary btn-sm mt-3"><Plus size={16} /> إضافة محتوى</button>
+          <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-3"><Plus size={16} /> إضافة محتوى</Button>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -254,15 +259,15 @@ export default function AdminKnowledgeLibraryPage() {
                     <TypeIcon size={20} />
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => togglePublish(item)} className="p-1.5 text-neutral-400 hover:text-primary-600 rounded-lg hover:bg-primary-50" title={item.isPublished ? 'إلغاء النشر' : 'نشر'}>
+                    <Button unstyled onClick={() => togglePublish(item)} className="p-1.5 text-neutral-400 hover:text-primary-600 rounded-lg hover:bg-primary-50" title={item.isPublished ? 'إلغاء النشر' : 'نشر'}>
                       {item.isPublished ? <XCircle size={14} /> : <CheckCircle size={14} />}
-                    </button>
-                    <button onClick={() => openEdit(item)} className="p-1.5 text-neutral-400 hover:text-primary-600 rounded-lg hover:bg-primary-50" title="تعديل">
+                    </Button>
+                    <Button unstyled onClick={() => openEdit(item)} className="p-1.5 text-neutral-400 hover:text-primary-600 rounded-lg hover:bg-primary-50" title="تعديل">
                       <Pencil size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(item.id)} className="p-1.5 text-neutral-400 hover:text-error-600 rounded-lg hover:bg-error-50" title="حذف">
+                    </Button>
+                    <Button unstyled onClick={() => handleDelete(item.id)} className="p-1.5 text-neutral-400 hover:text-error-600 rounded-lg hover:bg-error-50" title="حذف">
                       <Trash2 size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -330,79 +335,79 @@ export default function AdminKnowledgeLibraryPage() {
                 <BookOpen size={20} className="text-primary-600" />
                 {editing ? 'تعديل المحتوى' : 'إضافة محتوى'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العنوان <span className="text-error-500">*</span></label>
-                  <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="عنوان المحتوى" />
+                  <Input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="عنوان المحتوى" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الرابط المختصر <span className="text-error-500">*</span></label>
                   <div className="relative">
                     <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input required dir="ltr" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} className="input-field pl-8" placeholder="content-slug" />
+                    <Input required dir="ltr" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} className="input-field pl-8" placeholder="content-slug" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المؤلف</label>
                   <div className="relative">
                     <User size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className="input-field pr-9" placeholder="اسم المؤلف" />
+                    <Input value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className="input-field pr-9" placeholder="اسم المؤلف" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الفئة <span className="text-error-500">*</span></label>
-                  <select required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">
+                  <NativeSelect required value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="input-field">
                     <option value="">اختر الفئة...</option>
                     {CATEGORY_LIST.map(c => <option key={c} value={c}>{CATEGORIES_CONFIG[c]?.label || c}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النوع <span className="text-error-500">*</span></label>
-                  <select required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
+                  <NativeSelect required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
                     <option value="">اختر النوع...</option>
                     {TYPE_LIST.map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">اللغة</label>
-                  <select value={form.language} onChange={e => setForm({ ...form, language: e.target.value })} className="input-field">
+                  <NativeSelect value={form.language} onChange={e => setForm({ ...form, language: e.target.value })} className="input-field">
                     <option value="ar">العربية</option>
                     <option value="en">English</option>
                     <option value="fr">Français</option>
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الوصف</label>
-                <textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input-field" placeholder="وصف مختصر للمحتوى" />
+                <Textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input-field" placeholder="وصف مختصر للمحتوى" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">المحتوى الكامل</label>
-                <textarea rows={4} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="input-field" placeholder="النص الكامل للمحتوى (اختياري)" />
+                <Textarea rows={4} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="input-field" placeholder="النص الكامل للمحتوى (اختياري)" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الملف</label>
-                  <input dir="ltr" value={form.fileUrl} onChange={e => setForm({ ...form, fileUrl: e.target.value })} className="input-field" placeholder="https://..." />
+                  <Input dir="ltr" value={form.fileUrl} onChange={e => setForm({ ...form, fileUrl: e.target.value })} className="input-field" placeholder="https://..." />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الوسوم (مفصولة بفواصل)</label>
                   <div className="relative">
                     <Tag size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                    <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="input-field pr-9" placeholder="قيادة, تقنية, شباب" />
+                    <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="input-field pr-9" placeholder="قيادة, تقنية, شباب" />
                   </div>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">
                   {submitting ? 'جاري الحفظ...' : editing ? 'تحديث' : 'إضافة'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

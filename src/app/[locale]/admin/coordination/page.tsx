@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import React, { useEffect, useState, useCallback } from 'react'
 import {
   Plus, Pencil, Trash2, X, CalendarCheck, CheckCircle2, Clock,
@@ -245,9 +250,9 @@ export default function AdminCoordinationPage() {
               <ListChecks size={20} className="text-primary-600" />
               مهام التنسيق
             </h2>
-            <button onClick={openCreateTask} className="btn-primary btn-xs flex items-center gap-1">
+            <Button unstyled onClick={openCreateTask} className="btn-primary btn-xs flex items-center gap-1">
               <Plus size={14} /> مهمة
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-3">
@@ -255,7 +260,7 @@ export default function AdminCoordinationPage() {
               <div className="card text-center py-8 text-neutral-400">
                 <ListChecks size={28} className="mx-auto mb-2 text-neutral-300" />
                 <p className="text-sm">لا توجد مهام</p>
-                <button onClick={openCreateTask} className="btn-primary btn-xs mt-3">إضافة مهمة</button>
+                <Button unstyled onClick={openCreateTask} className="btn-primary btn-xs mt-3">إضافة مهمة</Button>
               </div>
             ) : (
               tasks.map(task => {
@@ -272,7 +277,7 @@ export default function AdminCoordinationPage() {
                         {['PENDING', 'IN_PROGRESS', 'COMPLETED'].map(st => {
                           const sc = STATUS_CONFIG[st]
                           return (
-                            <button
+                            <Button unstyled
                               key={st}
                               onClick={() => updateTaskStatus(task.id, st)}
                               className={`p-0.5 rounded transition-colors ${
@@ -283,7 +288,7 @@ export default function AdminCoordinationPage() {
                               title={sc.label}
                             >
                               {React.createElement(sc.icon, { size: 12 })}
-                            </button>
+                            </Button>
                           )
                         })}
                       </div>
@@ -333,12 +338,12 @@ export default function AdminCoordinationPage() {
                                 {task.completedAt && <span className="mr-2">اكتملت: {new Date(task.completedAt).toLocaleDateString('ar')}</span>}
                               </div>
                               <div className="flex gap-1">
-                                <button onClick={() => openEditTask(task)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                                <Button unstyled onClick={() => openEditTask(task)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                                   <Pencil size={13} />
-                                </button>
-                                <button onClick={() => handleDeleteTask(task.id)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                                </Button>
+                                <Button unstyled onClick={() => handleDeleteTask(task.id)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                                   <Trash2 size={13} />
-                                </button>
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -365,9 +370,9 @@ export default function AdminCoordinationPage() {
               <ShieldCheck size={20} className="text-secondary-600" />
               معايير البيانات
             </h2>
-            <button onClick={openCreateStd} className="btn-primary btn-xs flex items-center gap-1">
+            <Button unstyled onClick={openCreateStd} className="btn-primary btn-xs flex items-center gap-1">
               <Plus size={14} /> معيار
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-3">
@@ -375,7 +380,7 @@ export default function AdminCoordinationPage() {
               <div className="card text-center py-8 text-neutral-400">
                 <ShieldCheck size={28} className="mx-auto mb-2 text-neutral-300" />
                 <p className="text-sm">لا توجد معايير</p>
-                <button onClick={openCreateStd} className="btn-primary btn-xs mt-3">إضافة معيار</button>
+                <Button unstyled onClick={openCreateStd} className="btn-primary btn-xs mt-3">إضافة معيار</Button>
               </div>
             ) : (
               standards.map(standard => (
@@ -404,12 +409,12 @@ export default function AdminCoordinationPage() {
                       </span>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => openEditStd(standard)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                      <Button unstyled onClick={() => openEditStd(standard)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                         <Pencil size={13} />
-                      </button>
-                      <button onClick={() => handleDeleteStd(standard.id)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                      </Button>
+                      <Button unstyled onClick={() => handleDeleteStd(standard.id)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                         <Trash2 size={13} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -428,58 +433,58 @@ export default function AdminCoordinationPage() {
                 <ListChecks size={20} className="text-primary-600" />
                 {editingTask ? 'تعديل المهمة' : 'مهمة جديدة'}
               </h2>
-              <button onClick={() => setShowTaskModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
+              <Button unstyled onClick={() => setShowTaskModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleTaskSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العنوان <span className="text-error-500">*</span></label>
-                <input required value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} className="input-field" placeholder="عنوان المهمة" />
+                <Input required value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} className="input-field" placeholder="عنوان المهمة" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
-                  <select value={taskForm.status} onChange={e => setTaskForm({ ...taskForm, status: e.target.value })} className="input-field">
+                  <NativeSelect value={taskForm.status} onChange={e => setTaskForm({ ...taskForm, status: e.target.value })} className="input-field">
                     {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الأولوية</label>
-                  <select value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} className="input-field">
+                  <NativeSelect value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} className="input-field">
                     {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الوصف</label>
-                <textarea rows={2} value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} className="input-field" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المسؤول</label>
-                  <input value={taskForm.assignee} onChange={e => setTaskForm({ ...taskForm, assignee: e.target.value })} className="input-field" placeholder="اسم المسؤول" />
+                  <Input value={taskForm.assignee} onChange={e => setTaskForm({ ...taskForm, assignee: e.target.value })} className="input-field" placeholder="اسم المسؤول" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">دور المسؤول</label>
-                  <input value={taskForm.assigneeRole} onChange={e => setTaskForm({ ...taskForm, assigneeRole: e.target.value })} className="input-field" placeholder="مدير, منسق, ..." />
+                  <Input value={taskForm.assigneeRole} onChange={e => setTaskForm({ ...taskForm, assigneeRole: e.target.value })} className="input-field" placeholder="مدير, منسق, ..." />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الاستحقاق</label>
-                  <input type="date" value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} className="input-field" />
+                  <Input type="date" value={taskForm.dueDate} onChange={e => setTaskForm({ ...taskForm, dueDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
-                <textarea rows={2} value={taskForm.notes} onChange={e => setTaskForm({ ...taskForm, notes: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={taskForm.notes} onChange={e => setTaskForm({ ...taskForm, notes: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowTaskModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={taskSubmitting} className="btn-primary btn-sm">
+                <Button unstyled type="button" onClick={() => setShowTaskModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={taskSubmitting} className="btn-primary btn-sm">
                   {taskSubmitting ? 'جاري الحفظ...' : editingTask ? 'تحديث' : 'إنشاء'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -495,46 +500,46 @@ export default function AdminCoordinationPage() {
                 <ShieldCheck size={20} className="text-secondary-600" />
                 {editingStd ? 'تعديل المعيار' : 'معيار جديد'}
               </h2>
-              <button onClick={() => setShowStdModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
+              <Button unstyled onClick={() => setShowStdModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100 transition-colors">
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleStdSubmit} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الاسم <span className="text-error-500">*</span></label>
-                  <input required value={stdForm.name} onChange={e => setStdForm({ ...stdForm, name: e.target.value })} className="input-field" />
+                  <Input required value={stdForm.name} onChange={e => setStdForm({ ...stdForm, name: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الرابط <span className="text-error-500">*</span></label>
-                  <input required dir="ltr" value={stdForm.slug} onChange={e => setStdForm({ ...stdForm, slug: e.target.value })} className="input-field" />
+                  <Input required dir="ltr" value={stdForm.slug} onChange={e => setStdForm({ ...stdForm, slug: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الوصف</label>
-                <textarea rows={2} value={stdForm.description} onChange={e => setStdForm({ ...stdForm, description: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={stdForm.description} onChange={e => setStdForm({ ...stdForm, description: e.target.value })} className="input-field" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النطاق <span className="text-error-500">*</span></label>
-                  <select required value={stdForm.scope} onChange={e => setStdForm({ ...stdForm, scope: e.target.value })} className="input-field">
+                  <NativeSelect required value={stdForm.scope} onChange={e => setStdForm({ ...stdForm, scope: e.target.value })} className="input-field">
                     {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحقول المطلوبة <span className="text-error-500">*</span></label>
-                  <input required value={stdForm.requiredFields} onChange={e => setStdForm({ ...stdForm, requiredFields: e.target.value })} className="input-field" placeholder="field1,field2" />
+                  <Input required value={stdForm.requiredFields} onChange={e => setStdForm({ ...stdForm, requiredFields: e.target.value })} className="input-field" placeholder="field1,field2" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">قواعد التحقق (JSON)</label>
-                <textarea rows={3} value={stdForm.validationRules} onChange={e => setStdForm({ ...stdForm, validationRules: e.target.value })} className="input-field" placeholder='{"field1": {"min": 1}}' />
+                <Textarea rows={3} value={stdForm.validationRules} onChange={e => setStdForm({ ...stdForm, validationRules: e.target.value })} className="input-field" placeholder='{"field1": {"min": 1}}' />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowStdModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={stdSubmitting} className="btn-primary btn-sm">
+                <Button unstyled type="button" onClick={() => setShowStdModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={stdSubmitting} className="btn-primary btn-sm">
                   {stdSubmitting ? 'جاري الحفظ...' : editingStd ? 'تحديث' : 'إنشاء'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

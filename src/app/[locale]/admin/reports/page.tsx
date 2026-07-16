@@ -1,12 +1,16 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import Link from 'next/link'
 import {
   Bold, CheckCircle, ClipboardList, Clock, Code, Download, ExternalLink, Eye, FileCheck,
   FileSpreadsheet, FileText, Heading, Image, List, ListOrdered, Loader2, Pencil, Plus, Printer, Search,
-  Table, Trash2, Type, X, XCircle,
+  Table as TableIcon, Trash2, Type, X, XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ReportDocument, reportFileName, type ReportDocumentData } from '@/components/admin/ReportDocument'
@@ -19,7 +23,7 @@ const HTML_TOOLBAR_ITEMS = [
   { label: 'فقرة', icon: Type, snippet: '<p>نص الفقرة هنا...</p>' },
   { label: 'قائمة', icon: List, snippet: '<ul>\n  <li>عنصر 1</li>\n  <li>عنصر 2</li>\n  <li>عنصر 3</li>\n</ul>' },
   { label: 'مرقمة', icon: ListOrdered, snippet: '<ol>\n  <li>العنصر الأول</li>\n  <li>العنصر الثاني</li>\n</ol>' },
-  { label: 'جدول', icon: Table, snippet: '<table>\n  <thead>\n    <tr><th>العمود 1</th><th>العمود 2</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>بيان 1</td><td>بيان 2</td></tr>\n  </tbody>\n</table>' },
+  { label: 'جدول', icon: TableIcon, snippet: '<table>\n  <thead>\n    <tr><th>العمود 1</th><th>العمود 2</th></tr>\n  </thead>\n  <tbody>\n    <tr><td>بيان 1</td><td>بيان 2</td></tr>\n  </tbody>\n</table>' },
   { label: 'صورة', icon: Image, snippet: '<img src="https://example.com/image.jpg" alt="وصف الصورة" style="max-width:100%;border-radius:8px;" />' },
   { label: 'اقتباس', icon: Code, snippet: '<blockquote>نص الاقتباس هنا</blockquote>' },
 ]
@@ -423,14 +427,14 @@ export default function AdminReportsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={openCreateTemplate} className="btn-ghost btn-sm flex items-center gap-1.5">
+          <Button unstyled onClick={openCreateTemplate} className="btn-ghost btn-sm flex items-center gap-1.5">
             <Plus size={15} />
             قالب
-          </button>
-          <button onClick={openCreateReport} className="btn-primary btn-sm flex items-center gap-1.5" disabled={templates.length === 0}>
+          </Button>
+          <Button unstyled onClick={openCreateReport} className="btn-primary btn-sm flex items-center gap-1.5" disabled={templates.length === 0}>
             <Plus size={15} />
             تقرير
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -449,7 +453,7 @@ export default function AdminReportsPage() {
       </div>
 
       <div className="flex gap-1 mb-6 bg-neutral-100 p-1 rounded-xl w-fit">
-        <button
+        <Button unstyled
           onClick={() => setActiveTab('templates')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'templates' ? 'bg-white text-primary-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
@@ -457,8 +461,8 @@ export default function AdminReportsPage() {
         >
           <ClipboardList size={16} className="inline ml-1.5" />
           قوالب التقارير
-        </button>
-        <button
+        </Button>
+        <Button unstyled
           onClick={() => setActiveTab('reports')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             activeTab === 'reports' ? 'bg-white text-primary-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'
@@ -466,7 +470,7 @@ export default function AdminReportsPage() {
         >
           <FileCheck size={16} className="inline ml-1.5" />
           التقارير المرفوعة
-        </button>
+        </Button>
       </div>
 
       {activeTab === 'templates' && (
@@ -478,7 +482,7 @@ export default function AdminReportsPage() {
             <div className="card text-center py-12 text-neutral-400">
               <ClipboardList size={36} className="mx-auto mb-3 text-neutral-300" />
               <p>لا توجد قوالب تقارير</p>
-              <button onClick={openCreateTemplate} className="btn-primary btn-sm mt-4">إضافة قالب</button>
+              <Button unstyled onClick={openCreateTemplate} className="btn-primary btn-sm mt-4">إضافة قالب</Button>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -491,12 +495,12 @@ export default function AdminReportsPage() {
                         <FileSpreadsheet size={20} />
                       </div>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openEditTemplate(template)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                        <Button unstyled onClick={() => openEditTemplate(template)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                           <Pencil size={14} />
-                        </button>
-                        <button onClick={() => deleteTemplate(template.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                        </Button>
+                        <Button unstyled onClick={() => deleteTemplate(template.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                           <Trash2 size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     <h3 className="font-semibold text-neutral-900 text-sm mb-1">{template.title}</h3>
@@ -522,25 +526,25 @@ export default function AdminReportsPage() {
             <div className="grid md:grid-cols-[1fr_180px_auto] gap-3 items-center">
               <div className="relative">
                 <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
+                <Input
                   value={reportSearch}
                   onChange={event => setReportSearch(event.target.value)}
                   className="input-field pr-9 h-10 text-sm"
                   placeholder="بحث في عنوان التقرير، الجهة، رافع التقرير أو المحتوى..."
                 />
               </div>
-              <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field h-10 text-sm">
+              <NativeSelect value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field h-10 text-sm">
                 <option value="">كل الحالات</option>
                 {Object.entries(STATUS_CONFIG).map(([key, value]) => (
                   <option key={key} value={key}>{value.label}</option>
                 ))}
-              </select>
-              <button
+              </NativeSelect>
+              <Button unstyled
                 onClick={() => { setReportSearch(''); setStatusFilter('') }}
                 className="btn-ghost btn-sm h-10"
               >
                 مسح
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -551,7 +555,7 @@ export default function AdminReportsPage() {
             <div className="card text-center py-12 text-neutral-400">
               <FileText size={36} className="mx-auto mb-3 text-neutral-300" />
               <p>لا توجد تقارير مرفوعة</p>
-              <button onClick={openCreateReport} disabled={templates.length === 0} className="btn-primary btn-sm mt-4">إضافة تقرير</button>
+              <Button unstyled onClick={openCreateReport} disabled={templates.length === 0} className="btn-primary btn-sm mt-4">إضافة تقرير</Button>
             </div>
           ) : visibleReports.length === 0 ? (
             <div className="card text-center py-12 text-neutral-400">
@@ -597,18 +601,18 @@ export default function AdminReportsPage() {
                           <StatusIcon size={10} />
                           {statusConfig.label}
                         </Badge>
-                        <button onClick={() => setPreviewReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="معاينة التقرير">
+                        <Button unstyled onClick={() => setPreviewReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="معاينة التقرير">
                           <Eye size={14} />
-                        </button>
+                        </Button>
                         <Link href={`/ar/admin/reports/${report.id}`} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg no-underline" title="فتح التقرير">
                           <ExternalLink size={14} />
                         </Link>
-                        <button onClick={() => openEditReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                        <Button unstyled onClick={() => openEditReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                           <Pencil size={14} />
-                        </button>
-                        <button onClick={() => deleteReport(report.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                        </Button>
+                        <Button unstyled onClick={() => deleteReport(report.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                           <Trash2 size={14} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -634,17 +638,17 @@ export default function AdminReportsPage() {
                             {report.reviewedBy && <span>راجع: {report.reviewedBy}</span>}
                           </div>
                           <div className="flex gap-2">
-                            <button onClick={() => setPreviewReport(report)} className="btn-ghost btn-xs flex items-center gap-1">
+                            <Button unstyled onClick={() => setPreviewReport(report)} className="btn-ghost btn-xs flex items-center gap-1">
                               <Eye size={13} />
                               عرض
-                            </button>
+                            </Button>
                             <Link href={`/ar/admin/reports/${report.id}`} className="btn-ghost btn-xs no-underline flex items-center gap-1">
                               <ExternalLink size={13} />
                               فتح
                             </Link>
-                            <button onClick={() => updateReportStatus(report, 'REVIEWED')} className="btn-ghost btn-xs">مراجعة</button>
-                            <button onClick={() => updateReportStatus(report, 'APPROVED')} className="btn-primary btn-xs">اعتماد</button>
-                            <button onClick={() => updateReportStatus(report, 'REJECTED')} className="btn-ghost btn-xs text-error-600">رفض</button>
+                            <Button unstyled onClick={() => updateReportStatus(report, 'REVIEWED')} className="btn-ghost btn-xs">مراجعة</Button>
+                            <Button unstyled onClick={() => updateReportStatus(report, 'APPROVED')} className="btn-primary btn-xs">اعتماد</Button>
+                            <Button unstyled onClick={() => updateReportStatus(report, 'REJECTED')} className="btn-ghost btn-xs text-error-600">رفض</Button>
                           </div>
                         </div>
                       </div>
@@ -666,22 +670,22 @@ export default function AdminReportsPage() {
                 <p className="text-xs text-neutral-400 mt-1">معاينة التقرير قبل الطباعة أو التصدير</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={handlePreviewPrint} className="btn-ghost btn-sm flex items-center gap-1.5">
+                <Button unstyled onClick={handlePreviewPrint} className="btn-ghost btn-sm flex items-center gap-1.5">
                   <Printer size={15} />
                   طباعة
-                </button>
-                <button onClick={handlePreviewPdf} disabled={exportingPdf} className="btn-primary btn-sm flex items-center gap-1.5">
+                </Button>
+                <Button unstyled onClick={handlePreviewPdf} disabled={exportingPdf} className="btn-primary btn-sm flex items-center gap-1.5">
                   {exportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
                   PDF
-                </button>
+                </Button>
                 <Link href={`/ar/admin/reports/${previewReport.id}`} className="btn-ghost btn-sm no-underline flex items-center gap-1.5">
                   <ExternalLink size={15} />
                   فتح
                 </Link>
-                <button onClick={() => setPreviewReport(null)} className="btn-ghost btn-sm flex items-center gap-1.5">
+                <Button unstyled onClick={() => setPreviewReport(null)} className="btn-ghost btn-sm flex items-center gap-1.5">
                   <X size={15} />
                   إغلاق
-                </button>
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-auto bg-neutral-100 p-3 md:p-5">
@@ -698,48 +702,48 @@ export default function AdminReportsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <h2 className="text-lg font-bold text-neutral-900">{editingTemplate ? 'تعديل قالب' : 'قالب جديد'}</h2>
-              <button onClick={() => setShowTemplateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
+              <Button unstyled onClick={() => setShowTemplateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleTemplateSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العنوان</label>
-                  <input required value={templateForm.title} onChange={e => setTemplateForm({ ...templateForm, title: e.target.value })} className="input-field" />
+                  <Input required value={templateForm.title} onChange={e => setTemplateForm({ ...templateForm, title: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الرابط</label>
-                  <input required dir="ltr" value={templateForm.slug} onChange={e => setTemplateForm({ ...templateForm, slug: e.target.value })} className="input-field" />
+                  <Input required dir="ltr" value={templateForm.slug} onChange={e => setTemplateForm({ ...templateForm, slug: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الفئة</label>
-                  <select value={templateForm.category} onChange={e => setTemplateForm({ ...templateForm, category: e.target.value })} className="input-field">
+                  <NativeSelect value={templateForm.category} onChange={e => setTemplateForm({ ...templateForm, category: e.target.value })} className="input-field">
                     {Object.entries(CATEGORY_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الأيقونة</label>
-                  <input value={templateForm.icon} onChange={e => setTemplateForm({ ...templateForm, icon: e.target.value })} className="input-field" placeholder="اختياري" />
+                  <Input value={templateForm.icon} onChange={e => setTemplateForm({ ...templateForm, icon: e.target.value })} className="input-field" placeholder="اختياري" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الوصف</label>
-                <textarea rows={2} value={templateForm.description} onChange={e => setTemplateForm({ ...templateForm, description: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={templateForm.description} onChange={e => setTemplateForm({ ...templateForm, description: e.target.value })} className="input-field" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">أقسام القالب (JSON)</label>
-                <textarea rows={5} dir="ltr" value={templateForm.sections} onChange={e => setTemplateForm({ ...templateForm, sections: e.target.value })} className="input-field font-mono text-xs" />
+                <Textarea rows={5} dir="ltr" value={templateForm.sections} onChange={e => setTemplateForm({ ...templateForm, sections: e.target.value })} className="input-field font-mono text-xs" />
               </div>
               <label className="inline-flex items-center gap-2 text-sm text-neutral-700">
-                <input type="checkbox" checked={templateForm.isActive} onChange={e => setTemplateForm({ ...templateForm, isActive: e.target.checked })} />
+                <Input type="checkbox" checked={templateForm.isActive} onChange={e => setTemplateForm({ ...templateForm, isActive: e.target.checked })} />
                 قالب نشط
               </label>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowTemplateModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowTemplateModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>
@@ -751,61 +755,61 @@ export default function AdminReportsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <h2 className="text-lg font-bold text-neutral-900">{editingReport ? 'تعديل تقرير' : 'تقرير جديد'}</h2>
-              <button onClick={() => setShowReportModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
+              <Button unstyled onClick={() => setShowReportModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleReportSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">القالب</label>
-                  <select required value={reportForm.templateId} onChange={e => setReportForm({ ...reportForm, templateId: e.target.value })} className="input-field">
+                  <NativeSelect required value={reportForm.templateId} onChange={e => setReportForm({ ...reportForm, templateId: e.target.value })} className="input-field">
                     <option value="">اختر القالب...</option>
                     {templates.filter(template => template.isActive || template.id === reportForm.templateId).map(template => (
                       <option key={template.id} value={template.id}>{template.title}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
-                  <select value={reportForm.status} onChange={e => setReportForm({ ...reportForm, status: e.target.value })} className="input-field">
+                  <NativeSelect value={reportForm.status} onChange={e => setReportForm({ ...reportForm, status: e.target.value })} className="input-field">
                     {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الجهة المرتبطة</label>
-                  <select value={reportForm.targetType} onChange={e => setReportForm({ ...reportForm, targetType: e.target.value, targetId: '' })} className="input-field">
+                  <NativeSelect value={reportForm.targetType} onChange={e => setReportForm({ ...reportForm, targetType: e.target.value, targetId: '' })} className="input-field">
                     <option value="">عام</option>
                     <option value="platform">منصة</option>
                     <option value="program">برنامج</option>
                     <option value="project">مشروع</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العنصر</label>
-                  <select value={reportForm.targetId} onChange={e => setReportForm({ ...reportForm, targetId: e.target.value })} className="input-field" disabled={!reportForm.targetType}>
+                  <NativeSelect value={reportForm.targetId} onChange={e => setReportForm({ ...reportForm, targetId: e.target.value })} className="input-field" disabled={!reportForm.targetType}>
                     <option value="">اختر...</option>
                     {reportForm.targetType === 'platform' && platforms.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                     {reportForm.targetType === 'program' && programs.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
                     {reportForm.targetType === 'project' && projects.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رافع التقرير</label>
-                  <input value={reportForm.submittedBy} onChange={e => setReportForm({ ...reportForm, submittedBy: e.target.value })} className="input-field" />
+                  <Input value={reportForm.submittedBy} onChange={e => setReportForm({ ...reportForm, submittedBy: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">المراجع</label>
-                  <input value={reportForm.reviewedBy} onChange={e => setReportForm({ ...reportForm, reviewedBy: e.target.value })} className="input-field" />
+                  <Input value={reportForm.reviewedBy} onChange={e => setReportForm({ ...reportForm, reviewedBy: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">بيانات التقرير (JSON)</label>
-                <textarea rows={5} dir="ltr" value={reportForm.data} onChange={e => setReportForm({ ...reportForm, data: e.target.value })} className="input-field font-mono text-xs" />
+                <Textarea rows={5} dir="ltr" value={reportForm.data} onChange={e => setReportForm({ ...reportForm, data: e.target.value })} className="input-field font-mono text-xs" />
               </div>
 
               {/* HTML Content Editor */}
@@ -813,7 +817,7 @@ export default function AdminReportsPage() {
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-semibold text-neutral-700">محتوى HTML (تنسيق غني)</label>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button unstyled
                       type="button"
                       onClick={() => setHtmlPreviewMode(!htmlPreviewMode)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -823,7 +827,7 @@ export default function AdminReportsPage() {
                       }`}
                     >
                       {htmlPreviewMode ? 'تعديل' : 'معاينة'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -832,7 +836,7 @@ export default function AdminReportsPage() {
                     {/* Toolbar */}
                     <div className="flex flex-wrap gap-1 mb-2 p-1.5 bg-neutral-50 rounded-lg border border-neutral-200">
                       {HTML_TOOLBAR_ITEMS.map(item => (
-                        <button
+                        <Button unstyled
                           key={item.label}
                           type="button"
                           onClick={() => setHtmlContent(prev => prev + '\n' + item.snippet + '\n')}
@@ -841,10 +845,10 @@ export default function AdminReportsPage() {
                         >
                           <item.icon size={14} />
                           {item.label}
-                        </button>
+                        </Button>
                       ))}
                     </div>
-                    <textarea
+                    <Textarea
                       rows={8}
                       dir="ltr"
                       value={htmlContent}
@@ -878,11 +882,11 @@ export default function AdminReportsPage() {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات المراجعة</label>
-                <textarea rows={2} value={reportForm.reviewNotes} onChange={e => setReportForm({ ...reportForm, reviewNotes: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={reportForm.reviewNotes} onChange={e => setReportForm({ ...reportForm, reviewNotes: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowReportModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowReportModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>

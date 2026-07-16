@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
@@ -294,12 +299,12 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="flex items-center gap-1">
             <Badge className="bg-neutral-100 text-neutral-500">{periodLabel(indicator.period)}</Badge>
-            <button onClick={() => openEditIndicator(indicator, type)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+            <Button unstyled onClick={() => openEditIndicator(indicator, type)} className="p-1 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
               <Pencil size={13} />
-            </button>
-            <button onClick={() => deleteIndicator(indicator, type)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+            </Button>
+            <Button unstyled onClick={() => deleteIndicator(indicator, type)} className="p-1 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
               <Trash2 size={13} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -347,18 +352,18 @@ export default function AdminAnalyticsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => openCreateIndicator('platform')} className="btn-ghost btn-sm flex items-center gap-1.5">
+          <Button unstyled onClick={() => openCreateIndicator('platform')} className="btn-ghost btn-sm flex items-center gap-1.5">
             <Plus size={15} />
             مؤشر منصة
-          </button>
-          <button onClick={() => openCreateIndicator('program')} className="btn-ghost btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={() => openCreateIndicator('program')} className="btn-ghost btn-sm flex items-center gap-1.5">
             <Plus size={15} />
             مؤشر برنامج
-          </button>
-          <button onClick={() => setShowSnapshotModal(true)} className="btn-primary btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={() => setShowSnapshotModal(true)} className="btn-primary btn-sm flex items-center gap-1.5">
             <Database size={15} />
             لقطة تحليلية
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -437,9 +442,9 @@ export default function AdminAnalyticsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-primary-50 text-primary-600">{periodLabel(snapshot.period)}</Badge>
-                      <button onClick={() => deleteSnapshot(snapshot.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                      <Button unstyled onClick={() => deleteSnapshot(snapshot.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   {snapshot.summary && <p className="text-xs text-neutral-600 mt-2 leading-relaxed">{snapshot.summary}</p>}
@@ -456,65 +461,65 @@ export default function AdminAnalyticsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <h2 className="text-lg font-bold text-neutral-900">{editingIndicator ? 'تعديل مؤشر' : 'مؤشر جديد'}</h2>
-              <button onClick={() => setShowIndicatorModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
+              <Button unstyled onClick={() => setShowIndicatorModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleIndicatorSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع المؤشر</label>
-                  <select value={indicatorForm.type} onChange={e => setIndicatorForm({ ...indicatorForm, type: e.target.value, targetId: '' })} className="input-field" disabled={!!editingIndicator}>
+                  <NativeSelect value={indicatorForm.type} onChange={e => setIndicatorForm({ ...indicatorForm, type: e.target.value, targetId: '' })} className="input-field" disabled={!!editingIndicator}>
                     <option value="platform">منصة</option>
                     <option value="program">برنامج</option>
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العنصر</label>
-                  <select required value={indicatorForm.targetId} onChange={e => setIndicatorForm({ ...indicatorForm, targetId: e.target.value })} className="input-field" disabled={!!editingIndicator}>
+                  <NativeSelect required value={indicatorForm.targetId} onChange={e => setIndicatorForm({ ...indicatorForm, targetId: e.target.value })} className="input-field" disabled={!!editingIndicator}>
                     <option value="">اختر...</option>
                     {indicatorForm.type === 'platform' && platforms.map(platform => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
                     {indicatorForm.type === 'program' && programs.map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">مفتاح المؤشر</label>
-                  <input required dir="ltr" value={indicatorForm.indicatorKey} onChange={e => setIndicatorForm({ ...indicatorForm, indicatorKey: e.target.value })} className="input-field" />
+                  <Input required dir="ltr" value={indicatorForm.indicatorKey} onChange={e => setIndicatorForm({ ...indicatorForm, indicatorKey: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم المؤشر</label>
-                  <input required value={indicatorForm.indicatorName} onChange={e => setIndicatorForm({ ...indicatorForm, indicatorName: e.target.value })} className="input-field" />
+                  <Input required value={indicatorForm.indicatorName} onChange={e => setIndicatorForm({ ...indicatorForm, indicatorName: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">القيمة</label>
-                  <input required type="number" step="0.01" value={indicatorForm.value} onChange={e => setIndicatorForm({ ...indicatorForm, value: e.target.value })} className="input-field" />
+                  <Input required type="number" step="0.01" value={indicatorForm.value} onChange={e => setIndicatorForm({ ...indicatorForm, value: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الهدف</label>
-                  <input type="number" step="0.01" value={indicatorForm.target} onChange={e => setIndicatorForm({ ...indicatorForm, target: e.target.value })} className="input-field" />
+                  <Input type="number" step="0.01" value={indicatorForm.target} onChange={e => setIndicatorForm({ ...indicatorForm, target: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الوحدة</label>
-                  <input value={indicatorForm.unit} onChange={e => setIndicatorForm({ ...indicatorForm, unit: e.target.value })} className="input-field" placeholder="ساعة، %، /5" />
+                  <Input value={indicatorForm.unit} onChange={e => setIndicatorForm({ ...indicatorForm, unit: e.target.value })} className="input-field" placeholder="ساعة، %، /5" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الفترة</label>
-                  <select value={indicatorForm.period} onChange={e => setIndicatorForm({ ...indicatorForm, period: e.target.value })} className="input-field">
+                  <NativeSelect value={indicatorForm.period} onChange={e => setIndicatorForm({ ...indicatorForm, period: e.target.value })} className="input-field">
                     {Object.entries(PERIOD_LABELS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ التسجيل</label>
-                <input type="date" value={indicatorForm.recordedAt} onChange={e => setIndicatorForm({ ...indicatorForm, recordedAt: e.target.value })} className="input-field" />
+                <Input type="date" value={indicatorForm.recordedAt} onChange={e => setIndicatorForm({ ...indicatorForm, recordedAt: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowIndicatorModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</button>
+                <Button unstyled type="button" onClick={() => setShowIndicatorModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</Button>
               </div>
             </form>
           </div>
@@ -526,42 +531,42 @@ export default function AdminAnalyticsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
               <h2 className="text-lg font-bold text-neutral-900">لقطة تحليلية جديدة</h2>
-              <button onClick={() => setShowSnapshotModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
+              <Button unstyled onClick={() => setShowSnapshotModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                 <X size={18} />
-              </button>
+              </Button>
             </div>
             <form onSubmit={handleSnapshotSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العنوان</label>
-                <input required value={snapshotForm.title} onChange={e => setSnapshotForm({ ...snapshotForm, title: e.target.value })} className="input-field" />
+                <Input required value={snapshotForm.title} onChange={e => setSnapshotForm({ ...snapshotForm, title: e.target.value })} className="input-field" />
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الفترة</label>
-                  <select value={snapshotForm.period} onChange={e => setSnapshotForm({ ...snapshotForm, period: e.target.value })} className="input-field">
+                  <NativeSelect value={snapshotForm.period} onChange={e => setSnapshotForm({ ...snapshotForm, period: e.target.value })} className="input-field">
                     {Object.entries(PERIOD_LABELS).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">البداية</label>
-                  <input type="date" value={snapshotForm.periodStart} onChange={e => setSnapshotForm({ ...snapshotForm, periodStart: e.target.value })} className="input-field" />
+                  <Input type="date" value={snapshotForm.periodStart} onChange={e => setSnapshotForm({ ...snapshotForm, periodStart: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النهاية</label>
-                  <input type="date" value={snapshotForm.periodEnd} onChange={e => setSnapshotForm({ ...snapshotForm, periodEnd: e.target.value })} className="input-field" />
+                  <Input type="date" value={snapshotForm.periodEnd} onChange={e => setSnapshotForm({ ...snapshotForm, periodEnd: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الملخص</label>
-                <textarea rows={3} value={snapshotForm.summary} onChange={e => setSnapshotForm({ ...snapshotForm, summary: e.target.value })} className="input-field" />
+                <Textarea rows={3} value={snapshotForm.summary} onChange={e => setSnapshotForm({ ...snapshotForm, summary: e.target.value })} className="input-field" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">أنشئت بواسطة</label>
-                <input value={snapshotForm.generatedBy} onChange={e => setSnapshotForm({ ...snapshotForm, generatedBy: e.target.value })} className="input-field" />
+                <Input value={snapshotForm.generatedBy} onChange={e => setSnapshotForm({ ...snapshotForm, generatedBy: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-                <button type="button" onClick={() => setShowSnapshotModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'إنشاء'}</button>
+                <Button unstyled type="button" onClick={() => setShowSnapshotModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'إنشاء'}</Button>
               </div>
             </form>
           </div>

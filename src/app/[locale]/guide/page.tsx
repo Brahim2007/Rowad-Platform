@@ -1,5 +1,8 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -37,7 +40,7 @@ function GuideSection({
 
   return (
     <div id={id} className="card border border-neutral-200 overflow-hidden scroll-mt-24">
-      <button
+      <Button unstyled
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-5 md:p-6 text-right hover:bg-neutral-50/50 transition-colors"
       >
@@ -54,7 +57,7 @@ function GuideSection({
           size={20}
           className={`text-neutral-400 transition-transform duration-300 shrink-0 ${open ? 'rotate-180' : ''}`}
         />
-      </button>
+      </Button>
 
       <div
         className={`transition-all duration-300 overflow-hidden ${
@@ -143,7 +146,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div className="rounded-xl border border-neutral-200 overflow-hidden hover:border-primary-200 transition-colors">
-      <button
+      <Button unstyled
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 text-right hover:bg-neutral-50 transition-colors"
       >
@@ -152,7 +155,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
           {question}
         </span>
         <ChevronDown size={16} className={`text-neutral-400 shrink-0 mr-2 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
       {open && (
         <div className="px-4 pb-4 pt-0 border-t border-neutral-100">
           <p className="text-xs text-neutral-600 leading-relaxed mt-3 pr-7">{answer}</p>
@@ -242,20 +245,20 @@ export default function GuidePage() {
           {/* Desktop TOC */}
           <div className="hidden lg:flex flex-wrap gap-2">
             {SECTIONS.map(s => (
-              <button
+              <Button unstyled
                 key={s.id}
                 onClick={() => scrollTo(s.id)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-primary-300 hover:text-primary-700 hover:bg-primary-50 transition-all no-underline shadow-sm"
               >
                 <s.icon size={16} className="text-primary-500" />
                 {s.label}
-              </button>
+              </Button>
             ))}
           </div>
 
           {/* Mobile TOC */}
           <div className="lg:hidden relative">
-            <button
+            <Button unstyled
               onClick={() => setTocOpen(!tocOpen)}
               className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-neutral-200 shadow-sm"
             >
@@ -264,18 +267,18 @@ export default function GuidePage() {
                 فهرس الدليل
               </span>
               <ChevronDown size={18} className={`text-neutral-400 transition-transform ${tocOpen ? 'rotate-180' : ''}`} />
-            </button>
+            </Button>
             {tocOpen && (
               <div className="absolute top-full right-0 left-0 mt-2 bg-white rounded-xl border border-neutral-200 shadow-lg z-30 p-2">
                 {SECTIONS.map(s => (
-                  <button
+                  <Button unstyled
                     key={s.id}
                     onClick={() => scrollTo(s.id)}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-neutral-700 hover:bg-primary-50 hover:text-primary-700 transition-colors text-right"
                   >
                     <s.icon size={16} className="text-primary-500 shrink-0" />
                     {s.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -590,15 +593,15 @@ export default function GuidePage() {
               <div>
                 <h3 className="font-bold text-neutral-900 mb-3 text-sm">المؤشرات الرئيسية</h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-right text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-neutral-200 bg-neutral-50">
-                        <th className="p-3 font-bold text-xs text-neutral-600">المؤشر</th>
-                        <th className="p-3 font-bold text-xs text-neutral-600">الوصف</th>
-                        <th className="p-3 font-bold text-xs text-neutral-600">طريقة القياس</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="w-full text-right text-sm border-collapse">
+                    <TableHeader>
+                      <TableRow className="border-b-2 border-neutral-200 bg-neutral-50">
+                        <TableHead className="p-3 font-bold text-xs text-neutral-600">المؤشر</TableHead>
+                        <TableHead className="p-3 font-bold text-xs text-neutral-600">الوصف</TableHead>
+                        <TableHead className="p-3 font-bold text-xs text-neutral-600">طريقة القياس</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {[
                         ['معدل الاحتفاظ', 'نسبة الأعضاء المستمرين في البرامج', 'مقارنة الأعضاء النشطين بإجمالي المسجلين'],
                         ['رضا الأعضاء', 'مستوى رضا المستفيدين عن البرامج', 'استبيانات دورية (مقياس 1-10)'],
@@ -606,14 +609,14 @@ export default function GuidePage() {
                         ['نشاط المنصة', 'مستوى التفاعل والنشاط على المنصة', 'مؤشر مركب: تسجيلات + مشاركات + ساعات'],
                         ['جودة البيانات', 'دقة واكتمال بيانات الأعضاء', '% الحقول المكتملة من إجمالي المطلوبة'],
                       ].map((row, i) => (
-                        <tr key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
+                        <TableRow key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
                           {row.map((cell, j) => (
-                            <td key={j} className="p-3 text-xs text-neutral-700">{cell}</td>
+                            <TableCell key={j} className="p-3 text-xs text-neutral-700">{cell}</TableCell>
                           ))}
-                        </tr>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
 

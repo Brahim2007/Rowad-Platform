@@ -19,6 +19,10 @@ import {
   Library, ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
   Medal, Settings, IdCard, UserCog, Archive, Bell,
 } from 'lucide-react'
+import { ThemeCustomizer } from '@/components/admin/ThemeCustomizer'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /** تبويبات لوحة أثر الرواد — الشريط العلوي الرئيسي */
 const impactTabs = [
@@ -112,14 +116,14 @@ function SearchGlobal() {
   return (
     <form onSubmit={handleSearch} className="flex items-center gap-2">
       <Search size={16} className="text-neutral-400" />
-      <input
+      <Input
         value={q}
         onChange={e => setQ(e.target.value)}
         placeholder="بحث سريع في الأعضاء والأنشطة والوثائق..."
-        className="bg-transparent text-sm text-neutral-700 placeholder-neutral-400 outline-none flex-1 min-w-[300px]"
+        className="h-8 min-w-[300px] flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         dir="rtl"
       />
-      <button type="submit" className="text-xs text-primary-600 hover:text-primary-800 font-semibold whitespace-nowrap">بحث</button>
+      <Button unstyled type="submit" variant="ghost" size="sm" className="h-7 px-2 text-primary-700">بحث</Button>
     </form>
   )
 }
@@ -157,8 +161,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-neutral-500">جاري التحميل...</p>
+          <Skeleton className="mx-auto size-12 rounded-full" />
+          <Skeleton className="mx-auto mt-4 h-4 w-28" />
         </div>
       </div>
     )
@@ -211,7 +215,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 flex text-neutral-900" dir="rtl">
+    <div className="min-h-screen bg-neutral-100 flex text-neutral-900" dir="rtl" data-slot="admin-shell">
       {/* ─── Sidebar ─── */}
       <aside className={`fixed inset-y-0 right-0 z-50 w-72 border-l border-neutral-200 bg-white/95 shadow-xl shadow-neutral-950/5 backdrop-blur transform transition-transform lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:shadow-none`}>
         <div className="h-full flex flex-col">
@@ -291,13 +295,14 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-neutral-400 truncate">{session?.user?.email}</p>
               </div>
             </div>
-            <button
+            <Button unstyled
               onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm font-semibold text-neutral-600 hover:text-error-600 hover:bg-error-50 rounded-md transition-colors"
+              variant="ghost"
+              className="w-full justify-start text-neutral-600 hover:bg-error-50 hover:text-error-700"
             >
               <LogOut size={16} />
               <span>تسجيل الخروج</span>
-            </button>
+            </Button>
           </div>
         </div>
       </aside>
@@ -306,15 +311,16 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Mobile header */}
         <header className="lg:hidden bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
-          <button
+          <Button unstyled
             onClick={() => setSidebarOpen(true)}
-            className="p-2 text-neutral-600 hover:text-neutral-900"
+            variant="ghost"
+            size="icon"
             aria-label="فتح القائمة"
           >
             <Menu size={24} />
-          </button>
+          </Button>
           <span className="font-semibold text-neutral-900">لوحة أثر الرواد</span>
-          <div className="w-10" />
+          <ThemeCustomizer compact />
         </header>
 
         {/* شريط البحث السريع — سطح المكتب */}
@@ -324,8 +330,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               <p className="text-sm font-bold text-neutral-950">مركز التحكم</p>
               <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
             </div>
-            <div className="min-w-[420px] rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
-              <SearchGlobal />
+            <div className="flex items-center gap-3">
+              <div className="min-w-[420px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
+                <SearchGlobal />
+              </div>
+              <ThemeCustomizer />
             </div>
           </div>
         </div>
@@ -381,7 +390,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" />
+        <Skeleton className="mx-auto size-12 rounded-full" />
       </div>
     }>
       <AdminLayoutInner>{children}</AdminLayoutInner>

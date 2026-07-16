@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import { useEffect, useState, useCallback } from 'react'
 import { Bell, CheckCheck, Megaphone, Clock } from 'lucide-react'
 import { toast } from 'sonner'
@@ -105,12 +110,12 @@ export default function NotificationsPage() {
           )}
         </h1>
         <div className="flex items-center gap-2">
-          <button onClick={markAllRead} className="btn-ghost btn-sm flex items-center gap-1.5">
+          <Button unstyled onClick={markAllRead} className="btn-ghost btn-sm flex items-center gap-1.5">
             <CheckCheck size={14} /> تعليم الكل كمقروء
-          </button>
-          <button onClick={() => setShowBroadcast(!showBroadcast)} className="btn-primary btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={() => setShowBroadcast(!showBroadcast)} className="btn-primary btn-sm flex items-center gap-1.5">
             <Megaphone size={14} /> رسالة جماعية
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -122,33 +127,33 @@ export default function NotificationsPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">الجمهور المستهدف</label>
-                <select value={broadcastForm.targetType} onChange={e => setBroadcastForm({ ...broadcastForm, targetType: e.target.value })} className="input-field">
+                <NativeSelect value={broadcastForm.targetType} onChange={e => setBroadcastForm({ ...broadcastForm, targetType: e.target.value })} className="input-field">
                   <option value="ALL">الجميع</option>
                   <option value="PLATFORM">منصة معينة</option>
                   <option value="ROLE">صفة معينة</option>
                   <option value="INDIVIDUAL">فرد معين</option>
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">القناة</label>
-                <select value={broadcastForm.channel} onChange={e => setBroadcastForm({ ...broadcastForm, channel: e.target.value })} className="input-field">
+                <NativeSelect value={broadcastForm.channel} onChange={e => setBroadcastForm({ ...broadcastForm, channel: e.target.value })} className="input-field">
                   <option value="IN_APP">داخل التطبيق فقط</option>
                   <option value="EMAIL">بريد إلكتروني فقط</option>
                   <option value="BOTH">كلاهما</option>
-                </select>
+                </NativeSelect>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">الموضوع</label>
-              <input required value={broadcastForm.subject} onChange={e => setBroadcastForm({ ...broadcastForm, subject: e.target.value })} className="input-field" placeholder="موضوع الرسالة..." />
+              <Input required value={broadcastForm.subject} onChange={e => setBroadcastForm({ ...broadcastForm, subject: e.target.value })} className="input-field" placeholder="موضوع الرسالة..." />
             </div>
             <div>
               <label className="block text-sm font-semibold text-neutral-700 mb-1">المحتوى</label>
-              <textarea required rows={4} value={broadcastForm.body} onChange={e => setBroadcastForm({ ...broadcastForm, body: e.target.value })} className="input-field" placeholder="نص الرسالة..." />
+              <Textarea required rows={4} value={broadcastForm.body} onChange={e => setBroadcastForm({ ...broadcastForm, body: e.target.value })} className="input-field" placeholder="نص الرسالة..." />
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowBroadcast(false)} className="btn-ghost btn-sm">إلغاء</button>
-              <button type="submit" disabled={sending} className="btn-primary btn-sm">{sending ? 'جاري الإرسال...' : 'إرسال'}</button>
+              <Button unstyled type="button" onClick={() => setShowBroadcast(false)} className="btn-ghost btn-sm">إلغاء</Button>
+              <Button unstyled type="submit" disabled={sending} className="btn-primary btn-sm">{sending ? 'جاري الإرسال...' : 'إرسال'}</Button>
             </div>
           </form>
         </div>

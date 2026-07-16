@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass } from 'lucide-react'
@@ -205,9 +210,9 @@ export default function MemberPortalPage() {
               <p className="text-xs text-neutral-500">{member.platformName || 'شبكة رواد'}</p>
             </div>
           </div>
-          <button onClick={logout} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600">
+          <Button unstyled onClick={logout} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600">
             <LogOut size={16} /> خروج
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -220,7 +225,7 @@ export default function MemberPortalPage() {
             { id: 'history', label: 'سجل الأنشطة', icon: FileText },
             { id: 'profile', label: 'حسابي', icon: Settings },
           ].map(t => (
-            <button
+            <Button unstyled
               key={t.id}
               onClick={() => switchTab(t.id)}
               className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
@@ -228,7 +233,7 @@ export default function MemberPortalPage() {
               }`}
             >
               <t.icon size={16} /> {t.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -321,30 +326,30 @@ export default function MemberPortalPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع النشاط</label>
-                <select required value={subForm.actionId} onChange={e => setSubForm({ ...subForm, actionId: e.target.value })} className="input-field">
+                <NativeSelect required value={subForm.actionId} onChange={e => setSubForm({ ...subForm, actionId: e.target.value })} className="input-field">
                   <option value="">— اختر النشاط —</option>
                   {actions.filter(a => a.isActive).map(a => (
                     <option key={a.id} value={a.id}>{a.name} ({a.points} نقطة)</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">التاريخ</label>
-                  <input type="date" required value={subForm.date} onChange={e => setSubForm({ ...subForm, date: e.target.value })} className="input-field" />
+                  <Input type="date" required value={subForm.date} onChange={e => setSubForm({ ...subForm, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العدد</label>
-                  <input type="number" min="1" value={subForm.count} onChange={e => setSubForm({ ...subForm, count: e.target.value })} className="input-field" />
+                  <Input type="number" min="1" value={subForm.count} onChange={e => setSubForm({ ...subForm, count: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الدليل</label>
-                <input value={subForm.link} onChange={e => setSubForm({ ...subForm, link: e.target.value })} className="input-field" placeholder="رابط التصميم، التغريدة، المقال..." />
+                <Input value={subForm.link} onChange={e => setSubForm({ ...subForm, link: e.target.value })} className="input-field" placeholder="رابط التصميم، التغريدة، المقال..." />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
-                <textarea rows={2} value={subForm.note} onChange={e => setSubForm({ ...subForm, note: e.target.value })} className="input-field" placeholder="وصف مختصر لما أنجزته..." />
+                <Textarea rows={2} value={subForm.note} onChange={e => setSubForm({ ...subForm, note: e.target.value })} className="input-field" placeholder="وصف مختصر لما أنجزته..." />
               </div>
 
               {/* Preview */}
@@ -360,9 +365,9 @@ export default function MemberPortalPage() {
                 <span>سيُرسل نشاطك لمدير المنصة للمراجعة. ستتلقى إشعاراً عند الاعتماد أو الرفض.</span>
               </div>
 
-              <button type="submit" disabled={submitting} className="w-full btn-primary py-3">
+              <Button unstyled type="submit" disabled={submitting} className="w-full btn-primary py-3">
                 {submitting ? 'جاري الإرسال...' : 'إرسال النشاط'}
-              </button>
+              </Button>
             </form>
           </div>
         )}
@@ -372,12 +377,12 @@ export default function MemberPortalPage() {
           <div className="card p-5">
             <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><FileText size={18} className="text-primary-600" /> سجل الأنشطة</h2>
             <div className="mb-4">
-              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input-field max-w-[200px]">
+              <NativeSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input-field max-w-[200px]">
                 <option value="">كل الحالات</option>
                 <option value="APPROVED">معتمد</option>
                 <option value="PENDING_REVIEW">قيد المراجعة</option>
                 <option value="REJECTED">مرفوض</option>
-              </select>
+              </NativeSelect>
             </div>
             {activities.length > 0 ? (
               <div className="space-y-2">
@@ -436,17 +441,17 @@ export default function MemberPortalPage() {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">كلمة المرور الحالية</label>
-                  <input type="password" required value={profileForm.currentPassword} onChange={e => setProfileForm({ ...profileForm, currentPassword: e.target.value })} className="input-field" dir="ltr" />
+                  <Input type="password" required value={profileForm.currentPassword} onChange={e => setProfileForm({ ...profileForm, currentPassword: e.target.value })} className="input-field" dir="ltr" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">كلمة المرور الجديدة</label>
-                  <input type="password" required minLength={6} value={profileForm.newPassword} onChange={e => setProfileForm({ ...profileForm, newPassword: e.target.value })} className="input-field" dir="ltr" />
+                  <Input type="password" required minLength={6} value={profileForm.newPassword} onChange={e => setProfileForm({ ...profileForm, newPassword: e.target.value })} className="input-field" dir="ltr" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تأكيد كلمة المرور الجديدة</label>
-                  <input type="password" required value={profileForm.confirmPassword} onChange={e => setProfileForm({ ...profileForm, confirmPassword: e.target.value })} className="input-field" dir="ltr" />
+                  <Input type="password" required value={profileForm.confirmPassword} onChange={e => setProfileForm({ ...profileForm, confirmPassword: e.target.value })} className="input-field" dir="ltr" />
                 </div>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'تغيير كلمة المرور'}</button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'تغيير كلمة المرور'}</Button>
               </form>
             </div>
           </div>

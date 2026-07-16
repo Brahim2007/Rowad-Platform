@@ -1,5 +1,8 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+
 import { useState, type FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import { Bot, Send, Sparkles, RefreshCw } from 'lucide-react'
@@ -74,13 +77,13 @@ export default function AiAssistantPage() {
       {/* Quick prompts */}
       <div className="flex flex-wrap gap-2 mb-6">
         {QUICK_PROMPTS.map(p => (
-          <button
+          <Button unstyled
             key={p}
             onClick={() => setQuestion(p)}
             className="px-3 py-1.5 rounded-full text-xs bg-neutral-100 text-neutral-600 hover:bg-primary-50 hover:text-primary-700 transition-colors"
           >
             {p}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -90,7 +93,7 @@ export default function AiAssistantPage() {
           <div className="flex items-center gap-2 mb-2">
             <Sparkles size={14} className="text-primary-500" />
             <span className="text-[10px] bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
-            <button onClick={() => setAnswer('')} className="text-xs text-neutral-400 hover:text-red-500 ml-auto">إخفاء</button>
+            <Button unstyled onClick={() => setAnswer('')} className="text-xs text-neutral-400 hover:text-red-500 ml-auto">إخفاء</Button>
           </div>
           <p className="text-neutral-800 text-sm leading-relaxed whitespace-pre-line">{answer}</p>
         </div>
@@ -98,16 +101,16 @@ export default function AiAssistantPage() {
 
       {/* Input */}
       <form onSubmit={handleAsk} className="flex gap-2 mb-6">
-        <input
+        <Input
           value={question}
           onChange={e => setQuestion(e.target.value)}
           placeholder="اسأل عن أداء الشبكة، المنصات، الأعضاء..."
           className="input-field flex-1"
           dir="rtl"
         />
-        <button type="submit" disabled={loading || !question.trim()} className="btn-primary flex items-center gap-1.5 px-4">
+        <Button unstyled type="submit" disabled={loading || !question.trim()} className="btn-primary flex items-center gap-1.5 px-4">
           {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={16} />}
-        </button>
+        </Button>
       </form>
 
       {/* History */}

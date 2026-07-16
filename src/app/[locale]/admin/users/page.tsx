@@ -1,5 +1,10 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import {
@@ -234,14 +239,14 @@ export default function AdminUsersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchUsers} className="btn-secondary btn-sm flex items-center gap-1.5" disabled={loading}>
+          <Button unstyled onClick={fetchUsers} className="btn-secondary btn-sm flex items-center gap-1.5" disabled={loading}>
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             تحديث
-          </button>
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
             <Plus size={16} />
             إضافة مستخدم
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -275,7 +280,7 @@ export default function AdminUsersPage() {
       <div className="card mb-6">
         <div className="relative">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
+          <Input
             value={search}
             onChange={event => setSearch(event.target.value)}
             className="input-field pr-9"
@@ -294,34 +299,34 @@ export default function AdminUsersPage() {
           <div className="py-12 text-center text-neutral-400">
             <UserCog size={30} className="mx-auto mb-3 text-neutral-300" />
             <p className="text-sm">لا توجد حسابات مطابقة</p>
-            <button onClick={openCreate} className="btn-primary btn-sm mt-3">
+            <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-3">
               <Plus size={16} />
               إضافة مستخدم
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200">
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المستخدم</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الصلاحية</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الحالة</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">آخر دخول</th>
-                  <th className="text-right py-3 px-4 text-xs font-bold text-neutral-500">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="bg-neutral-50 border-b border-neutral-200">
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">المستخدم</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الصلاحية</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">الحالة</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">آخر دخول</TableHead>
+                  <TableHead className="text-right py-3 px-4 text-xs font-bold text-neutral-500">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredUsers.map(user => (
-                  <tr key={user.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="py-3 px-4">
+                  <TableRow key={user.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="py-3 px-4">
                       <p className="font-semibold text-neutral-900">{user.fullName}</p>
                       <p className="text-xs text-neutral-500 inline-flex items-center gap-1">
                         <Mail size={12} />
                         {user.email}
                       </p>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${roleBadge(user.role)}`}>
                         {ROLE_LABELS[user.role]}
                       </span>
@@ -330,27 +335,27 @@ export default function AdminUsersPage() {
                           ? `${ROLE_DESCRIPTIONS[user.role]} — ${user.platformName}`
                           : ROLE_DESCRIPTIONS[user.role]}
                       </p>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${user.isActive ? 'bg-success-50 text-success-700' : 'bg-neutral-100 text-neutral-500'}`}>
                         {user.isActive ? 'نشط' : 'معطل'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-neutral-500">{dateLabel(user.lastLoginAt)}</td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell className="py-3 px-4 text-xs text-neutral-500">{dateLabel(user.lastLoginAt)}</TableCell>
+                    <TableCell className="py-3 px-4">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openEdit(user)} className="p-2 text-neutral-500 hover:text-primary-600" aria-label="تعديل المستخدم">
+                        <Button unstyled onClick={() => openEdit(user)} className="p-2 text-neutral-500 hover:text-primary-600" aria-label="تعديل المستخدم">
                           <Pencil size={15} />
-                        </button>
-                        <button onClick={() => handleDelete(user)} className="p-2 text-neutral-500 hover:text-error-600" aria-label="حذف المستخدم">
+                        </Button>
+                        <Button unstyled onClick={() => handleDelete(user)} className="p-2 text-neutral-500 hover:text-error-600" aria-label="حذف المستخدم">
                           <Trash2 size={15} />
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -363,15 +368,15 @@ export default function AdminUsersPage() {
                 <h2 className="text-lg font-bold text-neutral-900">{editing ? 'تعديل مستخدم' : 'إضافة مستخدم جديد'}</h2>
                 <p className="text-xs text-neutral-500 mt-1">هذه البيانات تستخدم لتسجيل الدخول إلى لوحة التحكم.</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-2 text-neutral-400 hover:text-neutral-700" aria-label="إغلاق">
+              <Button unstyled onClick={() => setShowModal(false)} className="p-2 text-neutral-400 hover:text-neutral-700" aria-label="إغلاق">
                 <X size={20} />
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">الاسم الكامل</label>
-                <input
+                <Input
                   value={form.fullName}
                   onChange={event => setForm({ ...form, fullName: event.target.value })}
                   className="input-field"
@@ -382,7 +387,7 @@ export default function AdminUsersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">البريد الإلكتروني</label>
-                <input
+                <Input
                   value={form.email}
                   onChange={event => setForm({ ...form, email: event.target.value })}
                   className="input-field"
@@ -394,7 +399,7 @@ export default function AdminUsersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">الصلاحية</label>
-                <select
+                <NativeSelect
                   value={form.role}
                   onChange={event => {
                     const role = event.target.value as AdminRole
@@ -405,14 +410,14 @@ export default function AdminUsersPage() {
                   {Object.entries(ROLE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
-                </select>
+                </NativeSelect>
                 <p className="text-xs text-neutral-400 mt-1">{ROLE_DESCRIPTIONS[form.role]}</p>
               </div>
 
               {form.role === 'PLATFORM_MANAGER' && (
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">المنصة التابعة له</label>
-                  <select
+                  <NativeSelect
                     value={form.platformId}
                     onChange={event => setForm({ ...form, platformId: event.target.value })}
                     className="input-field"
@@ -422,7 +427,7 @@ export default function AdminUsersPage() {
                     {platforms.map(platform => (
                       <option key={platform.id} value={platform.id}>{platform.name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                   <p className="text-xs text-neutral-400 mt-1">لن يتمكن مدير المنصة من الوصول إلى بيانات أي منصة أخرى.</p>
                 </div>
               )}
@@ -433,7 +438,7 @@ export default function AdminUsersPage() {
                 </label>
                 <div className="relative">
                   <KeyRound size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                  <input
+                  <Input
                     value={form.password}
                     onChange={event => setForm({ ...form, password: event.target.value })}
                     className="input-field pr-9"
@@ -446,7 +451,7 @@ export default function AdminUsersPage() {
               </div>
 
               <label className="flex items-center gap-2 text-sm text-neutral-700">
-                <input
+                <Input
                   type="checkbox"
                   checked={form.isActive}
                   onChange={event => setForm({ ...form, isActive: event.target.checked })}
@@ -456,12 +461,12 @@ export default function AdminUsersPage() {
               </label>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-neutral-100">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary btn-sm" disabled={submitting}>
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-secondary btn-sm" disabled={submitting}>
                   إلغاء
-                </button>
-                <button type="submit" className="btn-primary btn-sm" disabled={submitting}>
+                </Button>
+                <Button unstyled type="submit" className="btn-primary btn-sm" disabled={submitting}>
                   {submitting ? 'جار الحفظ...' : editing ? 'تحديث المستخدم' : 'إنشاء المستخدم'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

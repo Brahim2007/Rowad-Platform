@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useState } from 'react'
 import { ChevronRight, ChevronLeft, Calendar as CalIcon } from 'lucide-react'
 
@@ -69,9 +71,9 @@ export default function CalendarPage() {
           <CalIcon size={22} className="text-primary-600" /> تقويم الأنشطة
         </h1>
         <div className="flex items-center gap-3">
-          <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-neutral-100"><ChevronRight size={18} /></button>
+          <Button unstyled onClick={prevMonth} className="p-2 rounded-lg hover:bg-neutral-100"><ChevronRight size={18} /></Button>
           <span className="text-lg font-bold text-neutral-800">{MONTHS[month - 1]} {year}</span>
-          <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-neutral-100"><ChevronLeft size={18} /></button>
+          <Button unstyled onClick={nextMonth} className="p-2 rounded-lg hover:bg-neutral-100"><ChevronLeft size={18} /></Button>
         </div>
       </div>
 

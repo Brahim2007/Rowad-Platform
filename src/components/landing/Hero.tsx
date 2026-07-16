@@ -92,13 +92,13 @@ export default function Hero() {
 
             <FadeIn delay={0.34}>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button asChild variant="secondary" size="lg" className="group">
+                <Button unstyled asChild variant="secondary" size="lg" className="group">
                   <Link href="/platforms" className="no-underline">
                     استكشف المنصات
                     <ArrowLeft size={20} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-1" />
                   </Link>
                 </Button>
-                <Button asChild variant="glass" size="lg">
+                <Button unstyled asChild variant="glass" size="lg">
                   <Link href="/projects" className="no-underline">المشاريع</Link>
                 </Button>
               </div>

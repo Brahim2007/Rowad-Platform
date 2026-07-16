@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { Component, ReactNode } from 'react'
 
 interface Props {
@@ -31,12 +33,12 @@ export default class ErrorBoundary extends Component<Props, State> {
             </div>
             <h2 className="text-xl font-semibold text-neutral-900 mb-2">عذراً، حدث خطأ غير متوقع</h2>
             <p className="text-neutral-600 mb-4">نعمل على حل المشكلة. يرجى المحاولة مرة أخرى.</p>
-            <button
+            <Button unstyled
               onClick={() => this.setState({ hasError: false })}
               className="btn-primary btn-sm"
             >
               إعادة المحاولة
-            </button>
+            </Button>
           </div>
         </div>
       )

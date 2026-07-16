@@ -1,5 +1,11 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 /**
  * الأرشيف والوثائق — Document Archive
  * تبويبات: كل الوثائق | رفع وثيقة | سجل التعديلات
@@ -172,15 +178,15 @@ export default function DocumentsPage() {
           <Archive size={22} className="text-primary-600" /> الأرشيف والوثائق
         </h1>
         <div className="flex items-center gap-3">
-          <button onClick={() => switchTab('all')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'all' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+          <Button unstyled onClick={() => switchTab('all')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'all' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
             كل الوثائق
-          </button>
-          <button onClick={() => switchTab('history')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'history' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+          </Button>
+          <Button unstyled onClick={() => switchTab('history')} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === 'history' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600'}`}>
             سجل التعديلات
-          </button>
-          <button onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
             <Upload size={14} /> رفع وثيقة
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -189,17 +195,17 @@ export default function DocumentsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative max-w-[240px]">
             <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input placeholder="بحث في العنوان والوصف" value={search} onChange={e => setSearch(e.target.value)} className="input-field pr-9" />
+            <Input placeholder="بحث في العنوان والوصف" value={search} onChange={e => setSearch(e.target.value)} className="input-field pr-9" />
           </div>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input-field max-w-[150px]">
+          <NativeSelect value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="input-field max-w-[150px]">
             <option value="">كل الأنواع</option>
             {Object.entries(DOC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <select value={yearFilter} onChange={e => setYearFilter(e.target.value)} className="input-field max-w-[120px]">
+          </NativeSelect>
+          <NativeSelect value={yearFilter} onChange={e => setYearFilter(e.target.value)} className="input-field max-w-[120px]">
             <option value="">كل السنوات</option>
             {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <button onClick={fetchDocs} className="btn-ghost btn-sm">تطبيق</button>
+          </NativeSelect>
+          <Button unstyled onClick={fetchDocs} className="btn-ghost btn-sm">تطبيق</Button>
           <span className="text-xs text-neutral-400 ml-auto">{total} وثيقة</span>
         </div>
       </div>
@@ -210,41 +216,41 @@ export default function DocumentsPage() {
           <div className="text-center py-12"><div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
         ) : docs.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200">
-                  <th className="text-right p-3 text-neutral-500">العنوان</th>
-                  <th className="text-right p-3 text-neutral-500">النوع</th>
-                  <th className="text-right p-3 text-neutral-500">المنصة</th>
-                  <th className="text-right p-3 text-neutral-500">الرافع</th>
-                  <th className="text-right p-3 text-neutral-500">تاريخ الرفع</th>
-                  <th className="text-right p-3 text-neutral-500">آخر تعديل</th>
-                  <th className="text-right p-3 text-neutral-500">الحجم</th>
-                  <th className="text-center p-3 text-neutral-500">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-sm">
+              <TableHeader>
+                <TableRow className="border-b border-neutral-200">
+                  <TableHead className="text-right p-3 text-neutral-500">العنوان</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">النوع</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">المنصة</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">الرافع</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">تاريخ الرفع</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">آخر تعديل</TableHead>
+                  <TableHead className="text-right p-3 text-neutral-500">الحجم</TableHead>
+                  <TableHead className="text-center p-3 text-neutral-500">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {docs.map(doc => (
-                  <tr key={doc.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="p-3 font-semibold max-w-[200px] truncate">{doc.title}</td>
-                    <td className="p-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-600">{doc.typeLabel}</span></td>
-                    <td className="p-3 text-xs">{doc.platformName || '—'}</td>
-                    <td className="p-3 text-xs">{doc.uploadedBy || '—'}</td>
-                    <td className="p-3 text-xs">{formatDate(doc.uploadedAt)}</td>
-                    <td className="p-3 text-xs">{doc.lastEditedBy ? `${doc.lastEditedBy} · ${formatDate(doc.lastEditedAt)}` : '—'}</td>
-                    <td className="p-3 text-xs font-mono">{formatSize(doc.fileSize)}</td>
-                    <td className="p-3 text-center">
+                  <TableRow key={doc.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <TableCell className="p-3 font-semibold max-w-[200px] truncate">{doc.title}</TableCell>
+                    <TableCell className="p-3"><span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-600">{doc.typeLabel}</span></TableCell>
+                    <TableCell className="p-3 text-xs">{doc.platformName || '—'}</TableCell>
+                    <TableCell className="p-3 text-xs">{doc.uploadedBy || '—'}</TableCell>
+                    <TableCell className="p-3 text-xs">{formatDate(doc.uploadedAt)}</TableCell>
+                    <TableCell className="p-3 text-xs">{doc.lastEditedBy ? `${doc.lastEditedBy} · ${formatDate(doc.lastEditedAt)}` : '—'}</TableCell>
+                    <TableCell className="p-3 text-xs font-mono">{formatSize(doc.fileSize)}</TableCell>
+                    <TableCell className="p-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-neutral-400 hover:text-primary-600" title="تحميل"><Download size={14} /></a>
-                        <button onClick={() => loadVersions(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="سجل التعديلات"><History size={14} /></button>
-                        <button onClick={() => openEdit(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل"><Pencil size={14} /></button>
-                        {!isManager && <button onClick={() => handleArchive(doc.id)} className="p-1.5 text-neutral-400 hover:text-red-600" title="أرشفة"><Trash2 size={14} /></button>}
+                        <Button unstyled onClick={() => loadVersions(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="سجل التعديلات"><History size={14} /></Button>
+                        <Button unstyled onClick={() => openEdit(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل"><Pencil size={14} /></Button>
+                        {!isManager && <Button unstyled onClick={() => handleArchive(doc.id)} className="p-1.5 text-neutral-400 hover:text-red-600" title="أرشفة"><Trash2 size={14} /></Button>}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : (
           <p className="text-center py-12 text-neutral-400"><FileText size={36} className="mx-auto mb-3 text-neutral-300" />لا توجد وثائق</p>
@@ -257,49 +263,49 @@ export default function DocumentsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">{editing ? 'تعديل وثيقة' : 'رفع وثيقة جديدة'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><span className="text-xl">✕</span></button>
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><span className="text-xl">✕</span></Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العنوان *</label>
-                <input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
+                <Input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النوع</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
+                  <NativeSelect value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
                     {Object.entries(DOC_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الوسوم</label>
-                  <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="input-field" placeholder="مفصولة بفواصل" />
+                  <Input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} className="input-field" placeholder="مفصولة بفواصل" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">السنة</label>
-                  <input type="number" value={form.periodYear} onChange={e => setForm({ ...form, periodYear: e.target.value })} className="input-field" />
+                  <Input type="number" value={form.periodYear} onChange={e => setForm({ ...form, periodYear: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الشهر</label>
-                  <select value={form.periodMonth} onChange={e => setForm({ ...form, periodMonth: e.target.value })} className="input-field">
+                  <NativeSelect value={form.periodMonth} onChange={e => setForm({ ...form, periodMonth: e.target.value })} className="input-field">
                     <option value="">—</option>
                     {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الملف *</label>
-                <input required value={form.fileUrl} onChange={e => setForm({ ...form, fileUrl: e.target.value })} className="input-field" placeholder="https://..." dir="ltr" />
+                <Input required value={form.fileUrl} onChange={e => setForm({ ...form, fileUrl: e.target.value })} className="input-field" placeholder="https://..." dir="ltr" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">وصف</label>
-                <textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input-field" />
+                <Textarea rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</button>
-                <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : (editing ? 'تحديث' : 'رفع')}</button>
+                <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
+                <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : (editing ? 'تحديث' : 'رفع')}</Button>
               </div>
             </form>
           </div>
@@ -312,7 +318,7 @@ export default function DocumentsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">سجل التعديلات — {selectedDoc.title}</h2>
-              <button onClick={() => setShowVersions(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><span className="text-xl">✕</span></button>
+              <Button unstyled onClick={() => setShowVersions(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><span className="text-xl">✕</span></Button>
             </div>
             <div className="p-5">
               {versions.length > 0 ? (

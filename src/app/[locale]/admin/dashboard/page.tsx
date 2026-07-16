@@ -203,7 +203,7 @@ function JourneyModal({ beneficiary, onClose }: { beneficiary: Beneficiary | nul
 
         {/* Footer */}
         <DialogFooter className="border-t border-neutral-200 bg-neutral-50 px-6 py-4">
-          <Button onClick={onClose} variant="ghost" size="sm">إغلاق</Button>
+          <Button unstyled onClick={onClose} variant="ghost" size="sm">إغلاق</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -255,7 +255,7 @@ export default function AdminDashboardPage() {
           <div className="text-center">
             <AlertCircle size={40} className="text-error-500 mx-auto mb-4" />
             <p className="text-neutral-600">تعذر تحميل البيانات. يرجى المحاولة لاحقاً.</p>
-            <Button onClick={fetchData} size="sm" className="mt-4">إعادة المحاولة</Button>
+            <Button unstyled onClick={fetchData} size="sm" className="mt-4">إعادة المحاولة</Button>
           </div>
         </div>
       </div>
@@ -594,7 +594,7 @@ export default function AdminDashboardPage() {
               <ShieldCheck size={12} />
               {data.duplicateRate <= 1 ? 'قاعدة خالية من التكرار' : `${data.duplicateRate}% تكرار`}
             </Badge>
-            <Button asChild size="sm">
+            <Button unstyled asChild size="sm">
               <Link href="/ar/admin/members" className="no-underline">
                 <Users size={14} />
                 إدارة الأعضاء
@@ -651,13 +651,13 @@ export default function AdminDashboardPage() {
                           <span className={`text-xs font-semibold ${stageConfig?.textColor || 'text-neutral-500'}`}>
                             {stageLabel}
                           </span>
-                          <button
+                          <Button unstyled
                             onClick={() => setSelectedMember(b)}
                             className="text-primary-600 hover:text-primary-800 hover:bg-primary-50 p-1.5 rounded-lg transition-colors"
                             title="عرض مسار الرحلة"
                           >
                             <Route size={14} />
-                          </button>
+                          </Button>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">

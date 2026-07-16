@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
@@ -93,7 +95,7 @@ export default function ProjectsPage() {
               <div className="mb-10 flex flex-wrap items-center justify-center gap-2">
                 <Filter size={16} className="ml-2 text-neutral-400" />
                 {categories.map((cat) => (
-                  <button
+                  <Button unstyled
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
                     className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
@@ -103,7 +105,7 @@ export default function ProjectsPage() {
                     }`}
                   >
                     {cat}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </FadeIn>

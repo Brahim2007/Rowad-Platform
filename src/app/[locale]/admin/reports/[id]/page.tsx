@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -95,18 +97,18 @@ export default function AdminReportDetailsPage() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={fetchReport} className="btn-ghost btn-sm flex items-center gap-1.5">
+          <Button unstyled onClick={fetchReport} className="btn-ghost btn-sm flex items-center gap-1.5">
             <RefreshCw size={15} />
             تحديث
-          </button>
-          <button onClick={handlePrint} className="btn-ghost btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={handlePrint} className="btn-ghost btn-sm flex items-center gap-1.5">
             <Printer size={15} />
             طباعة
-          </button>
-          <button onClick={handleExportPdf} disabled={exporting} className="btn-primary btn-sm flex items-center gap-1.5">
+          </Button>
+          <Button unstyled onClick={handleExportPdf} disabled={exporting} className="btn-primary btn-sm flex items-center gap-1.5">
             {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             PDF
-          </button>
+          </Button>
         </div>
       </div>
 

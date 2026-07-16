@@ -1,5 +1,9 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+
 import { useState } from 'react'
 import { Mail, MapPin, Send, Linkedin, MessageSquare, CheckCircle2, Sparkles } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
@@ -112,19 +116,19 @@ export default function ContactPage() {
                       </div>
                       <h3 className="text-xl font-bold text-neutral-900 mb-2">شكراً لتواصلك!</h3>
                       <p className="text-neutral-500">سيتم الرد على استفسارك في أقرب وقت ممكن.</p>
-                      <button
+                      <Button unstyled
                         onClick={() => { setSent(false); setForm({ name: '', email: '', subject: '', message: '' }) }}
                         className="mt-6 btn-outline btn-sm"
                       >
                         إرسال رسالة أخرى
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
                       <div className="grid sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-sm font-medium text-neutral-700 mb-1.5">الاسم الكامل</label>
-                          <input
+                          <Input
                             required
                             value={form.name}
                             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -134,7 +138,7 @@ export default function ContactPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-neutral-700 mb-1.5">البريد الإلكتروني</label>
-                          <input
+                          <Input
                             required
                             type="email"
                             value={form.email}
@@ -146,7 +150,7 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1.5">الموضوع</label>
-                        <input
+                        <Input
                           required
                           value={form.subject}
                           onChange={(e) => setForm({ ...form, subject: e.target.value })}
@@ -156,7 +160,7 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1.5">الرسالة</label>
-                        <textarea
+                        <Textarea
                           required
                           rows={5}
                           value={form.message}
@@ -165,7 +169,7 @@ export default function ContactPage() {
                           placeholder="اكتب رسالتك هنا..."
                         />
                       </div>
-                      <button
+                      <Button unstyled
                         type="submit"
                         disabled={loading}
                         className="btn-primary btn-md w-full group disabled:opacity-70"
@@ -178,7 +182,7 @@ export default function ContactPage() {
                             <Send size={16} className="transition-transform duration-200 group-hover:-translate-x-0.5 rtl-flip" />
                           </>
                         )}
-                      </button>
+                      </Button>
                     </form>
                   )}
                 </div>

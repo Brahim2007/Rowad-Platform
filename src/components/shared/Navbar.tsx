@@ -98,19 +98,19 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant={floatingOnHero ? 'glass' : 'default'} className="hidden sm:inline-flex">
+            <Button unstyled asChild size="sm" variant={floatingOnHero ? 'glass' : 'default'} className="hidden sm:inline-flex">
               <Link href="/contact" className="group no-underline">
                 {t('contact')}
                 <ArrowLeft size={16} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-0.5" />
               </Link>
             </Button>
-            <Button asChild size="sm" variant={floatingOnHero ? 'glass' : 'outline'} className="hidden sm:inline-flex">
+            <Button unstyled asChild size="sm" variant={floatingOnHero ? 'glass' : 'outline'} className="hidden sm:inline-flex">
               <Link href="/admin/login" className="no-underline">
                 <Lock size={14} />
                 دخول الإدارة
               </Link>
             </Button>
-            <Button
+            <Button unstyled
               type="button"
               size="icon"
               variant={floatingOnHero ? 'glass' : 'outline'}
@@ -144,13 +144,13 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button asChild>
+              <Button unstyled asChild>
                 <Link href="/contact" onClick={() => setMobileOpen(false)} className="no-underline">
                   {t('contact')}
                   <ArrowLeft size={16} className="rtl-flip" />
                 </Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button unstyled asChild variant="outline">
                 <Link href="/admin/login" onClick={() => setMobileOpen(false)} className="no-underline">
                   <Lock size={16} />
                   دخول الإدارة

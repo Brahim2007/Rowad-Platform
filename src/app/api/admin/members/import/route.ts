@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        const tempPassword = email ? (Math.random().toString(36).slice(2, 10) + 'A1!') : null
+        const tempPassword = email ? `${randomBytes(9).toString('base64url')}A1!` : null
         const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null
 
         await prisma.beneficiary.create({
@@ -90,6 +91,8 @@ export async function POST(request: NextRequest) {
               to: email,
               memberName: `${firstName} ${lastName}`.trim(),
               platformName,
+              managerName: auth.user.name,
+              platformId: targetPlatformId,
               tempPassword,
               loginUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/ar/member/login`,
             })

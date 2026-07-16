@@ -235,6 +235,15 @@ export default function MemberPortalPage() {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto p-4 md:p-6">
+        <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+          <h2 className="font-bold mb-2">دليل العضو السريع</h2>
+          <div className="grid gap-2 md:grid-cols-3">
+            <p><b>لوحتي:</b> تعرض نقاطك ومستواك وآخر الأنشطة.</p>
+            <p><b>إرسال نشاط:</b> اختر النشاط وأرفق الدليل ثم أرسله للمراجعة.</p>
+            <p><b>الحالة:</b> يتولى مدير منصتك الاعتماد أو الرفض، ويصلك التنبيه بالبريد الرسمي.</p>
+          </div>
+        </div>
+
         {/* Dashboard Tab */}
         {tab === 'dashboard' && stats && (
           <div className="space-y-6">

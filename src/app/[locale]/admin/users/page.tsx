@@ -18,13 +18,20 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR'
+type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+
+interface PlatformOption {
+  id: string
+  name: string
+}
 
 interface AdminUser {
   id: string
   email: string
   fullName: string
   role: AdminRole
+  platformId: string | null
+  platformName: string | null
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
@@ -35,6 +42,7 @@ interface UserFormState {
   email: string
   fullName: string
   role: AdminRole
+  platformId: string
   isActive: boolean
   password: string
 }
@@ -43,18 +51,21 @@ const ROLE_LABELS: Record<AdminRole, string> = {
   SUPER_ADMIN: 'مدير عام',
   ADMIN: 'مدير',
   EDITOR: 'محرر',
+  PLATFORM_MANAGER: 'مدير منصة',
 }
 
 const ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
   SUPER_ADMIN: 'إدارة كاملة للنظام والمستخدمين',
   ADMIN: 'إدارة المحتوى والعمليات',
   EDITOR: 'تحرير المحتوى والبيانات التشغيلية',
+  PLATFORM_MANAGER: 'إدارة أعضاء وأنشطة منصة واحدة فقط',
 }
 
 const emptyForm: UserFormState = {
   email: '',
   fullName: '',
   role: 'EDITOR',
+  platformId: '',
   isActive: true,
   password: '',
 }
@@ -73,6 +84,7 @@ function dateLabel(value: string | null) {
 function roleBadge(role: AdminRole) {
   if (role === 'SUPER_ADMIN') return 'bg-primary-100 text-primary-700'
   if (role === 'ADMIN') return 'bg-info-50 text-info-700'
+  if (role === 'PLATFORM_MANAGER') return 'bg-amber-50 text-amber-700'
   return 'bg-neutral-100 text-neutral-600'
 }
 
@@ -80,6 +92,7 @@ export default function AdminUsersPage() {
   const { data: session } = useSession()
   const currentRole = (session?.user as { role?: string } | undefined)?.role
   const [users, setUsers] = useState<AdminUser[]>([])
+  const [platforms, setPlatforms] = useState<PlatformOption[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState('')
@@ -90,13 +103,17 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/users')
-      const data = await res.json()
+      const [res, platformsRes] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/admin/platforms?compact=1'),
+      ])
+      const [data, platformsData] = await Promise.all([res.json(), platformsRes.json()])
       if (data.success) {
         setUsers(data.data || [])
       } else {
         toast.error(getApiMessage(data))
       }
+      if (platformsData.success) setPlatforms(platformsData.data?.platforms || [])
     } catch {
       toast.error('فشل الاتصال بالخادم')
     } finally {
@@ -136,6 +153,7 @@ export default function AdminUsersPage() {
       email: user.email,
       fullName: user.fullName,
       role: user.role,
+      platformId: user.platformId || '',
       isActive: user.isActive,
       password: '',
     })
@@ -147,7 +165,11 @@ export default function AdminUsersPage() {
     setSubmitting(true)
 
     try {
-      const payload = editing ? { id: editing.id, ...form } : form
+      const payload = {
+        ...(editing ? { id: editing.id } : {}),
+        ...form,
+        platformId: form.role === 'PLATFORM_MANAGER' ? form.platformId : null,
+      }
       const res = await fetch('/api/admin/users', {
         method: editing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,6 +245,15 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      <div className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-4">
+        <h2 className="font-bold text-primary-900 mb-2 flex items-center gap-2"><Shield size={17} /> كيف تنشئ مدير منصة؟</h2>
+        <ol className="grid gap-2 text-sm text-primary-900 md:grid-cols-3">
+          <li><b>1.</b> اضغط «إضافة مستخدم» واختر دور «مدير منصة».</li>
+          <li><b>2.</b> اختر المنصة التابعة له وحدد بيانات الدخول.</li>
+          <li><b>3.</b> عند دخوله ستظهر له «منصتي» وبيانات منصته فقط.</li>
+        </ol>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {[
           { label: 'إجمالي المستخدمين', value: stats.total, icon: UserCog, color: 'bg-primary-100 text-primary-700' },
@@ -294,7 +325,11 @@ export default function AdminUsersPage() {
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${roleBadge(user.role)}`}>
                         {ROLE_LABELS[user.role]}
                       </span>
-                      <p className="text-[11px] text-neutral-400 mt-1">{ROLE_DESCRIPTIONS[user.role]}</p>
+                      <p className="text-[11px] text-neutral-400 mt-1">
+                        {user.role === 'PLATFORM_MANAGER' && user.platformName
+                          ? `${ROLE_DESCRIPTIONS[user.role]} — ${user.platformName}`
+                          : ROLE_DESCRIPTIONS[user.role]}
+                      </p>
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${user.isActive ? 'bg-success-50 text-success-700' : 'bg-neutral-100 text-neutral-500'}`}>
@@ -361,7 +396,10 @@ export default function AdminUsersPage() {
                 <label className="block text-sm font-medium text-neutral-700 mb-1">الصلاحية</label>
                 <select
                   value={form.role}
-                  onChange={event => setForm({ ...form, role: event.target.value as AdminRole })}
+                  onChange={event => {
+                    const role = event.target.value as AdminRole
+                    setForm({ ...form, role, platformId: role === 'PLATFORM_MANAGER' ? form.platformId : '' })
+                  }}
                   className="input-field"
                 >
                   {Object.entries(ROLE_LABELS).map(([value, label]) => (
@@ -370,6 +408,24 @@ export default function AdminUsersPage() {
                 </select>
                 <p className="text-xs text-neutral-400 mt-1">{ROLE_DESCRIPTIONS[form.role]}</p>
               </div>
+
+              {form.role === 'PLATFORM_MANAGER' && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-1">المنصة التابعة له</label>
+                  <select
+                    value={form.platformId}
+                    onChange={event => setForm({ ...form, platformId: event.target.value })}
+                    className="input-field"
+                    required
+                  >
+                    <option value="">— اختر المنصة —</option>
+                    {platforms.map(platform => (
+                      <option key={platform.id} value={platform.id}>{platform.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-neutral-400 mt-1">لن يتمكن مدير المنصة من الوصول إلى بيانات أي منصة أخرى.</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">

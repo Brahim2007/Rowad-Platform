@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import {
   Shield, Users, Activity, TrendingUp, Clock, CheckCircle,
   Search, UserCheck, Plus,
-  Hourglass, Eye
+  Hourglass, Eye, Copy, KeyRound
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════
@@ -70,6 +70,13 @@ interface SessionUserWithPlatform {
   platformId?: string | null
 }
 
+interface CreatedCredentials {
+  email: string
+  temporaryPassword: string
+  loginUrl: string
+  welcomeEmailSent: boolean
+}
+
 const QUALITY_LABELS: Record<string, string> = { WEAK: 'ضعيف', ACCEPTABLE: 'مقبول', GOOD: 'جيد', EXCELLENT: 'ممتاز', EXCEPTIONAL: 'استثنائي' }
 const STATUS_LABELS: Record<string, string> = { APPROVED: 'معتمد', PENDING_REVIEW: 'قيد المراجعة', REJECTED: 'مرفوض' }
 const NETWORK_ROLES = ['باحث ومفكر', 'مؤثر رقمي', 'متطوع', 'مشرف', 'رئيس منصة']
@@ -98,6 +105,7 @@ export default function MyPlatformDashboard() {
   // Members form state
   const [memberSearch, setMemberSearch] = useState('')
   const [showMemberModal, setShowMemberModal] = useState(false)
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedCredentials | null>(null)
   const [memberForm, setMemberForm] = useState({
     firstName: '', lastName: '', code: '', email: '', phone: '',
     networkRole: '', joinDate: today(),
@@ -180,6 +188,7 @@ export default function MyPlatformDashboard() {
       if (data.success) {
         toast.success('تم إضافة العضو بنجاح')
         setShowMemberModal(false)
+        setCreatedCredentials(data.data?.credentials || null)
         setMemberForm({ firstName: '', lastName: '', code: `R-${String(members.length + 2).padStart(3, '0')}`, email: '', phone: '', networkRole: '', joinDate: today() })
         fetchData()
       } else {
@@ -215,6 +224,15 @@ export default function MyPlatformDashboard() {
             الأنشطة
           </button>
         </div>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-primary-200 bg-primary-50 p-4">
+        <h2 className="font-bold text-primary-900 mb-2 flex items-center gap-2"><UserCheck size={17} /> إرشادات إدارة الأعضاء</h2>
+        <ol className="grid gap-2 text-sm text-primary-900 md:grid-cols-3">
+          <li><b>1.</b> من «الأعضاء» أضف الاسم والبريد والصفة؛ البريد مطلوب لإنشاء حساب الدخول.</li>
+          <li><b>2.</b> يولد النظام كلمة مرور مؤقتة ويرسلها من البريد الرسمي الموحد.</li>
+          <li><b>3.</b> إذا تعذر البريد ستظهر البيانات مرة واحدة لنسخها وتسليمها للعضو بأمان.</li>
+        </ol>
       </div>
 
       {/* Dashboard Tab */}
@@ -432,8 +450,8 @@ export default function MyPlatformDashboard() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني</label>
-                  <input type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني *</label>
+                  <input required type="email" value={memberForm.email} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
@@ -450,7 +468,7 @@ export default function MyPlatformDashboard() {
 
               <div className="rounded-xl bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 flex items-start gap-2">
                 <Eye size={14} className="mt-0.5 flex-shrink-0" />
-                <span>سيظهر العضو مباشرة في لوحة أثر المنصة. ستتمكن من تسجيل أنشطته من لوحة الإدارة العامة.</span>
+                <span>سيُنشأ حساب دخول للعضو وتُولّد له كلمة مرور مؤقتة، وسيُطلب منه تغييرها عند أول دخول.</span>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
@@ -458,6 +476,48 @@ export default function MyPlatformDashboard() {
                 <button type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'إضافة العضو'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {createdCredentials && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center">
+                <KeyRound size={20} />
+              </div>
+              <div>
+                <h2 className="font-bold text-neutral-900">تم إنشاء حساب العضو</h2>
+                <p className="text-xs text-neutral-500">
+                  {createdCredentials.welcomeEmailSent
+                    ? 'تم إرسال بيانات الدخول بالبريد، ويمكنك نسخها أيضًا.'
+                    : 'تعذر إرسال البريد؛ انسخ البيانات وسلّمها للعضو بأمان.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 space-y-3 text-sm" dir="ltr">
+              <div><span className="text-neutral-500">Email:</span> <b>{createdCredentials.email}</b></div>
+              <div><span className="text-neutral-500">Temporary password:</span> <b className="font-mono">{createdCredentials.temporaryPassword}</b></div>
+              <div className="break-all"><span className="text-neutral-500">Login:</span> <b>{createdCredentials.loginUrl}</b></div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                type="button"
+                className="btn-secondary btn-sm flex items-center gap-1.5"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    `Email: ${createdCredentials.email}\nTemporary password: ${createdCredentials.temporaryPassword}\nLogin: ${createdCredentials.loginUrl}`,
+                  )
+                  toast.success('تم نسخ بيانات الدخول')
+                }}
+              >
+                <Copy size={14} /> نسخ البيانات
+              </button>
+              <button type="button" className="btn-primary btn-sm" onClick={() => setCreatedCredentials(null)}>تم</button>
+            </div>
           </div>
         </div>
       )}

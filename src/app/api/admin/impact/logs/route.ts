@@ -437,6 +437,9 @@ export async function PUT(request: NextRequest) {
             activityName,
             points: log.pointsSnapshot ?? 0,
             note: log.note ?? undefined,
+            managerName: auth.user.name,
+            platformName: auth.user.platformName ?? undefined,
+            platformId: log.platformId,
           })
         } else if (log.status === 'REJECTED') {
           await sendActivityRejectedEmail({
@@ -444,6 +447,9 @@ export async function PUT(request: NextRequest) {
             memberName,
             activityName,
             reason: log.rejectionReason || 'لم يذكر سبب',
+            managerName: auth.user.name,
+            platformName: auth.user.platformName ?? undefined,
+            platformId: log.platformId,
           })
         }
       }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 import { UnifiedMemberSchema } from '@/lib/validations/member'
 import { sendWelcomeEmail } from '@/lib/email'
 import { z } from 'zod'
@@ -318,7 +319,7 @@ export async function POST(request: NextRequest) {
     const input = UnifiedMemberSchema.parse(await request.json())
     // توليد كلمة مرور مؤقتة إن وُجد بريد إلكتروني
     const memberEmail = input.email?.trim() || null
-    const tempPassword = memberEmail ? (Math.random().toString(36).slice(2, 10) + 'A1!') : null
+    const tempPassword = memberEmail ? `${randomBytes(9).toString('base64url')}A1!` : null
     const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null
 
     const member = await prisma.beneficiary.create({
@@ -352,23 +353,38 @@ export async function POST(request: NextRequest) {
     })
 
     // إرسال بريد ترحيبي إن وُجد بريد إلكتروني للعضو
+    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/ar/member/login`
+    let welcomeEmailSent = false
     if (member.email && tempPassword) {
       try {
         const platformName = member.platform?.name || 'شبكة رواد'
-        const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/ar/member/login`
         await sendWelcomeEmail({
           to: member.email,
           memberName: `${member.firstName} ${member.lastName}`.trim(),
           platformName,
+          managerName: auth.user.name,
+          platformId: member.platformId,
           tempPassword,
           loginUrl,
         })
+        welcomeEmailSent = true
       } catch (e) {
         logger.error('[email] failed to send welcome email', e)
       }
     }
 
-    return NextResponse.json({ success: true, data: mapMember(member) }, { status: 201 })
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...mapMember(member),
+        credentials: member.email && tempPassword ? {
+          email: member.email,
+          temporaryPassword: tempPassword,
+          loginUrl,
+          welcomeEmailSent,
+        } : null,
+      },
+    }, { status: 201 })
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, errors: error.flatten() }, { status: 400 })

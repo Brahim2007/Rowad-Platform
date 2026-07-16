@@ -11,6 +11,7 @@
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 import { logger } from '@/lib/logger'
+import { recordActivityLog } from '@/lib/activity-log'
 
 // ═══════════════════════════════════════════════════
 // الـ Transporter — يُنشأ مرة واحدة
@@ -56,21 +57,38 @@ interface EmailOptions {
   to: string
   subject: string
   html: string
+  actor?: string
+  platformId?: string | null
+  category?: string
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<void> {
-  const from = process.env.EMAIL_FROM || 'noreply@rowad-network.org'
+  const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@rowad-network.org'
   try {
-    await getTransporter().sendMail({
+    const result = await getTransporter().sendMail({
       from: `شبكة رواد الإلكترونية <${from}>`,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
     })
+    await recordActivityLog({
+      entity: 'email',
+      entityId: result.messageId || `${Date.now()}`,
+      action: 'EMAIL_SENT',
+      actor: opts.actor || 'SYSTEM',
+      metadata: {
+        from,
+        to: opts.to,
+        subject: opts.subject,
+        platformId: opts.platformId || null,
+        category: opts.category || 'GENERAL',
+      },
+    })
   } catch (error) {
     // في بيئة التطوير أو عند الفشل: نسجّل فقط
     logger.info('[email] Send fallback', { to: opts.to, subject: opts.subject })
     logger.error('[email] Send error', error)
+    throw error
   }
 }
 
@@ -100,6 +118,15 @@ function emailLayout(body: string): string {
 </body></html>`
 }
 
+function escapeHtml(value: string | number | undefined): string {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+}
+
 // ═══════════════════════════════════════════════════
 // القوالب المحددة
 // ═══════════════════════════════════════════════════
@@ -109,26 +136,32 @@ export async function sendWelcomeEmail(params: {
   to: string
   memberName: string
   platformName: string
+  managerName?: string
+  platformId?: string | null
   tempPassword: string
   loginUrl: string
 }) {
-  const { to, memberName, platformName, tempPassword, loginUrl } = params
+  const { to, memberName, platformName, managerName, tempPassword, loginUrl } = params
   await sendEmail({
     to,
     subject: 'مرحباً بك في شبكة رواد الإلكترونية',
     html: emailLayout(`
-      <h2>مرحباً ${memberName} 👋</h2>
-      <p>يسرنا إعلامك بأنه تم إنشاء حسابك في شبكة رواد الإلكترونية على منصة <b>${platformName}</b>.</p>
+      <h2>مرحباً ${escapeHtml(memberName)} 👋</h2>
+      <p>يسرنا إعلامك بأنه تم إنشاء حسابك في شبكة رواد الإلكترونية على منصة <b>${escapeHtml(platformName)}</b>.</p>
+      ${managerName ? `<p>تم إنشاء الحساب بواسطة مدير المنصة: <b>${escapeHtml(managerName)}</b>.</p>` : ''}
       <p>بيانات الدخول الخاصة بك:</p>
       <div class="code">
-        البريد الإلكتروني: ${to}<br>
-        كلمة المرور: ${tempPassword}
+        البريد الإلكتروني: ${escapeHtml(to)}<br>
+        كلمة المرور: ${escapeHtml(tempPassword)}
       </div>
       <p style="color:#e53935;font-size:13px;">⚠️ يرجى تغيير كلمة المرور بعد أول تسجيل دخول.</p>
       <p style="margin-top:20px;text-align:center;">
-        <a href="${loginUrl}" style="display:inline-block;padding:10px 24px;background:#1e40af;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;">تسجيل الدخول</a>
+        <a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:10px 24px;background:#1e40af;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;">تسجيل الدخول</a>
       </p>
     `),
+    actor: managerName,
+    platformId: params.platformId,
+    category: 'WELCOME',
   })
 }
 
@@ -139,17 +172,24 @@ export async function sendActivityApprovedEmail(params: {
   activityName: string
   points: number
   note?: string
+  managerName?: string
+  platformName?: string
+  platformId?: string | null
 }) {
-  const { to, memberName, activityName, points, note } = params
+  const { to, memberName, activityName, points, note, managerName, platformName } = params
   await sendEmail({
     to,
     subject: `✅ تم اعتماد نشاطك — +${points} نقطة`,
     html: emailLayout(`
-      <h2>تهانينا ${memberName} 🎉</h2>
-      <p>تم اعتماد نشاطك <b>"${activityName}"</b> وإضافة <b>${points} نقطة</b> إلى رصيدك.</p>
-      ${note ? `<p style="background:#f0fdf4;border-radius:8px;padding:10px;border:1px solid #bbf7d0;">📝 ملاحظة المدير:<br>${note}</p>` : ''}
+      <h2>تهانينا ${escapeHtml(memberName)} 🎉</h2>
+      <p>تم اعتماد نشاطك <b>"${escapeHtml(activityName)}"</b> وإضافة <b>${escapeHtml(points)} نقطة</b> إلى رصيدك.</p>
+      ${managerName ? `<p>اعتمد النشاط: <b>${escapeHtml(managerName)}</b>${platformName ? ` — ${escapeHtml(platformName)}` : ''}.</p>` : ''}
+      ${note ? `<p style="background:#f0fdf4;border-radius:8px;padding:10px;border:1px solid #bbf7d0;">📝 ملاحظة المدير:<br>${escapeHtml(note)}</p>` : ''}
       <p style="margin-top:20px;text-align:center;color:#666;">استمر في العطاء — كل نقطة تقرّبك من المستوى التالي 🚀</p>
     `),
+    actor: managerName,
+    platformId: params.platformId,
+    category: 'ACTIVITY_APPROVED',
   })
 }
 
@@ -159,17 +199,24 @@ export async function sendActivityRejectedEmail(params: {
   memberName: string
   activityName: string
   reason: string
+  managerName?: string
+  platformName?: string
+  platformId?: string | null
 }) {
-  const { to, memberName, activityName, reason } = params
+  const { to, memberName, activityName, reason, managerName, platformName } = params
   await sendEmail({
     to,
     subject: 'لم يُعتمد نشاطك — راجع السبب',
     html: emailLayout(`
-      <h2>نعتذر ${memberName}</h2>
-      <p>لم يتم اعتماد نشاطك <b>"${activityName}"</b>.</p>
-      <p style="background:#fef2f2;border-radius:8px;padding:10px;border:1px solid #fecaca;">❌ سبب الرفض:<br><b>${reason}</b></p>
+      <h2>نعتذر ${escapeHtml(memberName)}</h2>
+      <p>لم يتم اعتماد نشاطك <b>"${escapeHtml(activityName)}"</b>.</p>
+      ${managerName ? `<p>راجع النشاط: <b>${escapeHtml(managerName)}</b>${platformName ? ` — ${escapeHtml(platformName)}` : ''}.</p>` : ''}
+      <p style="background:#fef2f2;border-radius:8px;padding:10px;border:1px solid #fecaca;">❌ سبب الرفض:<br><b>${escapeHtml(reason)}</b></p>
       <p style="color:#666;">يمكنك تعديل النشاط وإعادة إرساله بعد معالجة الملاحظات.</p>
     `),
+    actor: managerName,
+    platformId: params.platformId,
+    category: 'ACTIVITY_REJECTED',
   })
 }
 

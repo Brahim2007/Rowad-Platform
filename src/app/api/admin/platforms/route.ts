@@ -10,12 +10,22 @@ function requireGlobalPlatformMutation(user: SessionUser) {
   return NextResponse.json({ success: false, message: 'هذه الميزة متاحة للإدارة العامة فقط' }, { status: 403 })
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await requireAuth()
   if (!auth.ok) return auth.error
 
   try {
     const scope = getPlatformScope(auth.user)
+    const compact = new URL(request.url).searchParams.get('compact') === '1'
+    if (compact) {
+      const platforms = await prisma.platform.findMany({
+        where: platformWhere(scope),
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, name: true, slug: true, isActive: true },
+      })
+      return NextResponse.json({ success: true, data: { platforms } })
+    }
+
     const platforms = await prisma.platform.findMany({
       where: platformWhere(scope),
       orderBy: { sortOrder: 'asc' },

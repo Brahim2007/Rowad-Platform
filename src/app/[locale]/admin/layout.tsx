@@ -177,17 +177,20 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         },
       ]
     : sidebarSections.map(section => {
+        const links = isSuperAdmin
+          ? section.links
+          : section.links.filter(link => link.href !== '/admin/users')
         // إضافة رابط المساعد الذكي للإدارة العليا فقط
         if (section.title === 'أدوات' && isSuperAdmin) {
           return {
             ...section,
             links: [
-              ...section.links,
+              ...links,
               { href: '/admin/ai-assistant', label: 'المساعد الذكي', icon: Bot },
             ],
           }
         }
-        return section
+        return { ...section, links }
       })
 
   /** اكتشاف التبويب النشط */

@@ -11,17 +11,15 @@ import { safeInternalPath } from '@/lib/safe-internal-path'
 import {
   ArrowLeft,
   Crown,
-  Database,
   Loader2,
   LockKeyhole,
   ShieldCheck,
   Activity,
-  TrendingUp,
-  Blocks,
   FileText,
   TreePine,
   Eye,
   EyeOff,
+  Building2,
 } from 'lucide-react'
 
 const DEMO_ACCOUNTS: Array<{
@@ -103,52 +101,55 @@ export default function AdminLoginPage() {
     }
   }
 
+  const logo = (
+    <Image
+      src="https://www.rowwad.net/uploads/system/logo-light.png"
+      alt="شبكة الرواد الإلكترونية"
+      width={140}
+      height={48}
+      className="h-10 w-auto"
+      unoptimized
+    />
+  )
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-950 via-primary-900 to-neutral-950 flex items-center justify-center p-4" dir="rtl">
-      {/* خلفية بنمط نقاط */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-        <svg className="h-full w-full" viewBox="0 0 1440 900" preserveAspectRatio="none">
+    <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 flex items-center justify-center p-4" dir="rtl">
+      {/* عناصر خلفية ناعمة */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <svg className="absolute h-full w-full opacity-[0.02]" viewBox="0 0 1440 900" preserveAspectRatio="none">
           <defs>
-            <pattern id="inov-login-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-              <circle cx="20" cy="20" r="1" fill="white" />
+            <pattern id="login-light-grid" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="hsl(var(--primary-700))" strokeWidth="0.5" />
             </pattern>
           </defs>
-          <rect width="100%" height="100%" fill="url(#inov-login-grid)" />
+          <rect width="100%" height="100%" fill="url(#login-light-grid)" />
         </svg>
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary-200/30 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-secondary-200/25 blur-3xl" />
       </div>
-      {/* كرات ضبابية ناعمة */}
-      <div className="absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-secondary-500/8 blur-3xl" />
-      <div className="absolute -right-32 bottom-1/4 h-64 w-64 rounded-full bg-primary-400/8 blur-3xl" />
 
       <style>{`
         @keyframes slide-up {
-          from { opacity: 0; transform: translateY(24px); }
+          from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
       `}</style>
 
-      <div className="w-full max-w-[420px] animate-slide-up">
-        {/* بطاقة تسجيل الدخول - تصميم نظيف */}
-        <div className="rounded-3xl border border-white/10 bg-white/98 p-8 shadow-2xl backdrop-blur-sm">
+      <div className="relative w-full max-w-[410px] animate-slide-up">
+        {/* بطاقة تسجيل الدخول — تصميم فاتح ونظيف */}
+        <div className="rounded-3xl border border-neutral-200/60 bg-white p-7 shadow-xl shadow-neutral-200/50">
           {/* الشعار */}
-          <div className="text-center mb-7">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 shadow-sm ring-1 ring-primary-200/50">
-              <Image
-                src="https://www.rowwad.net/uploads/system/logo-light.png"
-                alt="شبكة الرواد الإلكترونية"
-                width={36}
-                height={36}
-                className="h-9 w-auto"
-                unoptimized
-              />
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 ring-1 ring-primary-100">
+              <LockKeyhole size={22} className="text-primary-600" />
             </div>
             <h1 className="text-xl font-bold text-neutral-900">تسجيل الدخول</h1>
-            <p className="mt-1.5 text-sm text-neutral-500 leading-6">لوحة تحكم شبكة الرواد الإلكترونية</p>
+            <p className="mt-1 text-sm text-neutral-500">لوحة تحكم شبكة الرواد الإلكترونية</p>
           </div>
 
           {DEMO_ACCOUNTS.length > 0 && (
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="grid gap-2">
                 {DEMO_ACCOUNTS.map((account, idx) => {
                   const Icon = account.icon
@@ -173,15 +174,15 @@ export default function AdminLoginPage() {
                   )
                 })}
               </div>
-              <div className="my-5 flex items-center gap-3">
+              <div className="my-4 flex items-center gap-3">
                 <div className="h-px flex-1 bg-neutral-200" />
-                <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">أو</span>
+                <span className="text-[10px] font-bold text-neutral-400 tracking-wider">أو</span>
                 <div className="h-px flex-1 bg-neutral-200" />
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-neutral-700">البريد الإلكتروني</label>
               <Input
@@ -228,7 +229,7 @@ export default function AdminLoginPage() {
             <Button unstyled
               type="submit"
               disabled={loading || demoLoadingIdx !== null}
-              className="w-full rounded-2xl bg-gradient-to-l from-primary-600 to-primary-700 h-12 text-sm font-bold text-white shadow-lg shadow-primary-600/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary-600/30 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
+              className="w-full rounded-2xl bg-primary-600 h-12 text-sm font-bold text-white shadow-lg shadow-primary-600/15 transition-all duration-300 hover:bg-primary-700 hover:shadow-xl hover:shadow-primary-600/25 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -245,16 +246,16 @@ export default function AdminLoginPage() {
           </form>
 
           {/* مؤشرات سفلية */}
-          <div className="mt-6 pt-6 border-t border-neutral-100">
-            <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="mt-6 pt-5 border-t border-neutral-100">
+            <div className="grid grid-cols-3 gap-2.5 text-center">
               {[
-                { icon: TreePine, label: 'منصات' },
-                { icon: Activity, label: 'مؤشرات' },
-                { icon: FileText, label: 'تقارير' },
+                { icon: TreePine, label: 'منصات متعددة' },
+                { icon: Activity, label: 'مؤشرات الأثر' },
+                { icon: FileText, label: 'تقارير ذكية' },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="group rounded-xl bg-primary-50/50 py-2.5 ring-1 ring-primary-100/50 transition-all hover:bg-primary-100 hover:shadow-sm">
-                  <Icon className="mx-auto h-4 w-4 text-primary-600 group-hover:text-primary-700" />
-                  <span className="block text-[10px] font-bold text-primary-700 mt-1">{label}</span>
+                <div key={label} className="rounded-xl bg-neutral-50 py-3 ring-1 ring-neutral-100 transition-all hover:bg-primary-50 hover:ring-primary-100">
+                  <Icon className="mx-auto h-4 w-4 text-primary-600" />
+                  <span className="block text-[10px] font-semibold text-neutral-600 mt-1">{label}</span>
                 </div>
               ))}
             </div>
@@ -263,7 +264,7 @@ export default function AdminLoginPage() {
 
         {/* رابط العودة */}
         <div className="mt-5 text-center">
-          <Link href="/ar" className="inline-flex items-center gap-1.5 text-xs text-white/40 transition-colors hover:text-secondary-300 no-underline">
+          <Link href="/ar" className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 transition-colors hover:text-primary-600 no-underline">
             <ArrowLeft size={12} />
             العودة إلى الموقع الرئيسي
           </Link>

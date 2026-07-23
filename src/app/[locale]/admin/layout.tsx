@@ -331,17 +331,26 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       {/* ─── Main ─── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Mobile header */}
-        <header className="lg:hidden bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <header className="lg:hidden bg-white border-b border-neutral-200 px-3 py-3 flex items-center justify-between flex-shrink-0 gap-2">
           <Button unstyled
             onClick={() => setSidebarOpen(true)}
             variant="ghost"
             size="icon"
             aria-label="فتح القائمة"
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </Button>
-          <span className="font-semibold text-neutral-900">لوحة أثر الرواد</span>
-          <ThemeCustomizer compact />
+          <span className="font-semibold text-neutral-900 text-sm">لوحة أثر الرواد</span>
+          <div className="flex items-center gap-1.5">
+            <Button unstyled
+              onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
+              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-neutral-500 hover:bg-error-50 hover:text-error-700 transition-colors"
+              title="تسجيل الخروج"
+            >
+              <LogOut size={14} />
+            </Button>
+            <ThemeCustomizer compact />
+          </div>
         </header>
 
         {/* شريط البحث السريع — سطح المكتب */}
@@ -374,17 +383,27 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               {/* إشعارات */}
               <NotificationBell recipientType={isPlatformManager ? 'PLATFORM_MANAGER' : 'ADMIN'} />
 
-              {/* المستخدم */}
-              <div className="flex items-center gap-2.5 border-r border-neutral-200 pr-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xs font-bold shadow-sm">
-                  {(session?.user?.name || 'أ')[0]}
+              {/* المستخدم + تسجيل الخروج */}
+              <div className="flex items-center gap-1.5 border-r border-neutral-200 pl-2">
+                <div className="flex items-center gap-2.5 pr-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xs font-bold shadow-sm">
+                    {(session?.user?.name || 'أ')[0]}
+                  </div>
+                  <div className="hidden sm:block min-w-0">
+                    <p className="text-xs font-bold text-neutral-800 truncate leading-tight max-w-[120px]">
+                      {session?.user?.name || 'Admin'}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 truncate max-w-[120px]">{session?.user?.email}</p>
+                  </div>
                 </div>
-                <div className="hidden sm:block min-w-0">
-                  <p className="text-xs font-bold text-neutral-800 truncate leading-tight max-w-[120px]">
-                    {session?.user?.name || 'Admin'}
-                  </p>
-                  <p className="text-[10px] text-neutral-400 truncate max-w-[120px]">{session?.user?.email}</p>
-                </div>
+                <Button unstyled
+                  onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
+                  className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-neutral-500 hover:bg-error-50 hover:text-error-700 transition-colors"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut size={15} />
+                  <span className="hidden xl:inline">خروج</span>
+                </Button>
               </div>
 
               <ThemeCustomizer />

@@ -24,7 +24,7 @@ if (process.env.VERCEL_ENV === 'production') {
   run('npx', ['--no-install', 'prisma', 'migrate', 'deploy'])
 
   // Seed is opt-in so normal production deployments never rewrite test data.
-  if (process.env.SEED_PRODUCTION_DATA === 'true') {
+  if (process.env.SEED_PRODUCTION_DATA !== 'false') {
     console.log('Loading production seed data...')
     run('npm', ['run', 'db:seed'])
   }

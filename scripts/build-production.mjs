@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process'
 
 function run(command, args) {
-  const executable = process.platform === 'win32' ? `${command}.cmd` : command
-  const result = spawnSync(executable, args, {
+  const result = spawnSync(command, args, {
     env: process.env,
+    shell: process.platform === 'win32',
     stdio: 'inherit',
   })
 

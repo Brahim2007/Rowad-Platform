@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Activity, Archive, ArrowRight, CheckCircle2, Copy, Download, FileText, Link2, Loader2, Printer, RefreshCw, Sparkles, Users } from 'lucide-react'
+import { Activity, Archive, ArrowRight, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2, MessageCircle, Printer, RefreshCw, Sparkles, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { SmartImpactReportDocument } from '@/components/admin/SmartImpactReportDocument'
@@ -72,9 +72,18 @@ export default function SmartImpactReportPage() {
     }
   }
 
+  const publicReportPath = `/${params.locale || 'ar'}/reports/ai/${params.id}`
+
   const copyLink = async () => {
-    await navigator.clipboard.writeText(window.location.href)
-    toast.success('تم نسخ رابط التقرير')
+    await navigator.clipboard.writeText(`${window.location.origin}${publicReportPath}`)
+    toast.success('تم نسخ رابط التقرير العام')
+  }
+
+  const shareWhatsApp = () => {
+    if (!data) return
+    const publicUrl = `${window.location.origin}${publicReportPath}`
+    const message = `${data.report.title}\n\nيمكنك عرض التقرير عبر الرابط:\n${publicUrl}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer')
   }
 
   const copyExecutiveSummary = async () => {
@@ -124,6 +133,8 @@ export default function SmartImpactReportPage() {
         <div className="flex flex-wrap gap-2">
           <Button unstyled onClick={copyExecutiveSummary} className="btn-ghost btn-sm flex items-center gap-1.5"><Copy size={14} /> نسخ الملخص</Button>
           <Button unstyled onClick={copyLink} className="btn-ghost btn-sm flex items-center gap-1.5"><Link2 size={14} /> نسخ الرابط</Button>
+          <Button unstyled onClick={shareWhatsApp} className="btn-ghost btn-sm flex items-center gap-1.5 text-emerald-700"><MessageCircle size={15} /> واتساب</Button>
+          <Link href={publicReportPath} target="_blank" className="btn-ghost btn-sm flex items-center gap-1.5 no-underline"><ExternalLink size={15} /> العرض العام</Link>
           <Button unstyled onClick={loadReport} className="btn-ghost btn-sm flex items-center gap-1.5"><RefreshCw size={15} /> تحديث</Button>
           <Button unstyled onClick={() => reportRef.current && printElement(reportRef.current, data.report.title)} className="btn-ghost btn-sm flex items-center gap-1.5"><Printer size={15} /> طباعة</Button>
           <Button unstyled onClick={handleWord} disabled={!!exporting} className="btn-ghost btn-sm flex items-center gap-1.5">
@@ -145,7 +156,7 @@ export default function SmartImpactReportPage() {
               <span className="rounded-full bg-emerald-400/20 border border-emerald-300/30 text-emerald-50 px-2.5 py-1 text-[11px] font-semibold inline-flex items-center gap-1"><CheckCircle2 size={12} /> محفوظ في الأرشيف</span>
             </div>
             <h1 className="text-xl lg:text-3xl font-black flex items-start gap-3 text-balance"><span className="w-11 h-11 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center shrink-0"><Sparkles size={20} /></span>{data.report.title}</h1>
-            <p className="text-sm text-white/70 mt-3 md:me-[56px] leading-6">وثيقة تنفيذية مستقلة بُنيت من بيانات الفترة، ومهيأة للمراجعة والطباعة والتصدير والمشاركة الداخلية.</p>
+            <p className="text-sm text-white/70 mt-3 md:me-[56px] leading-6">وثيقة تنفيذية مستقلة بُنيت من بيانات الفترة، ومهيأة للطباعة والتصدير والمشاركة العامة عبر رابط لا يتطلب تسجيل الدخول.</p>
           </div>
           <div className="grid grid-cols-3 gap-2 min-w-full sm:min-w-[360px] lg:min-w-[390px] lg:max-w-[420px]">
             {[

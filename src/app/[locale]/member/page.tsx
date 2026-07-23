@@ -7,7 +7,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Bell, Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass, ExternalLink } from 'lucide-react'
+import { Bell, Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass, ExternalLink, IdCard, Mail, Network } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ═══════════════════════════════════════════════
@@ -246,24 +246,64 @@ export default function MemberPortalPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50" dir="rtl">
-      {/* Top bar */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="text-primary-600" size={24} />
-            <div>
-              <h1 className="text-lg font-bold text-neutral-900">مرحباً {member.name}</h1>
-              <p className="text-xs text-neutral-500">{member.platformName || 'شبكة رواد'}</p>
+      {/* Member identity banner */}
+      <header className="relative overflow-hidden bg-gradient-to-l from-primary-950 via-primary-800 to-teal-700 px-4 py-6 text-white md:py-8">
+        <div className="pointer-events-none absolute -start-16 -top-24 size-64 rounded-full border-[34px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 end-[18%] size-56 rounded-full bg-cyan-300/10 blur-2xl" />
+        <div className="relative mx-auto max-w-5xl">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur-sm">
+                <Shield size={27} className="text-cyan-200" />
+              </div>
+              <div className="min-w-0">
+                <p className="mb-1 text-xs font-semibold text-cyan-100/75">بوابة عضو شبكة الرواد</p>
+                <h1 className="truncate text-xl font-black md:text-2xl">مرحبًا، {member.name}</h1>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5">
+                    <IdCard size={13} className="text-cyan-200" />
+                    رقم العضو: <b className="font-mono">{member.code}</b>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5">
+                    <Network size={13} className="text-cyan-200" />
+                    {member.platformName || 'شبكة الرواد'}
+                  </span>
+                  {member.networkRole && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5">
+                      <Star size={13} className="text-amber-300" />
+                      {member.networkRole}
+                    </span>
+                  )}
+                  {member.email && (
+                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1.5">
+                      <Mail size={13} className="shrink-0 text-cyan-200" />
+                      <span className="truncate" dir="ltr">{member.email}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button unstyled onClick={() => switchTab('notifications')} className="relative rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600" aria-label="الإشعارات">
-              <Bell size={18} />
-              {unreadNotifications > 0 && <span className="absolute -end-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-[9px] leading-4 text-white">{Math.min(99, unreadNotifications)}</span>}
-            </Button>
-            <Button unstyled onClick={logout} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600">
-              <LogOut size={16} /> خروج
-            </Button>
+
+            <div className="flex shrink-0 items-center gap-2 self-end lg:self-auto">
+              <Button
+                unstyled
+                onClick={() => switchTab('notifications')}
+                className="relative inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3.5 py-2.5 text-sm font-bold text-white backdrop-blur-sm hover:bg-white/20"
+                aria-label="الإشعارات"
+              >
+                <Bell size={17} />
+                الإشعارات
+                {unreadNotifications > 0 && <span className="min-w-5 rounded-full bg-red-500 px-1.5 text-center text-[10px] leading-5 text-white">{Math.min(99, unreadNotifications)}</span>}
+              </Button>
+              <Button
+                unstyled
+                onClick={logout}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200/20 bg-red-500/15 px-3.5 py-2.5 text-sm font-bold text-white backdrop-blur-sm hover:bg-red-500/30"
+              >
+                <LogOut size={17} />
+                تسجيل الخروج
+              </Button>
+            </div>
           </div>
         </div>
       </header>

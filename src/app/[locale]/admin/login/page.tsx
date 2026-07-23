@@ -1,111 +1,40 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-
-import { useEffect, useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { useEffect, useState, type FormEvent } from 'react'
 import Image from 'next/image'
-import { safeInternalPath } from '@/lib/safe-internal-path'
+import { signIn } from 'next-auth/react'
 import {
   ArrowLeft,
   BarChart3,
-  Crown,
-  Database,
+  Eye,
+  EyeOff,
+  Layers3,
   Loader2,
   LockKeyhole,
-  Quote,
+  Mail,
   ShieldCheck,
   Sparkles,
-  Activity,
-  TrendingUp,
-  Layers,
-  Blocks,
-  FileText,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { safeInternalPath } from '@/lib/safe-internal-path'
 
-const DEMO_ACCOUNTS: Array<{
-  role: string
-  icon: typeof Crown
-  email: string
-  password: string
-  color: string
-  bgLight: string
-  border: string
-  textColor: string
-  desc: string
-}> = []
-
-const quotes = [
-  {
-    en: "Without data, you're just another person with an opinion.",
-    by: 'W. Edwards Deming',
-    ar: 'بدون بيانات، أنت مجرد شخص لديه رأي فقط.',
-  },
-  {
-    en: 'Data is the new oil.',
-    by: 'Clive Humby',
-    ar: 'البيانات هي النفط الجديد.',
-  },
-  {
-    en: 'In God we trust. All others must bring data.',
-    by: 'W. Edwards Deming',
-    ar: 'نحن نثق بالله، أما البقية فعليهم إحضار البيانات.',
-  },
-  {
-    en: 'The goal is to turn data into information, and information into insight.',
-    by: 'Carly Fiorina',
-    ar: 'الهدف هو تحويل البيانات إلى معلومات، ثم إلى فهم عميق.',
-  },
-  {
-    en: 'Data is a precious thing and will last longer than the systems themselves.',
-    by: 'Tim Berners-Lee',
-    ar: 'البيانات شيء ثمين وستبقى أكثر من الأنظمة نفسها.',
-  },
-  {
-    en: 'Numbers have an important story to tell. They rely on you to give them a clear and convincing voice.',
-    by: 'Stephen Few',
-    ar: 'الأرقام لديها قصة مهمة، لكنها تحتاجك لترويها بوضوح.',
-  },
-  {
-    en: 'Garbage in, garbage out.',
-    by: 'Computer Science principle',
-    ar: 'مدخلات سيئة = نتائج سيئة.',
-  },
-  {
-    en: 'Data quality is more important than data quantity.',
-    by: 'Data science principle',
-    ar: 'جودة البيانات أهم من كميتها.',
-  },
-  {
-    en: 'Big data is at the foundation of all of the megatrends.',
-    by: 'Chris Lynch',
-    ar: 'البيانات الضخمة هي أساس كل الاتجاهات الكبرى.',
-  },
-]
-
-// ─── Floating Icons Data ───
-
-const floatingIcons = [
-  { icon: Database, label: 'بيانات', x: '10%', y: '15%', size: 22, delay: '0s', duration: '6s' },
-  { icon: BarChart3, label: 'تحليل', x: '80%', y: '20%', size: 20, delay: '1.5s', duration: '7s' },
-  { icon: Activity, label: 'أداء', x: '15%', y: '70%', size: 24, delay: '0.8s', duration: '8s' },
-  { icon: TrendingUp, label: 'نمو', x: '75%', y: '75%', size: 18, delay: '2.2s', duration: '5.5s' },
-  { icon: Layers, label: 'تقارير', x: '85%', y: '45%', size: 20, delay: '3s', duration: '7.5s' },
-  { icon: ShieldCheck, label: 'حوكمة', x: '5%', y: '45%', size: 16, delay: '1s', duration: '6.5s' },
-]
+const REMEMBERED_ADMIN_EMAIL = 'rowad_admin_email'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [demoLoadingIdx, setDemoLoadingIdx] = useState<number | null>(null)
-
-  const [randomQuote, setRandomQuote] = useState(quotes[0])
 
   useEffect(() => {
-    setRandomQuote(quotes[Math.floor(Math.random() * quotes.length)])
+    const rememberedEmail = window.localStorage.getItem(REMEMBERED_ADMIN_EMAIL)
+    if (rememberedEmail) {
+      setEmail(rememberedEmail)
+      setRememberMe(true)
+    }
   }, [])
 
   const getCallbackUrl = () => {
@@ -113,378 +42,189 @@ export default function AdminLoginPage() {
     return safeInternalPath(params.get('callbackUrl'), '/ar/admin/dashboard')
   }
 
-  const loginWithCredentials = async (loginEmail: string, loginPassword: string) => {
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
     setError('')
     setLoading(true)
 
     try {
       const result = await signIn('credentials', {
-        email: loginEmail,
-        password: loginPassword,
+        email,
+        password,
         redirect: false,
       })
 
       if (result?.error) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
-      } else {
-        window.location.href = getCallbackUrl()
+        return
       }
+
+      if (rememberMe) {
+        window.localStorage.setItem(REMEMBERED_ADMIN_EMAIL, email.trim())
+      } else {
+        window.localStorage.removeItem(REMEMBERED_ADMIN_EMAIL)
+      }
+      window.location.href = getCallbackUrl()
     } catch {
-      setError('حدث خطأ في الاتصال')
+      setError('تعذر الاتصال بالخادم، حاول مرة أخرى')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await loginWithCredentials(email, password)
-  }
-
-  const handleDemoLogin = async (idx: number) => {
-    const account = DEMO_ACCOUNTS[idx]
-    setEmail(account.email)
-    setPassword(account.password)
-    setDemoLoadingIdx(idx)
-    setError('')
-
-    try {
-      const result = await signIn('credentials', {
-        email: account.email,
-        password: account.password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setError('فشل الدخول التجريبي — تأكد من تشغيل البذرة')
-      } else {
-        window.location.href = getCallbackUrl()
-      }
-    } catch {
-      setError('حدث خطأ في الاتصال')
-    } finally {
-      setDemoLoadingIdx(null)
-    }
-  }
-
   return (
-    <>
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          25% { transform: translateY(-12px) rotate(3deg); }
-          50% { transform: translateY(-6px) rotate(-2deg); }
-          75% { transform: translateY(-18px) rotate(4deg); }
-        }
-        @keyframes wave {
-          0% { transform: translateX(0) translateY(0); }
-          50% { transform: translateX(-25%) translateY(2px); }
-          100% { transform: translateX(0) translateY(0); }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-float { animation: float var(--duration, 6s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
-        .animate-wave { animation: wave 8s ease-in-out infinite; }
-        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-        .animate-slide-up { animation: slide-up 0.6s ease-out forwards; }
-      `}</style>
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-cyan-400 via-cyan-500 to-teal-500 px-4 py-8 sm:px-6"
+      dir="rtl"
+    >
+      <div className="pointer-events-none absolute -start-24 -top-24 size-80 rounded-full border-[44px] border-white/10" />
+      <div className="pointer-events-none absolute -bottom-32 -end-24 size-96 rounded-full bg-white/10 blur-2xl" />
+      <div className="pointer-events-none absolute start-[12%] top-[18%] size-3 rounded-full bg-white/60" />
+      <div className="pointer-events-none absolute end-[14%] bottom-[16%] size-2 rounded-full bg-blue-950/25" />
 
-      <div className="min-h-screen overflow-y-auto bg-gradient-to-br from-primary-950 via-primary-900 to-primary-950" dir="rtl">
-        <div className="grid min-h-screen lg:grid-cols-[1fr_1fr]">
-          {/* ─── Right: Brand Section ─── */}
-          <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:min-h-screen">
-            {/* Animated wave background */}
-            <div className="absolute inset-0 opacity-[0.07]">
-              <svg
-                className="h-full w-full animate-wave"
-                viewBox="0 0 1440 900"
-                preserveAspectRatio="none"
-              >
-                <defs>
-                  <linearGradient id="wave-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ffffff" />
-                    <stop offset="100%" stopColor="#ffffff" stopOpacity="0.3" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M0,450 C240,350 480,550 720,450 C960,350 1200,550 1440,450 L1440,900 L0,900 Z"
-                  fill="url(#wave-grad)"
-                  opacity="0.15"
-                />
-                <path
-                  d="M0,550 C240,450 480,650 720,550 C960,450 1200,650 1440,550 L1440,900 L0,900 Z"
-                  fill="url(#wave-grad)"
-                  opacity="0.1"
-                />
-              </svg>
+      <div
+        className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/30 bg-white shadow-[0_32px_90px_rgba(8,47,73,0.30)] lg:min-h-[610px] lg:grid-cols-[0.95fr_1.05fr]"
+        style={{ direction: 'ltr' }}
+      >
+        <section
+          className="relative flex min-h-[310px] flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-primary-800 p-7 text-white sm:p-10 lg:min-h-full"
+          dir="rtl"
+        >
+          <div className="absolute inset-0 opacity-15">
+            <div className="absolute -start-16 top-1/3 size-52 rounded-full border-[34px] border-cyan-300" />
+            <div className="absolute -end-20 -top-16 size-64 rounded-full border border-white/50" />
+            <div className="absolute bottom-16 end-14 size-20 rotate-45 border-2 border-cyan-300/60" />
+            <div className="absolute bottom-20 start-12 size-16 rounded-full bg-cyan-300/30" />
+          </div>
+
+          <div className="relative">
+            <div className="mb-8 inline-flex rounded-2xl bg-white/10 p-3 ring-1 ring-white/15 backdrop-blur-sm">
+              <Image
+                src="https://www.rowwad.net/uploads/system/logo-light.png"
+                alt="شبكة الرواد الإلكترونية"
+                width={190}
+                height={70}
+                className="h-auto w-40 sm:w-44"
+                unoptimized
+                priority
+              />
             </div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-200/25 bg-cyan-300/10 px-3 py-1.5 text-[11px] font-bold text-cyan-100">
+              <ShieldCheck size={14} />
+              بوابة الإدارة الآمنة
+            </div>
+            <h1 className="max-w-md text-3xl font-black leading-[1.45] sm:text-4xl">
+              مركز قيادة شبكة الرواد
+            </h1>
+            <div className="my-5 h-1 w-20 rounded-full bg-cyan-300" />
+            <p className="max-w-md text-sm leading-7 text-blue-100/80">
+              إدارة المنصات والأعضاء ومؤشرات الأثر والتقارير الذكية من مساحة موحّدة صُممت لدعم القرار.
+            </p>
+          </div>
 
-            {/* Floating Icons */}
-            {floatingIcons.map(({ icon: Icon, label, x, y, size, delay, duration }) => (
-              <div
-                key={label}
-                className="absolute animate-float text-white/20"
-                style={{ left: x, top: y, '--delay': delay, '--duration': duration } as React.CSSProperties}
-              >
-                <div className="relative">
-                  <Icon size={size} />
-                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium opacity-0 transition-opacity group-hover:opacity-100">
-                    {label}
-                  </span>
-                </div>
+          <div className="relative mt-8 grid grid-cols-3 gap-2">
+            {[
+              { icon: BarChart3, label: 'مؤشرات حية' },
+              { icon: Layers3, label: 'منصات مترابطة' },
+              { icon: Sparkles, label: 'تقارير ذكية' },
+            ].map(item => (
+              <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.07] px-2 py-3 text-center backdrop-blur-sm">
+                <item.icon size={17} className="mx-auto mb-1.5 text-cyan-200" />
+                <span className="text-[10px] font-semibold text-white/75">{item.label}</span>
               </div>
             ))}
+          </div>
+        </section>
 
-            {/* Glowing orbs */}
-            <div className="absolute left-1/4 top-1/4 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary-500/10 blur-3xl animate-pulse-glow" />
-            <div className="absolute bottom-1/4 right-1/4 h-48 w-48 rounded-full bg-primary-400/10 blur-3xl animate-pulse-glow" style={{ animationDelay: '1.5s' }} />
-
-            {/* Content Card */}
-            <div className="relative z-10 flex flex-1 items-center justify-center p-10">
-              <div className="w-full max-w-lg animate-slide-up">
-                {/* Logo */}
-                <div className="mb-6">
-                  <Image
-                    src="https://www.rowwad.net/uploads/system/logo-light.png"
-                    alt="شبكة الرواد الإلكترونية"
-                    width={176}
-                    height={64}
-                    className="h-auto w-44"
-                    unoptimized
-                  />
-                </div>
-
-                {/* Title */}
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-300 backdrop-blur-sm">
-                  <Database size={12} />
-                  لوحة قيادة منظومة البيانات
-                </div>
-
-                <h1 className="text-3xl font-bold leading-tight text-white">
-                  لوحة قيادة منظومة البيانات
-                </h1>
-
-                <p className="mt-3 text-sm leading-7 text-white/60">
-                  مراقبة شاملة للبيانات، التحليلات، والأداء الحي للمنصات والمبادرات لضمان جودة الأرشفة ودعم القرار.
-                </p>
-
-                {/* Single Random Quote Card */}
-                <div className="relative mt-6 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-5 backdrop-blur-sm shadow-xl">
-                  {/* Gradient border accent */}
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-secondary-500/10 via-transparent to-transparent pointer-events-none" />
-
-                  <div className="relative">
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary-500/20 text-secondary-300">
-                        <Quote size={13} />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-secondary-300/80">
-                        مقولة اليوم
-                      </span>
-                    </div>
-                    <blockquote>
-                      <p className="text-base font-semibold leading-7 text-white">
-                        &ldquo;{randomQuote.en}&rdquo;
-                      </p>
-                      <footer className="mt-2 text-xs text-white/50">
-                        — {randomQuote.by}
-                      </footer>
-                      <div className="mt-3 border-t border-white/10 pt-3">
-                        <p className="text-xs leading-6 text-white/70">
-                          {randomQuote.ar}
-                        </p>
-                      </div>
-                    </blockquote>
-                  </div>
-                </div>
-
-                {/* Bottom decorative items */}
-                <div className="mt-6 flex items-center gap-6 text-xs text-white/40">
-                  <span className="flex items-center gap-2">
-                    <Blocks size={16} className="text-secondary-400/60" />
-                    منصات متعددة
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <TrendingUp size={16} className="text-secondary-400/60" />
-                    تحليلات لحظية
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <FileText size={16} className="text-secondary-400/60" />
-                    تقارير ذكية
-                  </span>
-                </div>
+        <main className="flex items-center bg-white px-6 py-9 sm:px-10 lg:px-14" dir="rtl">
+          <div className="mx-auto w-full max-w-md">
+            <div className="mb-8">
+              <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-800 ring-1 ring-blue-100">
+                <LockKeyhole size={22} />
               </div>
+              <h2 className="text-2xl font-black text-blue-950 sm:text-3xl">مرحبًا بعودتك</h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-500">سجّل الدخول للوصول إلى لوحة التحكم</p>
             </div>
-          </section>
 
-          {/* ─── Left: Login Form ─── */}
-          <main className="flex items-center justify-center px-4 py-8 sm:px-8 lg:px-12">
-            <div className="w-full max-w-[460px]">
-              {/* Mobile Logo */}
-              <div className="mb-6 text-center lg:hidden">
-                <div className="mx-auto mb-4 inline-flex rounded-xl bg-white/10 p-3 shadow-lg backdrop-blur-sm ring-1 ring-white/10">
-                  <Image
-                    src="https://www.rowwad.net/uploads/system/logo-light.png"
-                    alt="شبكة الرواد الإلكترونية"
-                    width={160}
-                    height={58}
-                    className="h-auto w-36 sm:w-40"
-                    unoptimized
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="admin-email" className="mb-2 block text-sm font-bold text-neutral-700">البريد الإلكتروني</label>
+                <div className="relative">
+                  <Mail size={18} className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={event => setEmail(event.target.value)}
+                    className="h-12 rounded-xl border-neutral-200 pe-11 text-start focus:border-blue-500 focus:ring-blue-500/20"
+                    placeholder="name@rowad-network.org"
+                    autoComplete="email"
+                    dir="ltr"
                   />
                 </div>
               </div>
 
-              {/* Mobile: Single Random Quote */}
-              <div className="mb-6 lg:hidden">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4 backdrop-blur-sm">
-                  <div className="mb-2 flex items-center gap-2 text-secondary-300">
-                    <Quote size={14} />
-                    <span className="text-[11px] font-bold uppercase tracking-wider">مقولة اليوم</span>
-                  </div>
-                  <blockquote>
-                    <p className="text-sm font-semibold leading-6 text-white/90">{randomQuote.en}</p>
-                    <footer className="mt-1 text-[11px] text-white/50">— {randomQuote.by}</footer>
-                  </blockquote>
-                </div>
-              </div>
-
-              {/* Login Card */}
-              <div className="rounded-xl border border-white/10 bg-white/95 p-5 sm:p-6 shadow-xl backdrop-blur-sm">
-                <div className="mb-4">
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-100 to-primary-200 text-primary-700 shadow-sm">
-                    <LockKeyhole size={18} />
-                  </div>
-                  <h1 className="text-xl font-bold text-neutral-900">تسجيل الدخول</h1>
-                  <p className="mt-1 text-sm leading-6 text-neutral-500">
-                    ادخل إلى لوحة تحكم شبكة الرواد لإدارة المحتوى ومتابعة مؤشرات الأثر.
-                  </p>
-                </div>
-
-                {DEMO_ACCOUNTS.length > 0 && (
-                  <div className="mb-5">
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary-100 text-secondary-600">
-                        <Sparkles size={12} />
-                      </div>
-                      <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">دخول تجريبي بنقرة واحدة</span>
-                    </div>
-
-                    <div className="grid gap-2">
-                      {DEMO_ACCOUNTS.map((account, idx) => {
-                        const Icon = account.icon
-                        const isLoading = demoLoadingIdx === idx
-                        return (
-                          <Button unstyled
-                            key={idx}
-                            type="button"
-                            onClick={() => handleDemoLogin(idx)}
-                            disabled={loading || demoLoadingIdx !== null}
-                            className={`flex w-full items-center gap-3 rounded-xl border ${account.border} ${account.bgLight} px-3 py-2.5 text-start transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60`}
-                          >
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${account.color} text-white shadow-sm`}>
-                              {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={16} />}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className={`block text-[11px] sm:text-xs font-bold ${account.textColor}`}>
-                                {account.role}
-                              </span>
-                              <span className="mt-0.5 block text-[10px] text-neutral-500 leading-tight">
-                                {account.desc}
-                              </span>
-                            </span>
-                            <ArrowLeft size={14} className="shrink-0 text-neutral-400" />
-                          </Button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* ===== فاصل ===== */}
-                {DEMO_ACCOUNTS.length > 0 && <div className="mb-4 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-neutral-200" />
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">أو سجل دخولك يدوياً</span>
-                  <div className="h-px flex-1 bg-neutral-200" />
-                </div>}
-
-                <form onSubmit={handleSubmit} className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-neutral-700">
-                      البريد الإلكتروني
-                    </label>
-                    <Input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="input-field"
-                      placeholder="email@example.com"
-                      autoComplete="email"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-semibold text-neutral-700">
-                      كلمة المرور
-                    </label>
-                    <Input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="input-field"
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="rounded-xl bg-error-50 px-3 py-2 text-xs text-error-700 ring-1 ring-error-200" role="alert">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button unstyled
-                    type="submit"
-                    disabled={loading || demoLoadingIdx !== null}
-                    className="btn-primary btn-md w-full"
+              <div>
+                <label htmlFor="admin-password" className="mb-2 block text-sm font-bold text-neutral-700">كلمة المرور</label>
+                <div className="relative">
+                  <LockKeyhole size={18} className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Input
+                    id="admin-password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={event => setPassword(event.target.value)}
+                    className="h-12 rounded-xl border-neutral-200 px-11 text-start focus:border-blue-500 focus:ring-blue-500/20"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    dir="ltr"
+                  />
+                  <Button
+                    unstyled
+                    type="button"
+                    onClick={() => setShowPassword(current => !current)}
+                    className="absolute start-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-blue-700"
+                    aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                   >
-                    {loading ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        جارٍ تسجيل الدخول...
-                      </>
-                    ) : (
-                      <>
-                        تسجيل الدخول
-                        <ShieldCheck size={16} />
-                      </>
-                    )}
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                   </Button>
-                </form>
-
-                <div className="mt-4 grid grid-cols-3 gap-1.5 sm:gap-2 border-t border-neutral-200 pt-4 text-center">
-                  {[
-                    { icon: Database, label: 'بيانات' },
-                    { icon: BarChart3, label: 'تحليل' },
-                    { icon: ShieldCheck, label: 'حوكمة' },
-                  ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="rounded-xl bg-neutral-50/80 px-1 sm:px-2 py-2 ring-1 ring-neutral-100">
-                      <Icon className="mx-auto mb-1 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-700" />
-                      <span className="text-[10px] sm:text-[11px] font-bold text-neutral-600">{label}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
+
+              <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-neutral-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={event => setRememberMe(event.target.checked)}
+                  className="size-4 rounded border-neutral-300 text-blue-700 focus:ring-blue-600"
+                />
+                تذكّر البريد الإلكتروني
+              </label>
+
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                unstyled
+                type="submit"
+                disabled={loading}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-l from-blue-800 to-blue-600 font-bold text-white shadow-lg shadow-blue-700/20 transition hover:-translate-y-0.5 hover:shadow-xl disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowLeft size={18} />}
+                {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+              </Button>
+            </form>
+
+            <div className="mt-8 border-t border-neutral-200 pt-5 text-center text-xs text-neutral-400">
+              © {new Date().getFullYear()} شبكة الرواد الإلكترونية — جميع الحقوق محفوظة
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
-    </>
+    </div>
   )
 }

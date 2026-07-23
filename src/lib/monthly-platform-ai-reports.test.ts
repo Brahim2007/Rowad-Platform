@@ -34,6 +34,19 @@ describe('monthly platform AI report policy', () => {
     assert.match(managerApi, /handleSmartReports/)
   })
 
+  it('separates the network-wide report from platform reports in API and UI', () => {
+    const route = source('src/app/api/admin/ai/impact-report/route.ts')
+    const networkPage = source('src/app/[locale]/admin/impact/page.tsx')
+    const archive = source('src/app/[locale]/admin/impact/ai-reports/page.tsx')
+
+    assert.match(route, /تقرير أداء شبكة رواد — الكلي/)
+    assert.match(route, /تقرير أداء منصة/)
+    assert.match(networkPage, /reportScope: 'network'/)
+    assert.doesNotMatch(networkPage, /setRepPlat|setRepRole/)
+    assert.match(archive, /تقرير أداء الشبكة الكلي/)
+    assert.match(archive, /تقرير أداء منصة/)
+  })
+
   it('creates due reminders and notifies platform managers after generation', () => {
     const reminders = source('src/lib/monthly-platform-report-reminders.ts')
     const route = source('src/app/api/admin/ai/impact-report/route.ts')

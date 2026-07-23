@@ -4,6 +4,7 @@ interface SmartImpactReportDocumentProps {
   report: SmartImpactReport
   metrics: ImpactReportMetrics
   generatedAt: string
+  reportScope?: 'NETWORK' | 'PLATFORM'
 }
 
 function formatChange(value: number | null) {
@@ -12,7 +13,7 @@ function formatChange(value: number | null) {
   return `${value > 0 ? '+' : ''}${value}%`
 }
 
-export function SmartImpactReportDocument({ report, metrics, generatedAt }: SmartImpactReportDocumentProps) {
+export function SmartImpactReportDocument({ report, metrics, generatedAt, reportScope = 'NETWORK' }: SmartImpactReportDocumentProps) {
   const participationRate = metrics.memberCount ? Math.round((metrics.activeMembers / metrics.memberCount) * 100) : 0
   const recommendations = [...report.recommendations].sort((a, b) => {
     const order = { 'عالية': 0, 'متوسطة': 1, 'منخفضة': 2 }
@@ -23,9 +24,13 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
     <article className="report-paper" dir="rtl">
       {/* رأس التقرير — بتصميم محدث */}
       <header className="report-header">
-        <p className="report-brand">شبكة الرواد الإلكترونية · وحدة قياس الأثر</p>
+        <p className="report-brand">
+          {reportScope === 'PLATFORM' ? 'تقرير أداء المنصة' : 'تقرير أداء شبكة رواد — الكلي'} · وحدة قياس الأثر
+        </p>
         <h1 className="report-title">{report.title}</h1>
-        <p className="report-description">تقرير تنفيذي ذكي مبني على كامل بيانات {metrics.periodLabel}، أُنشئ في {new Date(generatedAt).toLocaleString('ar-SA')}.</p>
+        <p className="report-description">
+          {reportScope === 'PLATFORM' ? 'تقرير خاص بأداء المنصة المحددة وأعضائها' : 'تقرير كلي يشمل جميع منصات شبكة رواد وأعضائها'}، مبني على كامل بيانات {metrics.periodLabel}، وأُنشئ في {new Date(generatedAt).toLocaleString('ar-SA')}.
+        </p>
         <div className="report-header-meta">
           <span>{metrics.periodLabel}</span>
           <span>{metrics.dataQuality.recordsAnalyzed.toLocaleString('ar-SA')} سجلًا محللًا</span>
@@ -59,7 +64,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           <div className="report-meta-hint">{metrics.topMember ? `${metrics.topMember.points} نقطة · ${metrics.topMember.activities} نشاط` : '—'}</div>
         </div>
         <div className="report-highlight-card secondary">
-          <div className="report-highlight-label">📊 المنصة الأعلى أثرًا</div>
+          <div className="report-highlight-label">📊 {reportScope === 'PLATFORM' ? 'المنصة محل التقرير' : 'المنصة الأعلى أثرًا'}</div>
           <div className="report-highlight-value">{metrics.topPlatform?.name || 'لا تتوفر بيانات'}</div>
           <div className="report-meta-hint">{metrics.topPlatform ? `${metrics.topPlatform.points} نقطة · ${metrics.topPlatform.activities} نشاط` : '—'}</div>
         </div>
@@ -126,10 +131,10 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           </section>
         )}
 
-        {/* مقارنة المنصات */}
+        {/* أداء المنصات أو المنصة محل التقرير */}
         {metrics.platforms.length > 0 && (
           <section id="report-platforms" className="report-section report-anchor">
-            <h2 className="report-section-title">مقارنة المنصات</h2>
+            <h2 className="report-section-title">{reportScope === 'PLATFORM' ? 'أداء المنصة' : 'مقارنة المنصات'}</h2>
             <table className="report-table"><thead><tr><th>#</th><th>المنصة</th><th>النقاط</th><th>الأنشطة</th><th>التغير</th></tr></thead><tbody>
               {metrics.platforms.slice(0, 8).map((platform, index) => <tr key={platform.name}><td><span className="report-rank">{index + 1}</span></td><td className="report-table-name">{platform.name}</td><td>{platform.points.toLocaleString('ar-SA')}</td><td>{platform.activities}</td><td><span className={`report-change ${typeof platform.changePercent === 'number' ? platform.changePercent > 0 ? 'positive' : platform.changePercent < 0 ? 'negative' : 'stable' : ''}`}>{formatChange(platform.changePercent)}</span></td></tr>)}
             </tbody></table>
@@ -138,7 +143,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
 
         {/* رؤى */}
         <div className="report-highlight-grid">
-          <ListSection title="🔍 رؤى المنصات" items={report.platformInsights} />
+          <ListSection title={reportScope === 'PLATFORM' ? '🔍 رؤى المنصة' : '🔍 رؤى المنصات'} items={report.platformInsights} />
           <ListSection title="👥 رؤى الأعضاء" items={report.memberInsights} />
         </div>
 

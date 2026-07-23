@@ -217,11 +217,20 @@ ${data.platforms.map(p => `- ${p.name}: ${p.current} نشاط (السابق: ${p
   /**
    * تقرير أثر إداري موسّع مبني حصراً على مؤشرات محسوبة في الخادم.
    */
-  async impactReport(metrics: ImpactReportMetrics, userId: string): Promise<SmartImpactReport> {
+  async impactReport(
+    metrics: ImpactReportMetrics,
+    userId: string,
+    context: { scope: 'network' | 'platform'; platformName?: string },
+  ): Promise<SmartImpactReport> {
     const withinBudget = await checkBudget()
     if (!withinBudget) throw new Error('Budget exceeded')
 
+    const scopeInstruction = context.scope === 'platform'
+      ? `هذا تقرير أداء منصة "${context.platformName || 'المنصة'}" فقط. حلّل أداء هذه المنصة وأعضائها، ولا تصفه كتقرير الشبكة الكلي ولا تنشئ مقارنات بين منصات غير موجودة.`
+      : 'هذا تقرير أداء شبكة رواد الكلي. حلّل بيانات الشبكة كاملة وقارن أداء المنصات الواردة فيها.'
+
     const prompt = `أنشئ تقريراً إدارياً تحليلياً باللغة العربية اعتماداً حصراً على بيانات JSON التالية.
+${scopeInstruction}
 لا تخترع أرقاماً أو أسباباً غير موجودة. عند غياب المقارنة أو ضعف البيانات اذكر ذلك بوضوح في dataNotes.
 اجعل التوصيات عملية وقابلة للقياس، وافصل بين الحقائق والتفسير.
 
@@ -243,7 +252,9 @@ ${JSON.stringify(metrics, null, 2)}
 }`
 
     const result = await this.chat(prompt, {
-      system: 'أنت محلل أداء تنفيذي لشبكة رواد. التزم بالأرقام المقدمة، اكتب بالعربية الفصحى، ولا تقدّم أي قرار اعتماد آلي.',
+      system: context.scope === 'platform'
+        ? 'أنت محلل أداء تنفيذي لمنصة محددة ضمن شبكة رواد. لا تخلط أداء المنصة بأداء الشبكة الكلي، والتزم بالأرقام المقدمة.'
+        : 'أنت محلل أداء تنفيذي لشبكة رواد. هذا تقرير الشبكة الكلي؛ التزم بالأرقام المقدمة، واكتب بالعربية الفصحى.',
       temperature: 0.2,
       maxTokens: 3600,
       userId,

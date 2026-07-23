@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const impactReportRequestSchema = z.object({
+  reportScope: z.enum(['network', 'platform']).default('network'),
   periodType: z.enum(['monthly', 'yearly']).default('monthly'),
   year: z.coerce.number().int().min(2020).max(2100),
   month: z.coerce.number().int().min(1).max(12).optional(),
@@ -9,6 +10,21 @@ export const impactReportRequestSchema = z.object({
 }).superRefine((value, ctx) => {
   if (value.periodType === 'monthly' && !value.month) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['month'], message: 'الشهر مطلوب للتقرير الشهري' })
+  }
+  if (value.reportScope === 'network' && value.platformId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['platformId'], message: 'تقرير الشبكة الكلي لا يقبل منصة محددة' })
+  }
+  if (value.reportScope === 'network' && value.networkRole) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['networkRole'], message: 'تقرير الشبكة الكلي يشمل كل صفات الأعضاء' })
+  }
+  if (value.reportScope === 'platform' && !value.platformId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['platformId'], message: 'المنصة مطلوبة لتقرير أداء المنصة' })
+  }
+  if (value.reportScope === 'platform' && value.periodType !== 'monthly') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['periodType'], message: 'تقرير أداء المنصة شهري فقط' })
+  }
+  if (value.reportScope === 'platform' && value.networkRole) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['networkRole'], message: 'تقرير أداء المنصة يشمل كل صفات أعضائها' })
   }
 })
 

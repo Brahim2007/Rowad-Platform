@@ -29,9 +29,12 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(50, Math.max(1, Number(searchParams.get('pageSize')) || 30))
     const search = (searchParams.get('search') || '').trim().slice(0, 100)
     const year = Number(searchParams.get('year')) || 0
-    const where = {
+    const scope = searchParams.get('scope')
+    const where: Prisma.AiGeneratedReportWhereInput = {
       ...(search && { title: { contains: search, mode: 'insensitive' as const } }),
       ...(year >= 2020 && year <= 2100 && { periodYear: year }),
+      ...(scope === 'network' && { platformId: null }),
+      ...(scope === 'platform' && { platformId: { not: null } }),
     }
     const [reports, total] = await Promise.all([
       prisma.aiGeneratedReport.findMany({
@@ -52,7 +55,14 @@ export async function GET(request: NextRequest) {
       }),
       prisma.aiGeneratedReport.count({ where }),
     ])
-    return NextResponse.json({ success: true, data: reports, pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } })
+    return NextResponse.json({
+      success: true,
+      data: reports.map(report => ({
+        ...report,
+        reportScope: report.platformId ? 'PLATFORM' : 'NETWORK',
+      })),
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    })
   } catch (error) {
     logger.error('[ai] impact-report list error', error)
     return NextResponse.json({ success: false, message: 'تعذر تحميل سجل التقارير الذكية' }, { status: 500 })
@@ -170,7 +180,16 @@ export async function POST(request: NextRequest) {
       period,
       qualityBonus,
     })
-    const report = await ai.impactReport(metrics, auth.user.id)
+    const generatedReport = await ai.impactReport(metrics, auth.user.id, {
+      scope: input.reportScope,
+      platformName: reportPlatform?.name,
+    })
+    const report = {
+      ...generatedReport,
+      title: input.reportScope === 'platform'
+        ? `تقرير أداء منصة ${reportPlatform!.name} — ${period.label}`
+        : `تقرير أداء شبكة رواد — الكلي — ${period.label}`,
+    }
     const savedReport = await prisma.aiGeneratedReport.create({
       data: {
         title: report.title,
@@ -235,6 +254,8 @@ export async function POST(request: NextRequest) {
         report,
         metrics,
         generatedAt: savedReport.createdAt.toISOString(),
+        reportScope: input.reportScope === 'platform' ? 'PLATFORM' : 'NETWORK',
+        platformName: reportPlatform?.name || null,
         source: 'full-period-server-data',
       },
     })

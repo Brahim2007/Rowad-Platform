@@ -103,6 +103,7 @@ export default function PlatformsOverviewPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          reportScope: 'platform',
           periodType: 'monthly',
           year,
           month,
@@ -259,7 +260,7 @@ export default function PlatformsOverviewPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="text-violet-600" size={20} />
-              إنشاء التقرير الذكي الشهري
+              إنشاء تقرير أداء المنصة الشهري
             </DialogTitle>
             <DialogDescription>
               سيتم تحليل بيانات منصة {reportPlatform?.platformName} عن شهر {MONTHS[month - 1]} {year}.

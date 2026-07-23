@@ -15,6 +15,21 @@ describe('smart impact report aggregation', () => {
     assert.equal(impactReportRequestSchema.safeParse({ periodType: 'monthly', year: 2026 }).success, false)
   })
 
+  it('keeps network-wide and platform report scopes separate', () => {
+    assert.equal(impactReportRequestSchema.safeParse({
+      reportScope: 'network', periodType: 'monthly', year: 2026, month: 7, platformId: 'p1',
+    }).success, false)
+    assert.equal(impactReportRequestSchema.safeParse({
+      reportScope: 'network', periodType: 'monthly', year: 2026, month: 7, networkRole: 'متطوع',
+    }).success, false)
+    assert.equal(impactReportRequestSchema.safeParse({
+      reportScope: 'platform', periodType: 'yearly', year: 2026, platformId: 'p1',
+    }).success, false)
+    assert.equal(impactReportRequestSchema.safeParse({
+      reportScope: 'platform', periodType: 'monthly', year: 2026, month: 7, platformId: 'p1',
+    }).success, true)
+  })
+
   it('calculates safe percentage changes', () => {
     assert.equal(percentageChange(150, 100), 50)
     assert.equal(percentageChange(0, 0), 0)

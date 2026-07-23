@@ -27,6 +27,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         report,
         metrics,
         generatedAt: saved.createdAt.toISOString(),
+        reportScope: saved.platformId ? 'PLATFORM' : 'NETWORK',
         filters: {
           periodType: saved.periodType,
           year: saved.periodYear,

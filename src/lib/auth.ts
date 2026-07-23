@@ -11,7 +11,7 @@ const ADMIN_BLOCK_DURATION_MS = 15 * 60 * 1000
 
 type AuthClaims = {
   id?: string
-  role?: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+  role?: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER' | 'EVALUATOR'
   platformId?: string | null
   platformName?: string | null
 }

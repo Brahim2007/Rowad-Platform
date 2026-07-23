@@ -4,6 +4,7 @@ import { TeamMemberSchema } from '@/lib/validations/team'
 import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { generateMemberCode } from '@/lib/member-code'
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/)
@@ -54,8 +55,7 @@ export async function POST(request: NextRequest) {
       : body
     const validated = TeamMemberSchema.parse(normalized)
 
-    // Generate code if not provided
-    const code = validated.code || `TM-${validated.slug}`
+    const code = await generateMemberCode()
     const platformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : null
     if (auth.user.role === 'PLATFORM_MANAGER' && !platformId) {
       return NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 })

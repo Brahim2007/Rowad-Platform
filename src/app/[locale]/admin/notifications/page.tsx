@@ -49,7 +49,7 @@ export default function NotificationsPage() {
       await fetch('/api/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ readAll: true }),
+        body: JSON.stringify({ readAll: true, type: 'ADMIN' }),
       })
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
       setUnreadCount(0)
@@ -62,7 +62,7 @@ export default function NotificationsPage() {
       await fetch('/api/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, type: 'ADMIN' }),
       })
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
       setUnreadCount(c => Math.max(0, c - 1))

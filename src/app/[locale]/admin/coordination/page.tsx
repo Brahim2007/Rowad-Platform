@@ -11,6 +11,7 @@ import {
   AlertCircle, User, ChevronDown, ShieldCheck, ListChecks,
   Calendar, AlertTriangle,
   ArrowUpCircle, XCircle,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -28,8 +29,14 @@ interface Task {
   completedAt: string | null
   notes: string | null
   createdAt: string
-  platform?: { name: string; slug: string } | null
-  program?: { name: string; slug: string } | null
+  platform?: { id: string; name: string; slug: string } | null
+  program?: { id: string; name: string; slug: string } | null
+}
+
+interface PlatformOption {
+  id: string
+  name: string
+  programs?: { id: string; name: string }[]
 }
 
 interface DataStandard {
@@ -81,8 +88,13 @@ const emptyStandard = {
 export default function AdminCoordinationPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [standards, setStandards] = useState<DataStandard[]>([])
+  const [platforms, setPlatforms] = useState<PlatformOption[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [platformFilter, setPlatformFilter] = useState('')
 
   // Task CRUD
   const [showTaskModal, setShowTaskModal] = useState(false)
@@ -98,12 +110,14 @@ export default function AdminCoordinationPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [tRes, sRes] = await Promise.all([
+      const [tRes, sRes, pRes] = await Promise.all([
         fetch('/api/admin/coordination/tasks').then(r => r.json()),
         fetch('/api/admin/coordination/standards').then(r => r.json()),
+        fetch('/api/admin/platforms').then(r => r.json()),
       ])
       if (tRes.success) setTasks(tRes.data || [])
       if (sRes.success) setStandards(sRes.data || [])
+      if (pRes.success) setPlatforms(pRes.data?.platforms || [])
     } catch { toast.error('فشل تحميل البيانات') }
     finally { setLoading(false) }
   }, [])
@@ -114,6 +128,15 @@ export default function AdminCoordinationPage() {
   const inProgressCount = tasks.filter(t => t.status === 'IN_PROGRESS').length
   const completedCount = tasks.filter(t => t.status === 'COMPLETED').length
   const urgentCount = tasks.filter(t => t.priority === 'URGENT' && t.status !== 'COMPLETED').length
+  const overdueCount = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && !['COMPLETED', 'CANCELLED'].includes(t.status)).length
+  const filteredTasks = tasks.filter(task => {
+    const query = search.trim().toLowerCase()
+    return (!query || [task.title, task.description, task.assignee, task.platform?.name, task.program?.name].some(value => value?.toLowerCase().includes(query)))
+      && (!statusFilter || task.status === statusFilter)
+      && (!priorityFilter || task.priority === priorityFilter)
+      && (!platformFilter || task.platform?.id === platformFilter)
+  })
+  const selectedPlatformPrograms = platforms.find(platform => platform.id === taskForm.platformId)?.programs || []
 
   // ─── Task CRUD ───
   const openCreateTask = () => { setEditingTask(null); setTaskForm(emptyTask); setShowTaskModal(true) }
@@ -123,7 +146,7 @@ export default function AdminCoordinationPage() {
       title: t.title, description: t.description || '', assignee: t.assignee || '',
       assigneeRole: t.assigneeRole || '', status: t.status, priority: t.priority,
       dueDate: t.dueDate ? t.dueDate.slice(0, 10) : '', notes: t.notes || '',
-      platformId: '', programId: '',
+      platformId: t.platform?.id || '', programId: t.program?.id || '',
     })
     setShowTaskModal(true)
   }
@@ -213,19 +236,23 @@ export default function AdminCoordinationPage() {
   )
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* ─── Header ─── */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4 border-b border-neutral-200 pb-5">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
-            <CalendarCheck className="text-primary-600" size={28} />
-            التنسيق المؤسسي
-          </h1>
-          <p className="text-neutral-500 max-w-2xl text-sm">
-            إدارة مهام التنسيق ومعايير البيانات بين المنصات والبرامج.
-          </p>
+    <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+      <section className="mb-5 overflow-hidden rounded-3xl bg-gradient-to-l from-primary-800 to-primary-600 p-6 text-white shadow-lg">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
+              <CalendarCheck size={15} /> التنسيق المؤسسي
+            </div>
+            <h1 className="text-2xl font-black md:text-3xl">غرفة التنسيق بين المنصات</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
+            توزيع المسؤوليات ومتابعة المواعيد ومعالجة التعثر بين الإدارة والمنصات ضمن مسار عمل واحد.
+            </p>
+          </div>
+          <Button unstyled onClick={openCreateTask} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-white px-4 text-sm font-black text-primary-800 shadow-sm">
+            <Plus size={15} /> مهمة جديدة
+          </Button>
         </div>
-      </div>
+      </section>
 
       {/* ─── Stats ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -233,7 +260,7 @@ export default function AdminCoordinationPage() {
           { label: 'مهام معلقة', value: pendingCount, icon: Clock, color: 'bg-neutral-100 text-neutral-500' },
           { label: 'قيد التنفيذ', value: inProgressCount, icon: AlertCircle, color: 'bg-primary-100 text-primary-600' },
           { label: 'مهام مكتملة', value: completedCount, icon: CheckCircle2, color: 'bg-success-50 text-success-500' },
-          { label: 'مهام عاجلة', value: urgentCount, icon: AlertTriangle, color: 'bg-error-50 text-error-600' },
+          { label: 'متأخرة/عاجلة', value: `${overdueCount}/${urgentCount}`, icon: AlertTriangle, color: 'bg-error-50 text-error-600' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card flex items-center gap-3 p-4">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}><Icon size={18} /></div>
@@ -255,15 +282,34 @@ export default function AdminCoordinationPage() {
             </Button>
           </div>
 
+          <div className="card mb-3 grid gap-2 p-3 sm:grid-cols-2">
+            <div className="relative sm:col-span-2">
+              <Search size={15} className="absolute end-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <Input value={search} onChange={event => setSearch(event.target.value)} className="input-field pe-9" placeholder="ابحث في المهمة أو المسؤول أو المنصة..." />
+            </div>
+            <NativeSelect value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field">
+              <option value="">كل الحالات</option>
+              {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+            </NativeSelect>
+            <NativeSelect value={platformFilter} onChange={event => setPlatformFilter(event.target.value)} className="input-field">
+              <option value="">كل المنصات</option>
+              {platforms.map(platform => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
+            </NativeSelect>
+            <NativeSelect value={priorityFilter} onChange={event => setPriorityFilter(event.target.value)} className="input-field sm:col-span-2">
+              <option value="">كل الأولويات</option>
+              {Object.entries(PRIORITY_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+            </NativeSelect>
+          </div>
+
           <div className="space-y-3">
-            {tasks.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <div className="card text-center py-8 text-neutral-400">
                 <ListChecks size={28} className="mx-auto mb-2 text-neutral-300" />
-                <p className="text-sm">لا توجد مهام</p>
+                <p className="text-sm">{tasks.length ? 'لا توجد مهام تطابق عوامل التصفية' : 'لا توجد مهام'}</p>
                 <Button unstyled onClick={openCreateTask} className="btn-primary btn-xs mt-3">إضافة مهمة</Button>
               </div>
             ) : (
-              tasks.map(task => {
+              filteredTasks.map(task => {
                 const statusCfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.PENDING
                 const prioCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.MEDIUM
                 const StatusIcon = statusCfg.icon
@@ -453,6 +499,31 @@ export default function AdminCoordinationPage() {
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الأولوية</label>
                   <NativeSelect value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value })} className="input-field">
                     {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </NativeSelect>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المنصة</label>
+                  <NativeSelect
+                    value={taskForm.platformId}
+                    onChange={event => setTaskForm({ ...taskForm, platformId: event.target.value, programId: '' })}
+                    className="input-field"
+                  >
+                    <option value="">مهمة إدارية عامة</option>
+                    {platforms.map(platform => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
+                  </NativeSelect>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">البرنامج</label>
+                  <NativeSelect
+                    value={taskForm.programId}
+                    onChange={event => setTaskForm({ ...taskForm, programId: event.target.value })}
+                    className="input-field"
+                    disabled={!taskForm.platformId}
+                  >
+                    <option value="">كل برامج المنصة</option>
+                    {selectedPlatformPrograms.map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
                   </NativeSelect>
                 </div>
               </div>

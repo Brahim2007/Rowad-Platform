@@ -33,24 +33,36 @@ export async function GET(request: NextRequest) {
       ? auth.user.platformId
       : (searchParams.get('platformId') || '')
     const status = searchParams.get('status') || ''
+    const source = searchParams.get('source') || ''
+    const group = searchParams.get('group') || ''
     const search = searchParams.get('search') || ''
     const year = searchParams.get('year') || ''
     const month = searchParams.get('month') || ''
     const limit = Math.min(Number(searchParams.get('limit')) || 200, 500)
+    const page = Math.max(Number(searchParams.get('page')) || 1, 1)
 
     const where: Record<string, unknown> = {}
     if (type) where.type = type
     if (status) where.status = status
+    if (source) where.source = source
     if (platformId) where.platformId = platformId
     if (year) where.periodYear = Number(year)
     if (month) where.periodMonth = Number(month)
+    const andFilters: Record<string, unknown>[] = []
     if (search) {
-      where.OR = [
+      andFilters.push({ OR: [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
         { tags: { contains: search, mode: 'insensitive' } },
-      ]
+      ] })
     }
+    if (group === 'knowledge') {
+      andFilters.push({ OR: [
+        { source: 'KNOWLEDGE_LIBRARY' },
+        { type: { in: ['RESEARCH', 'MANUAL', 'TOOLKIT', 'LESSON_LEARNED', 'BEST_PRACTICE'] } },
+      ] })
+    }
+    if (andFilters.length) where.AND = andFilters
     // ARCHIVED لا يُعرض إلا عند الطلب
     if (!status) where.status = { not: 'ARCHIVED' }
 
@@ -58,6 +70,7 @@ export async function GET(request: NextRequest) {
       prisma.document.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
         take: limit,
         include: {
           platform: { select: { id: true, name: true } },
@@ -73,7 +86,9 @@ export async function GET(request: NextRequest) {
       type: d.type,
       typeLabel: DOC_TYPE_LABELS[d.type] || 'أخرى',
       description: d.description,
+      content: d.content,
       tags: d.tags ? d.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
+      source: d.source,
       periodYear: d.periodYear,
       periodMonth: d.periodMonth,
       fileUrl: d.fileUrl,
@@ -89,7 +104,16 @@ export async function GET(request: NextRequest) {
       versionsCount: d._count?.versions || 0,
     }))
 
-    return NextResponse.json({ success: true, data, total })
+    return NextResponse.json({
+      success: true,
+      data,
+      total,
+      pagination: {
+        page,
+        pageSize: limit,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+    })
   } catch (error) {
     logger.error('Documents GET error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
@@ -102,8 +126,15 @@ export async function GET(request: NextRequest) {
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   REPORT: 'تقرير', BUDGET: 'ميزانية', MEETING_MINUTES: 'محضر اجتماع',
-  WORK_PLAN: 'خطة عمل', ANNOUNCEMENT: 'إعلان', NEWSLETTER: 'نشرة', OTHER: 'أخرى',
+  FINANCIAL_STATEMENT: 'بيان مالي', DECISION: 'قرار', POLICY: 'سياسة أو لائحة',
+  CONTRACT: 'عقد أو اتفاقية', WORK_PLAN: 'خطة عمل', RESEARCH: 'بحث أو دراسة',
+  MANUAL: 'دليل', TOOLKIT: 'حقيبة أدوات', LESSON_LEARNED: 'درس مستفاد',
+  BEST_PRACTICE: 'ممارسة مثلى', PRESENTATION: 'عرض تقديمي',
+  CORRESPONDENCE: 'مراسلة رسمية', MEDIA: 'مادة مرئية أو مسموعة',
+  ANNOUNCEMENT: 'إعلان', NEWSLETTER: 'نشرة', OTHER: 'أخرى',
 }
+
+const DOCUMENT_TYPES = new Set(Object.keys(DOC_TYPE_LABELS))
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth()
@@ -113,13 +144,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { title, type, description, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, platformId } = body
+    const { title, type, description, content, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, platformId } = body
 
     if (!title?.trim()) {
       return NextResponse.json({ success: false, message: 'عنوان الوثيقة مطلوب' }, { status: 400 })
     }
-    if (!fileUrl?.trim()) {
-      return NextResponse.json({ success: false, message: 'رابط الملف مطلوب' }, { status: 400 })
+    if (type && !DOCUMENT_TYPES.has(type)) {
+      return NextResponse.json({ success: false, message: 'نوع الوثيقة غير صالح' }, { status: 400 })
+    }
+    if (!fileUrl?.trim() && !content?.trim()) {
+      return NextResponse.json({ success: false, message: 'أضف رابط الملف أو نصًا/ملخصًا للسجل' }, { status: 400 })
     }
 
     const actor = auth.user.name || auth.user.email || 'مستخدم'
@@ -135,10 +169,11 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         type: type || 'OTHER',
         description: description?.trim() || null,
+        content: content?.trim() || null,
         tags: tags?.trim() || null,
         periodYear: periodYear || null,
         periodMonth: periodMonth || null,
-        fileUrl: fileUrl.trim(),
+        fileUrl: fileUrl?.trim() || null,
         fileType: fileType || null,
         fileSize: fileSize || null,
         platformId: scopedPlatformId,
@@ -148,16 +183,18 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // إنشاء النسخة الأولى
-    await prisma.documentVersion.create({
-      data: {
-        documentId: doc.id,
-        version: 1,
-        fileUrl: fileUrl.trim(),
-        editedBy: actor,
-        changeNote: 'الرفع الأولي',
-      },
-    })
+    // إنشاء النسخة الأولى للملفات فقط؛ السجلات النصية تحفظ دون نسخة ملف وهمية.
+    if (fileUrl?.trim()) {
+      await prisma.documentVersion.create({
+        data: {
+          documentId: doc.id,
+          version: 1,
+          fileUrl: fileUrl.trim(),
+          editedBy: actor,
+          changeNote: 'الرفع الأولي',
+        },
+      })
+    }
 
     return NextResponse.json({ success: true, data: doc }, { status: 201 })
   } catch (error) {
@@ -177,13 +214,20 @@ export async function PUT(request: NextRequest) {
   if (authError) return authError
 
   try {
-    const { id, title, type, description, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, status } = await request.json()
+    const { id, title, type, description, content, tags, periodYear, periodMonth, fileUrl, fileType, fileSize, status, platformId } = await request.json()
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
     const actor = auth.user.name || auth.user.email || 'مستخدم'
     const current = await prisma.document.findUnique({ where: { id } })
     if (!current) return NextResponse.json({ success: false, message: 'الوثيقة غير موجودة' }, { status: 404 })
     if (!(await verifyPlatformOwnership(auth.user, current.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    if (type && !DOCUMENT_TYPES.has(type)) {
+      return NextResponse.json({ success: false, message: 'نوع الوثيقة غير صالح' }, { status: 400 })
+    }
+    const scopedPlatformId = auth.user.role === 'PLATFORM_MANAGER' ? auth.user.platformId : (platformId || null)
+    if (scopedPlatformId && !(await verifyPlatformOwnership(auth.user, scopedPlatformId))) {
       return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
 
@@ -210,14 +254,15 @@ export async function PUT(request: NextRequest) {
         title: title?.trim(),
         type: type,
         description: description?.trim(),
+        content: content?.trim() || null,
         tags: tags?.trim(),
         periodYear: periodYear,
         periodMonth: periodMonth,
-        fileUrl: fileUrl?.trim(),
+        fileUrl: fileUrl?.trim() || null,
         fileType: fileType,
         fileSize: fileSize,
         status: status,
-        ...(auth.user.role === 'PLATFORM_MANAGER' ? { platformId: auth.user.platformId } : {}),
+        platformId: scopedPlatformId,
         lastEditedBy: actor,
         lastEditedAt: new Date(),
       },

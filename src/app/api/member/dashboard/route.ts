@@ -5,13 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireMemberToken } from '@/lib/member-auth'
+import { requireActiveMember } from '@/lib/member-auth'
 import { logger } from '@/lib/logger'
 import { memberImpactTotals, memberRank } from '@/lib/member-impact'
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = requireMemberToken(request)
+    const auth = await requireActiveMember(request)
     if (!auth.ok) return auth.error
 
     const { searchParams } = new URL(request.url)
@@ -84,6 +84,7 @@ async function handleDashboard(memberId: string) {
     status: l.status,
     date: l.date instanceof Date ? l.date.toISOString().slice(0, 10) : String(l.date || '').slice(0, 10),
     note: l.note || null,
+    link: l.link || null,
     rejectionReason: l.rejectionReason || null,
   }))
 
@@ -143,6 +144,7 @@ async function handleActivities(memberId: string, statusFilter: string) {
     status: l.status,
     date: l.date instanceof Date ? l.date.toISOString().slice(0, 10) : String(l.date || '').slice(0, 10),
     note: l.note || null,
+    link: l.link || null,
     rejectionReason: l.rejectionReason || null,
   }))
 

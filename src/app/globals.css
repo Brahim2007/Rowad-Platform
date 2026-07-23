@@ -284,6 +284,86 @@
     text-align: left;
     margin-bottom: 0.75rem;
   }
+
+  .report-paper {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 14mm;
+    background: white;
+    color: #171717;
+    font-family: inherit;
+  }
+  .report-header {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 22px;
+    color: white;
+    background: linear-gradient(135deg, hsl(var(--primary-800)), hsl(var(--primary-600)) 55%, hsl(var(--secondary-600)));
+  }
+  .report-header::after {
+    content: '';
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.09);
+    left: -55px;
+    top: -75px;
+  }
+  .report-brand { font-weight: 800; font-size: 12px; margin: 0 0 12px; color: rgb(255 255 255 / 0.82); }
+  .report-title { position: relative; z-index: 1; font-size: 27px; line-height: 1.45; margin: 0; max-width: 90%; }
+  .report-description { position: relative; z-index: 1; color: rgb(255 255 255 / 0.78); font-size: 12px; line-height: 1.8; margin-top: 9px; }
+  .report-header-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
+  .report-header-meta span { border: 1px solid rgb(255 255 255 / 0.2); background: rgb(255 255 255 / 0.1); border-radius: 999px; padding: 5px 9px; font-size: 9px; font-weight: 700; color: rgb(255 255 255 / 0.88); }
+  .report-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .report-meta-item { border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; background: linear-gradient(180deg, #fff, #fafafa); break-inside: avoid; }
+  .report-meta-item.positive { border-color: #bbf7d0; background: linear-gradient(180deg, #fff, #f0fdf4); }
+  .report-meta-item.negative { border-color: #fecaca; background: linear-gradient(180deg, #fff, #fef2f2); }
+  .report-meta-item.positive .report-meta-value { color: #15803d; }
+  .report-meta-item.negative .report-meta-value { color: #b91c1c; }
+  .report-meta-label { color: #737373; font-size: 10px; font-weight: 700; margin-bottom: 6px; }
+  .report-meta-value { color: #171717; font-size: 18px; font-weight: 900; }
+  .report-meta-hint { color: #a3a3a3; font-size: 9px; margin-top: 4px; }
+  .report-highlight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .report-highlight-card { border-radius: 14px; padding: 15px; border: 1px solid #dbeafe; background: #eff6ff; break-inside: avoid; }
+  .report-highlight-card.secondary { border-color: #d1fae5; background: #ecfdf5; }
+  .report-highlight-label { color: #64748b; font-size: 10px; font-weight: 700; margin-bottom: 5px; }
+  .report-highlight-value { color: #172554; font-size: 14px; font-weight: 800; }
+  .report-sections { display: grid; gap: 13px; }
+  .report-anchor { scroll-margin-top: 110px; }
+  .report-section { border: 1px solid #e5e7eb; border-radius: 15px; padding: 17px; break-inside: avoid; background: #fff; }
+  .report-section.accent { border-right: 5px solid hsl(var(--primary-600)); background: hsl(var(--primary-50) / 0.45); }
+  .report-section.success { border-right: 5px solid #16a34a; background: #f0fdf4; }
+  .report-section.warning { border-right: 5px solid #d97706; background: #fffbeb; }
+  .report-section.neutral { background: #fafafa; }
+  .report-section-title { font-size: 15px; font-weight: 900; color: #171717; margin: 0 0 10px; }
+  .report-section-body { color: #404040; font-size: 12px; line-height: 2; white-space: pre-wrap; }
+  .report-list { margin: 0; padding-right: 19px; }
+  .report-list li { margin-bottom: 6px; }
+  .report-recommendations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .report-recommendation { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: white; break-inside: avoid; }
+  .report-recommendation-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .report-recommendation-number { width: 21px; height: 21px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: hsl(var(--primary-50)); color: hsl(var(--primary-700)); font-size: 9px; font-weight: 900; }
+  .report-priority { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 9px; font-weight: 800; margin-bottom: 7px; background: #fef3c7; color: #92400e; }
+  .report-priority.high { background: #fee2e2; color: #991b1b; }
+  .report-priority.low { background: #dcfce7; color: #166534; }
+  .report-recommendation-title { font-size: 12px; font-weight: 900; margin-bottom: 5px; }
+  .report-table { width: 100%; border-collapse: separate; border-spacing: 0; overflow: hidden; border: 1px solid #e5e7eb; border-radius: 12px; font-size: 10px; }
+  .report-table th { background: #f5f5f5; color: #525252; font-weight: 800; }
+  .report-table th, .report-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #eeeeee; }
+  .report-table tr:last-child td { border-bottom: 0; }
+  .report-table-name { font-weight: 800; color: #262626; }
+  .report-share { min-width: 100px; display: flex; align-items: center; gap: 7px; font-weight: 800; }
+  .report-share-track { flex: 1; height: 5px; overflow: hidden; border-radius: 99px; background: #e5e7eb; }
+  .report-share-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, hsl(var(--primary-600)), hsl(var(--secondary-500))); }
+  .report-rank { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: #f5f5f5; color: #525252; font-size: 9px; font-weight: 900; }
+  .report-change { display: inline-flex; border-radius: 999px; padding: 3px 7px; font-weight: 800; background: #f5f5f5; color: #525252; }
+  .report-change.positive { background: #dcfce7; color: #166534; }
+  .report-change.negative { background: #fee2e2; color: #991b1b; }
+  .report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #737373; font-size: 9px; display: flex; justify-content: space-between; gap: 12px; }
 }
 
 @layer utilities {

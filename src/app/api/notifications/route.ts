@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { getMemberTokenPayload } from '@/lib/member-auth'
+import { requireActiveMember } from '@/lib/member-auth'
 import { logger } from '@/lib/logger'
 
-async function currentRecipientId(request: NextRequest, preferMember: boolean): Promise<string> {
-  if (preferMember) {
-    const payload = getMemberTokenPayload(request)
-    if (payload) return payload.id
+type RecipientContext = 'ADMIN' | 'MEMBER'
+
+async function currentRecipientId(request: NextRequest, type: RecipientContext): Promise<string> {
+  if (type === 'MEMBER') {
+    const member = await requireActiveMember(request)
+    return member.ok ? member.member.id : ''
   }
 
   const session = await auth()
   if (session?.user) return (session.user as { id?: string }).id || ''
-
-  const payload = getMemberTokenPayload(request)
-  return payload?.id || ''
+  return ''
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') || ''      // ADMIN or MEMBER
+    const type = searchParams.get('type')
     const limit = Math.min(Number(searchParams.get('limit')) || 30, 100)
 
-    const userId = await currentRecipientId(request, type === 'MEMBER' || !type)
+    if (type !== 'ADMIN' && type !== 'MEMBER') {
+      return NextResponse.json({ success: false, message: 'نوع المستلم مطلوب' }, { status: 400 })
+    }
+    const userId = await currentRecipientId(request, type)
 
     if (!userId) {
       return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
@@ -58,8 +61,11 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, readAll } = body
-    const targetUserId = await currentRecipientId(request, true)
+    const { id, readAll, type } = body
+    if (type !== 'ADMIN' && type !== 'MEMBER') {
+      return NextResponse.json({ success: false, message: 'نوع المستلم مطلوب' }, { status: 400 })
+    }
+    const targetUserId = await currentRecipientId(request, type)
 
     if (!targetUserId) {
       return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })

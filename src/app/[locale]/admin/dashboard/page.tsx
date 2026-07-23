@@ -609,7 +609,7 @@ export default function AdminDashboardPage() {
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <Input
             type="text"
-            placeholder="بحث بالاسم أو الكود..."
+            placeholder="بحث بالاسم أو رقم العضو..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="pe-9 ps-3"

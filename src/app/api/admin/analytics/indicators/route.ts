@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { recordActivityLog } from '@/lib/activity-log'
-import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { getPlatformScope, platformWhere, requireOperationalAccess, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -76,7 +76,7 @@ function indicatorData(body: Record<string, unknown>) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {

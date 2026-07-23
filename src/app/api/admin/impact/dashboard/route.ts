@@ -17,6 +17,7 @@ import {
   memberScopedPoints,
   memberByCategory,
   memberMonthlyPoints,
+  filterByScope,
   summarizeMembers,
   platformAggregation,
   computeAlerts,
@@ -268,15 +269,17 @@ async function buildDashboardData(scope: Scope, platformId?: string | null) {
   const summary = summarizeMembers(membersData, actionMap, scope)
   const totalPoints = summary.reduce((s, m) => s + m.total, 0)
 
-  // إجمالي كل الأنشطة بدون نطاق
+  // إجمالي الأنشطة والنشاط الحالي. مؤشرات الفترة يجب أن تستخدم النطاق نفسه.
   const allEntries = membersData.flatMap(m => m.entries)
+  const scopedEntries = scope.type === 'all' ? allEntries : filterByScope(allEntries, scope)
 
   const activeNow = membersData.filter(m => memberMonthlyPoints(m.entries, actionMap, new Date().getFullYear(), new Date().getMonth() + 1) > 0).length
 
   // تجميع المحاور
   const catTotals: Record<string, number> = {}
   for (const m of membersData) {
-    const byCat = memberByCategory(m.entries, actionMap)
+    const scopedMemberEntries = scope.type === 'all' ? m.entries : filterByScope(m.entries, scope)
+    const byCat = memberByCategory(scopedMemberEntries, actionMap)
     for (const [cat, val] of Object.entries(byCat)) {
       catTotals[cat] = (catTotals[cat] || 0) + val
     }
@@ -329,7 +332,7 @@ async function buildDashboardData(scope: Scope, platformId?: string | null) {
     kpis: {
       memberCount: membersData.length,
       activeNow,
-      actCount: allEntries.length,
+      actCount: scopedEntries.length,
       totalPoints,
       badgeCount: shieldAwardCount,
       topMember: topMember ? { name: topMember.member.name || `${topMember.member.firstName} ${topMember.member.lastName}`, total: topMember.total } : null,

@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 export const UnifiedMemberSchema = z.object({
   // Beneficiary fields
-  code: z.string().min(1, 'الكود مطلوب').max(50).trim(),
+  // يولّد الخادم رقم العضو تلقائيًا؛ يبقى اختياريًا للتوافق مع النماذج القديمة.
+  code: z.string().max(50).trim().optional().or(z.literal('')),
   firstName: z.string().min(1, 'الاسم الأول مطلوب').max(100).trim(),
   lastName: z.string().min(1, 'اسم العائلة مطلوب').max(100).trim(),
   email: z.string().email('البريد الإلكتروني غير صحيح').max(255).optional().or(z.literal('')),

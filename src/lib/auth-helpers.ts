@@ -5,6 +5,7 @@
  * ADMIN             — صلاحية كاملة (للتوافق مع الحالي)
  * EDITOR            — صلاحية محدودة (محتوى فقط)
  * PLATFORM_MANAGER  — مقيد بمنصته فقط
+ * EVALUATOR         — يرى التقييمات المسندة إليه فقط
  *
  * مبدأ العزل: PLATFORM_MANAGER لا يرى بيانات غير منصته في أي API.
  * كل API حساس يجب أن يستدعي إحدى هذه الدوال قبل معالجة الطلب.
@@ -65,7 +66,7 @@ export interface SessionUser {
   id: string
   email: string
   name: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER' | 'EVALUATOR'
   platformId: string | null
   platformName: string | null
 }
@@ -96,12 +97,42 @@ type AuthResult =
   | { ok: false; error: NextResponse }
 
 /** يتطلب أي دور مصادق عليه */
-export async function requireAuth(): Promise<AuthResult> {
+export async function requireAuth(options: { allowEvaluator?: boolean } = {}): Promise<AuthResult> {
   const user = await getSessionUser()
   if (!user) {
     return {
       ok: false,
       error: NextResponse.json({ success: false, message: 'غير مصرح — سجّل الدخول أولاً' }, { status: 401 }),
+    }
+  }
+  if (user.role === 'EVALUATOR' && !options.allowEvaluator) {
+    return {
+      ok: false,
+      error: NextResponse.json({ success: false, message: 'حساب المقيّم مخصص للتقييمات المسندة فقط' }, { status: 403 }),
+    }
+  }
+  return { ok: true, user }
+}
+
+/** يتطلب إدارة النظام أو مدير منصة؛ يستبعد المحرر والمقيّم المستقل. */
+export async function requireOperationalAccess(): Promise<AuthResult> {
+  const user = await getSessionUser()
+  if (!user) {
+    return {
+      ok: false,
+      error: NextResponse.json({ success: false, message: 'غير مصرح — سجّل الدخول أولاً' }, { status: 401 }),
+    }
+  }
+  if (!['SUPER_ADMIN', 'ADMIN', 'PLATFORM_MANAGER'].includes(user.role)) {
+    return {
+      ok: false,
+      error: NextResponse.json({ success: false, message: 'هذه الميزة تشغيلية وغير متاحة لدورك' }, { status: 403 }),
+    }
+  }
+  if (user.role === 'PLATFORM_MANAGER' && !user.platformId) {
+    return {
+      ok: false,
+      error: NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 }),
     }
   }
   return { ok: true, user }
@@ -134,10 +165,10 @@ export async function requireAdminRole(): Promise<AuthResult> {
       error: NextResponse.json({ success: false, message: 'غير مصرح — سجّل الدخول أولاً' }, { status: 401 }),
     }
   }
-  if (user.role === 'PLATFORM_MANAGER') {
+  if (!['SUPER_ADMIN', 'ADMIN', 'EDITOR'].includes(user.role)) {
     return {
       ok: false,
-      error: NextResponse.json({ success: false, message: 'هذه الصفحة غير متاحة لمدراء المنصات' }, { status: 403 }),
+      error: NextResponse.json({ success: false, message: 'هذه الصفحة غير متاحة لهذا الدور' }, { status: 403 }),
     }
   }
   return { ok: true, user }
@@ -173,7 +204,7 @@ export interface PlatformScope {
 
 /** بناء نطاق المنصة حسب دور المستخدم */
 export function getPlatformScope(user: SessionUser): PlatformScope {
-  if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'EDITOR') {
+  if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'EDITOR' || user.role === 'EVALUATOR') {
     return { filterId: null, filterAll: true }
   }
   // PLATFORM_MANAGER — مقيد بمنصته

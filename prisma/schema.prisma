@@ -31,10 +31,10 @@ model Partner {
 }
 
 enum PartnerType {
-  PARTNER   // شريك
-  SPONSOR   // راعي
+  PARTNER // شريك
+  SPONSOR // راعي
   SUPPORTER // داعم
-  DONOR     // مانح
+  DONOR // مانح
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -68,33 +68,33 @@ model Beneficiary {
   updatedAt      DateTime          @updatedAt
 
   // ─── الحقول الموحّدة (Unified Member fields) ───
-  type         MemberType   @default(BENEFICIARY)
-  role         String?      @db.VarChar(200)
-  slug         String?      @unique @db.VarChar(255)
-  linkedinUrl  String?      @db.VarChar(500)
-  memberSince  DateTime?
-  sortOrder    Int          @default(0)
-  interests    String?      @db.Text   // JSON: تحليل الاهتمامات
+  type        MemberType @default(BENEFICIARY)
+  role        String?    @db.VarChar(200)
+  slug        String?    @unique @db.VarChar(255)
+  linkedinUrl String?    @db.VarChar(500)
+  memberSince DateTime?
+  sortOrder   Int        @default(0)
+  interests   String?    @db.Text // JSON: تحليل الاهتمامات
 
   // ─── حقول نظام «لوحة أثر الرواد» (Impact Dashboard) ───
-  networkRole  String?      @db.VarChar(200)  // الصفة داخل الشبكة: باحث ومفكر، مؤثر رقمي...
-  joinDate     DateTime?                      // تاريخ الانضمام للشبكة
-  impactNote   String?      @db.Text          // ملاحظات خاصة بلوحة الأثر
+  networkRole String?   @db.VarChar(200) // الصفة داخل الشبكة: باحث ومفكر، مؤثر رقمي...
+  joinDate    DateTime? // تاريخ الانضمام للشبكة
+  impactNote  String?   @db.Text // ملاحظات خاصة بلوحة الأثر
 
   // ─── بوابة العضو (Member Portal) ───
-  passwordHash      String?  @db.VarChar(255)  // كلمة مرور بوابة العضو
-  mustChangePassword Boolean @default(true)    // يُلزم بتغيير كلمة المرور عند أول دخول
+  passwordHash       String? @db.VarChar(255) // كلمة مرور بوابة العضو
+  mustChangePassword Boolean @default(true) // يُلزم بتغيير كلمة المرور عند أول دخول
 
   // ─── ربط العضو بمنصة (للإدارة المباشرة) ───
-  platformId          String?
-  platform            Platform?  @relation("MemberPlatform", fields: [platformId], references: [id], onDelete: SetNull)
+  platformId String?
+  platform   Platform? @relation("MemberPlatform", fields: [platformId], references: [id], onDelete: SetNull)
 
-  enrollments             Enrollment[]
-  participations          Participation[]
+  enrollments              Enrollment[]
+  participations           Participation[]
   beneficiaryJourneyStages BeneficiaryJourneyStage[]
-  impactLogs              ImpactLog[]
-  impactAwards            ImpactAward[]
-  impactGates             ImpactGate[]
+  impactLogs               ImpactLog[]
+  impactAwards             ImpactAward[]
+  impactGates              ImpactGate[]
 
   @@index([code])
   @@index([email])
@@ -145,17 +145,17 @@ model Project {
   coverImage   String?       @db.VarChar(500)
   startDate    DateTime?
   endDate      DateTime?
-  partnerLogos      String?             @db.Text
-  isFeatured        Boolean             @default(false)
-  sortOrder         Int                 @default(0)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  partnerLogos String?       @db.Text
+  isFeatured   Boolean       @default(false)
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   platformId String?
   platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
 
   programId String?
-  program   Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   knowledgeItems   KnowledgeItem[]
   submittedReports SubmittedReport[]
@@ -184,30 +184,31 @@ enum ProjectStatus {
 // ═══════════════════════════════════════════════════════════
 
 model Platform {
-  id          String    @id @default(cuid())
-  name        String    @db.VarChar(255)
-  slug        String    @unique @db.VarChar(255)
-  description String    @db.Text
-  vision      String?   @db.Text
-  logo        String?   @db.VarChar(500)
-  coverImage  String?   @db.VarChar(500)
-  color       String?   @db.VarChar(50)
-  sortOrder   Int       @default(0)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(255)
+  slug        String   @unique @db.VarChar(255)
+  description String   @db.Text
+  vision      String?  @db.Text
+  logo        String?  @db.VarChar(500)
+  coverImage  String?  @db.VarChar(500)
+  color       String?  @db.VarChar(50)
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  programs              Program[]
-  projects              Project[]
-  knowledgeItems        KnowledgeItem[]
-  submittedReports      SubmittedReport[]
-  platformIndicators    PlatformIndicator[]
-  coordinationTasks     CoordinationTask[]
-  evaluations           Evaluation[]
-  impactLogs            ImpactLog[]
-  members               Beneficiary[]  @relation("MemberPlatform")
-  adminUsers            AdminUser[]
-  documents             Document[]
+  programs           Program[]
+  projects           Project[]
+  knowledgeItems     KnowledgeItem[]
+  submittedReports   SubmittedReport[]
+  platformIndicators PlatformIndicator[]
+  coordinationTasks  CoordinationTask[]
+  evaluations        Evaluation[]
+  impactLogs         ImpactLog[]
+  members            Beneficiary[]               @relation("MemberPlatform")
+  adminUsers         AdminUser[]
+  managerAssignments PlatformManagerAssignment[]
+  documents          Document[]
 
   @@index([slug])
   @@index([isActive])
@@ -233,15 +234,15 @@ model Program {
   platformId String
   platform   Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
 
-  activities          Activity[]
-  enrollments         Enrollment[]
-  projects            Project[]
-  knowledgeItems      KnowledgeItem[]
-  submittedReports    SubmittedReport[]
-  programIndicators   ProgramIndicator[]
-  coordinationTasks   CoordinationTask[]
-  evaluations         Evaluation[]
-  impactLogs          ImpactLog[]
+  activities        Activity[]
+  enrollments       Enrollment[]
+  projects          Project[]
+  knowledgeItems    KnowledgeItem[]
+  submittedReports  SubmittedReport[]
+  programIndicators ProgramIndicator[]
+  coordinationTasks CoordinationTask[]
+  evaluations       Evaluation[]
+  impactLogs        ImpactLog[]
 
   @@index([slug])
   @@index([platformId])
@@ -271,8 +272,8 @@ model Activity {
   program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   participations Participation[]
-  evaluations     Evaluation[]
-  impactLogs      ImpactLog[]
+  evaluations    Evaluation[]
+  impactLogs     ImpactLog[]
 
   @@index([slug])
   @@index([programId])
@@ -283,14 +284,14 @@ model Activity {
 }
 
 enum ActivityType {
-  WORKSHOP    // ورشة عمل
-  BOOTCAMP    // معسكر تدريبي
-  HACKATHON   // هاكاثون
-  SEMINAR     // ندوة
+  WORKSHOP // ورشة عمل
+  BOOTCAMP // معسكر تدريبي
+  HACKATHON // هاكاثون
+  SEMINAR // ندوة
   COMPETITION // مسابقة
-  MENTORING   // إرشاد
-  COURSE      // دورة
-  EVENT       // فعالية
+  MENTORING // إرشاد
+  COURSE // دورة
+  EVENT // فعالية
   OTHER
 }
 
@@ -314,7 +315,7 @@ model Enrollment {
   program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   participations Participation[]
-  impactLogs      ImpactLog[]
+  impactLogs     ImpactLog[]
 
   @@unique([beneficiaryId, programId])
   @@index([beneficiaryId])
@@ -370,10 +371,10 @@ model Participation {
 
 enum ParticipationStatus {
   REGISTERED // مسجّل
-  ATTENDED   // حضر
-  COMPLETED  // أتمّ
-  ABSENT     // غائب
-  CANCELLED  // ملغى
+  ATTENDED // حضر
+  COMPLETED // أتمّ
+  ABSENT // غائب
+  CANCELLED // ملغى
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -445,17 +446,21 @@ model NewsPost {
 // ═══════════════════════════════════════════════════════════
 
 model AdminUser {
-  id           String    @id @default(cuid())
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @db.VarChar(255)
-  fullName     String    @db.VarChar(200)
-  role         AdminRole @default(EDITOR)
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  platformId   String?                // FK إلى Platform — مطلوب لدور PLATFORM_MANAGER
-  platform     Platform?  @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                         String                      @id @default(cuid())
+  email                      String                      @unique @db.VarChar(255)
+  passwordHash               String                      @db.VarChar(255)
+  fullName                   String                      @db.VarChar(200)
+  role                       AdminRole                   @default(EDITOR)
+  isActive                   Boolean                     @default(true)
+  lastLoginAt                DateTime?
+  platformId                 String? // FK إلى Platform — مطلوب لدور PLATFORM_MANAGER
+  platform                   Platform?                   @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  platformManagerAssignments PlatformManagerAssignment[]
+  evaluationsCreated         Evaluation[]                @relation("EvaluationCreator")
+  evaluationsAssigned        Evaluation[]                @relation("EvaluationEvaluator")
+  evaluationsApproved        Evaluation[]                @relation("EvaluationApprover")
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
 
   @@index([email])
   @@index([role])
@@ -468,6 +473,32 @@ enum AdminRole {
   ADMIN
   EDITOR
   PLATFORM_MANAGER
+  EVALUATOR
+}
+
+model PlatformManagerAssignment {
+  id             String                        @id @default(cuid())
+  platformId     String
+  platform       Platform                      @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  adminUserId    String
+  adminUser      AdminUser                     @relation(fields: [adminUserId], references: [id], onDelete: Restrict)
+  assignmentRole PlatformManagerAssignmentRole @default(PRIMARY)
+  startedAt      DateTime                      @default(now())
+  endedAt        DateTime?
+  assignedBy     String?                       @db.VarChar(200)
+  note           String?                       @db.Text
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+
+  @@index([platformId, endedAt])
+  @@index([adminUserId, endedAt])
+  @@index([assignmentRole])
+  @@map("platform_manager_assignments")
+}
+
+enum PlatformManagerAssignmentRole {
+  PRIMARY
+  DEPUTY
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -475,58 +506,75 @@ enum AdminRole {
 // ═══════════════════════════════════════════════════════════
 
 model Document {
-  id            String         @id @default(cuid())
-  title         String         @db.VarChar(500)
-  type          DocumentType   @default(OTHER)
-  description   String?        @db.Text
-  tags          String?        @db.VarChar(500)     // وسوم مفصولة بفواصل
-  periodYear    Int?
-  periodMonth   Int?                                 // 1-12
-  fileUrl       String         @db.VarChar(1000)     // رابط الملف المرفوع
-  fileType      String?        @db.VarChar(50)       // pdf, docx, xlsx, image, etc.
-  fileSize      Int?                                 // الحجم بالبايت
-  platformId    String?
-  platform      Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  uploadedBy    String?        @db.VarChar(200)      // اسم الرافع
-  uploadedById  String?                              // معرف المستخدم الرافع
-  lastEditedBy  String?        @db.VarChar(200)      // آخر من عدّل
-  lastEditedAt  DateTime?
-  status        DocStatus      @default(DRAFT)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id           String       @id @default(cuid())
+  title        String       @db.VarChar(500)
+  type         DocumentType @default(OTHER)
+  description  String?      @db.Text
+  content      String?      @db.Text
+  tags         String?      @db.VarChar(500) // وسوم مفصولة بفواصل
+  source       String       @default("PLATFORM_OUTPUT") @db.VarChar(50)
+  sourceId     String?      @db.VarChar(100)
+  periodYear   Int?
+  periodMonth  Int? // 1-12
+  fileUrl      String?      @db.VarChar(1000) // رابط الملف المرفوع
+  fileType     String?      @db.VarChar(50) // pdf, docx, xlsx, image, etc.
+  fileSize     Int? // الحجم بالبايت
+  platformId   String?
+  platform     Platform?    @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  uploadedBy   String?      @db.VarChar(200) // اسم الرافع
+  uploadedById String? // معرف المستخدم الرافع
+  lastEditedBy String?      @db.VarChar(200) // آخر من عدّل
+  lastEditedAt DateTime?
+  status       DocStatus    @default(DRAFT)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  versions      DocumentVersion[]
+  versions DocumentVersion[]
 
+  @@unique([source, sourceId])
   @@index([platformId])
   @@index([type])
   @@index([status])
+  @@index([source])
   @@index([createdAt])
   @@index([periodYear, periodMonth])
   @@map("documents")
 }
 
 model DocumentVersion {
-  id          String    @id @default(cuid())
-  documentId  String
-  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  version     Int       @default(1)
-  fileUrl     String    @db.VarChar(1000)
-  editedBy    String?   @db.VarChar(200)
-  editedAt    DateTime  @default(now())
-  changeNote  String?   @db.Text
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version    Int      @default(1)
+  fileUrl    String   @db.VarChar(1000)
+  editedBy   String?  @db.VarChar(200)
+  editedAt   DateTime @default(now())
+  changeNote String?  @db.Text
 
   @@index([documentId])
   @@map("document_versions")
 }
 
 enum DocumentType {
-  REPORT             // تقرير
-  BUDGET             // ميزانية
-  MEETING_MINUTES    // محضر اجتماع
-  WORK_PLAN          // خطة عمل
-  ANNOUNCEMENT       // إعلان
-  NEWSLETTER         // نشرة
-  OTHER              // أخرى
+  REPORT // تقرير
+  BUDGET // ميزانية
+  FINANCIAL_STATEMENT // بيان أو كشف مالي
+  MEETING_MINUTES // محضر اجتماع
+  DECISION // قرار
+  POLICY // سياسة أو لائحة
+  CONTRACT // عقد أو اتفاقية
+  WORK_PLAN // خطة عمل
+  RESEARCH // بحث أو دراسة
+  MANUAL // دليل
+  TOOLKIT // حقيبة أدوات
+  LESSON_LEARNED // درس مستفاد
+  BEST_PRACTICE // ممارسة مثلى
+  PRESENTATION // عرض تقديمي
+  CORRESPONDENCE // مراسلة رسمية
+  MEDIA // مادة مرئية أو مسموعة
+  ANNOUNCEMENT // إعلان
+  NEWSLETTER // نشرة
+  OTHER // أخرى
 }
 
 enum DocStatus {
@@ -540,19 +588,19 @@ enum DocStatus {
 // ═══════════════════════════════════════════════════════════
 
 model Notification {
-  id            String   @id @default(cuid())
-  recipientId   String   @db.VarChar(100)   // member/beneficiary id or admin id
-  recipientType String   @db.VarChar(50)    // ADMIN | PLATFORM_MANAGER | MEMBER
-  type          String   @db.VarChar(50)    // ACTIVITY_APPROVED | ACTIVITY_REJECTED | NEW_SUBMISSION | BROADCAST | SYSTEM_ALERT
-  title         String   @db.VarChar(500)
-  body          String   @db.Text
-  link          String?  @db.VarChar(500)   // رابط للانتقال إليه
-  isRead        Boolean  @default(false)
+  id            String    @id @default(cuid())
+  recipientId   String    @db.VarChar(100) // member/beneficiary id or admin id
+  recipientType String    @db.VarChar(50) // ADMIN | PLATFORM_MANAGER | MEMBER
+  type          String    @db.VarChar(50) // ACTIVITY_APPROVED | ACTIVITY_REJECTED | NEW_SUBMISSION | BROADCAST | SYSTEM_ALERT
+  title         String    @db.VarChar(500)
+  body          String    @db.Text
+  link          String?   @db.VarChar(500) // رابط للانتقال إليه
+  isRead        Boolean   @default(false)
   readAt        DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
   expiresAt     DateTime?
-  senderId      String?  @db.VarChar(100)
-  senderName    String?  @db.VarChar(200)
+  senderId      String?   @db.VarChar(100)
+  senderName    String?   @db.VarChar(200)
 
   @@index([recipientId])
   @@index([recipientId, isRead])
@@ -561,21 +609,21 @@ model Notification {
 }
 
 model Broadcast {
-  id                String   @id @default(cuid())
-  senderId          String   @db.VarChar(100)
-  senderName        String?  @db.VarChar(200)
-  targetType        String   @db.VarChar(50)  // ALL | PLATFORM | ROLE | INDIVIDUAL
-  targetPlatformId  String?                   // للمنصة المعنية
-  targetRole        String?  @db.VarChar(200) // للصفة المعنية
-  targetMemberId    String?                   // للعضو المعني
-  subject           String   @db.VarChar(500)
-  body              String   @db.Text
-  channel           String   @db.VarChar(20)  @default("IN_APP")  // IN_APP | EMAIL | BOTH
-  status            String   @db.VarChar(20)  @default("DRAFT")   // DRAFT | SCHEDULED | SENT
-  scheduledAt       DateTime?
-  sentAt            DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String    @id @default(cuid())
+  senderId         String    @db.VarChar(100)
+  senderName       String?   @db.VarChar(200)
+  targetType       String    @db.VarChar(50) // ALL | PLATFORM | ROLE | INDIVIDUAL
+  targetPlatformId String? // للمنصة المعنية
+  targetRole       String?   @db.VarChar(200) // للصفة المعنية
+  targetMemberId   String? // للعضو المعني
+  subject          String    @db.VarChar(500)
+  body             String    @db.Text
+  channel          String    @default("IN_APP") @db.VarChar(20) // IN_APP | EMAIL | BOTH
+  status           String    @default("DRAFT") @db.VarChar(20) // DRAFT | SCHEDULED | SENT
+  scheduledAt      DateTime?
+  sentAt           DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([senderId])
   @@index([status])
@@ -589,8 +637,8 @@ model Broadcast {
 
 model AiUsageLog {
   id           String   @id @default(cuid())
-  userId       String                       // من استخدم
-  feature      String   @db.VarChar(100)    // report-summary, report-analysis, assistant
+  userId       String // من استخدم
+  feature      String   @db.VarChar(100) // report-summary, report-analysis, assistant
   inputTokens  Int      @default(0)
   outputTokens Int      @default(0)
   costEstimate Float    @default(0)
@@ -601,6 +649,61 @@ model AiUsageLog {
   @@index([feature])
   @@index([createdAt])
   @@map("ai_usage_logs")
+}
+
+model AiGeneratedReport {
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(300)
+  periodType  String   @db.VarChar(20)
+  periodYear  Int
+  periodMonth Int?
+  platformId  String?  @db.VarChar(100)
+  networkRole String?  @db.VarChar(200)
+  reportJson  String   @db.Text
+  metricsJson String   @db.Text
+  generatedBy String   @db.VarChar(200)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([generatedBy, createdAt])
+  @@index([periodYear, periodMonth])
+  @@map("ai_generated_reports")
+}
+
+model AiGovernanceRecommendation {
+  id               String    @id @default(cuid())
+  fingerprint      String    @unique @db.VarChar(100)
+  category         String    @db.VarChar(50)
+  severity         String    @db.VarChar(20)
+  title            String    @db.VarChar(300)
+  summary          String    @db.Text
+  evidence         String    @db.Text
+  proposedAction   String    @db.Text
+  platformId       String?   @db.VarChar(100)
+  subjectType      String?   @db.VarChar(50)
+  subjectId        String?   @db.VarChar(100)
+  subjectName      String?   @db.VarChar(300)
+  status           String    @default("DRAFT") @db.VarChar(20)
+  aiEnhanced       Boolean   @default(false)
+  generatedBy      String    @db.VarChar(200)
+  reviewedBy       String?   @db.VarChar(200)
+  reviewedAt       DateTime?
+  reviewNote       String?   @db.Text
+  actionType       String?   @db.VarChar(30)
+  actionTargetId   String?   @db.VarChar(100)
+  actionTargetName String?   @db.VarChar(300)
+  actionedBy       String?   @db.VarChar(200)
+  actionedAt       DateTime?
+  actionMetadata   String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([category, status])
+  @@index([platformId, status])
+  @@index([subjectType, subjectId])
+  @@index([actionType, actionedAt])
+  @@map("ai_governance_recommendations")
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -620,32 +723,32 @@ model SiteSetting {
 // ═══════════════════════════════════════════════════════════
 
 model Webhook {
-  id              String         @id @default(cuid())
-  name            String         @db.VarChar(255)
-  url             String         @db.VarChar(1000)
-  events          String         @db.Text
-  secret          String?        @db.VarChar(255)
-  isActive        Boolean        @default(true)
+  id              String    @id @default(cuid())
+  name            String    @db.VarChar(255)
+  url             String    @db.VarChar(1000)
+  events          String    @db.Text
+  secret          String?   @db.VarChar(255)
+  isActive        Boolean   @default(true)
   lastTriggeredAt DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  webhookLogs     WebhookLog[]
+  webhookLogs WebhookLog[]
 
   @@index([isActive])
   @@map("webhooks")
 }
 
 model WebhookLog {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   webhookId  String
-  webhook    Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
-  event      String    @db.VarChar(255)
-  payload    String?   @db.Text
+  webhook    Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event      String   @db.VarChar(255)
+  payload    String?  @db.Text
   statusCode Int?
-  success    Boolean   @default(false)
-  error      String?   @db.Text
-  createdAt  DateTime  @default(now())
+  success    Boolean  @default(false)
+  error      String?  @db.Text
+  createdAt  DateTime @default(now())
 
   @@index([webhookId])
   @@index([createdAt])
@@ -657,31 +760,31 @@ model WebhookLog {
 // ═══════════════════════════════════════════════════════════
 
 model KnowledgeItem {
-  id          String           @id @default(cuid())
-  title       String           @db.VarChar(500)
-  slug        String           @unique @db.VarChar(255)
-  description String?          @db.Text
-  content     String?          @db.Text
-  category    KnowledgeCategory @default(REPORT)
-  type        KnowledgeType    @default(DOCUMENT)
-  fileUrl     String?          @db.VarChar(1000)
-  thumbnailUrl String?         @db.VarChar(1000)
-  tags        String?          @db.Text
-  author      String?          @db.VarChar(200)
-  language    String           @default("ar") @db.VarChar(10)
-  viewCount   Int              @default(0)
-  downloadCount Int            @default(0)
-  isPublished Boolean          @default(false)
-  publishedAt DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id            String            @id @default(cuid())
+  title         String            @db.VarChar(500)
+  slug          String            @unique @db.VarChar(255)
+  description   String?           @db.Text
+  content       String?           @db.Text
+  category      KnowledgeCategory @default(REPORT)
+  type          KnowledgeType     @default(DOCUMENT)
+  fileUrl       String?           @db.VarChar(1000)
+  thumbnailUrl  String?           @db.VarChar(1000)
+  tags          String?           @db.Text
+  author        String?           @db.VarChar(200)
+  language      String            @default("ar") @db.VarChar(10)
+  viewCount     Int               @default(0)
+  downloadCount Int               @default(0)
+  isPublished   Boolean           @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  platformId   String?
-  platform     Platform?       @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  programId    String?
-  program      Program?        @relation(fields: [programId], references: [id], onDelete: SetNull)
-  projectId    String?
-  project      Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId  String?
+  program    Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([slug])
   @@index([category])
@@ -694,23 +797,23 @@ model KnowledgeItem {
 }
 
 enum KnowledgeCategory {
-  REPORT     // تقرير
-  RESEARCH   // بحث
-  MANUAL     // دليل
-  TOOLKIT    // حقيبة أدوات
-  LESSON     // درس مستفاد
+  REPORT // تقرير
+  RESEARCH // بحث
+  MANUAL // دليل
+  TOOLKIT // حقيبة أدوات
+  LESSON // درس مستفاد
   BEST_PRACTICE // ممارسة مثلى
   OTHER
 }
 
 enum KnowledgeType {
-  DOCUMENT  // مستند
-  VIDEO     // فيديو
-  AUDIO     // صوتي
-  IMAGE     // صورة
+  DOCUMENT // مستند
+  VIDEO // فيديو
+  AUDIO // صوتي
+  IMAGE // صورة
   PRESENTATION // عرض تقديمي
-  SPREADSHEET  // جدول بيانات
-  LINK      // رابط
+  SPREADSHEET // جدول بيانات
+  LINK // رابط
   OTHER
 }
 
@@ -719,18 +822,18 @@ enum KnowledgeType {
 // ═══════════════════════════════════════════════════════════
 
 model ReportTemplate {
-  id          String    @id @default(cuid())
-  title       String    @db.VarChar(500)
-  slug        String    @unique @db.VarChar(255)
-  description String?   @db.Text
-  category    String    @db.VarChar(100)
-  sections    String    @db.Text   // JSON: [{title, type, required, options}]
-  icon        String?   @db.VarChar(100)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(500)
+  slug        String   @unique @db.VarChar(255)
+  description String?  @db.Text
+  category    String   @db.VarChar(100)
+  sections    String   @db.Text // JSON: [{title, type, required, options}]
+  icon        String?  @db.VarChar(100)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  reports     SubmittedReport[]
+  reports SubmittedReport[]
 
   @@index([slug])
   @@index([category])
@@ -742,7 +845,7 @@ model SubmittedReport {
   id          String         @id @default(cuid())
   templateId  String
   template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  data        String         @db.Text   // JSON: {sectionKey: value}
+  data        String         @db.Text // JSON: {sectionKey: value}
   status      ReportStatus   @default(DRAFT)
   submittedBy String?        @db.VarChar(200)
   reviewedBy  String?        @db.VarChar(200)
@@ -752,14 +855,14 @@ model SubmittedReport {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  platformId  String?
-  platform    Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  programId   String?
-  program     Program?       @relation(fields: [programId], references: [id], onDelete: SetNull)
-  projectId   String?
-  project     Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId  String?
+  program    Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  impactLogs  ImpactLog[]
+  impactLogs ImpactLog[]
 
   @@index([templateId])
   @@index([status])
@@ -770,11 +873,11 @@ model SubmittedReport {
 }
 
 enum ReportStatus {
-  DRAFT      // مسودة
-  SUBMITTED  // مرفوع
-  REVIEWED   // مراجع
-  APPROVED   // معتمد
-  REJECTED   // مرفوض
+  DRAFT // مسودة
+  SUBMITTED // مرفوع
+  REVIEWED // مراجع
+  APPROVED // معتمد
+  REJECTED // مرفوض
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -782,17 +885,17 @@ enum ReportStatus {
 // ═══════════════════════════════════════════════════════════
 
 model PlatformIndicator {
-  id                String   @id @default(cuid())
-  platformId        String
-  platform          Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
-  indicatorKey      String   @db.VarChar(100)
-  indicatorName     String   @db.VarChar(255)
-  value             Float    @default(0)
-  target            Float?
-  unit              String?  @db.VarChar(50)
-  period            String   @default("monthly") @db.VarChar(50)  // monthly, quarterly, yearly
-  recordedAt        DateTime @default(now())
-  createdAt         DateTime @default(now())
+  id            String   @id @default(cuid())
+  platformId    String
+  platform      Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  indicatorKey  String   @db.VarChar(100)
+  indicatorName String   @db.VarChar(255)
+  value         Float    @default(0)
+  target        Float?
+  unit          String?  @db.VarChar(50)
+  period        String   @default("monthly") @db.VarChar(50) // monthly, quarterly, yearly
+  recordedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   @@unique([platformId, indicatorKey, recordedAt])
   @@index([platformId])
@@ -801,17 +904,17 @@ model PlatformIndicator {
 }
 
 model ProgramIndicator {
-  id                String   @id @default(cuid())
-  programId         String
-  program           Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
-  indicatorKey      String   @db.VarChar(100)
-  indicatorName     String   @db.VarChar(255)
-  value             Float    @default(0)
-  target            Float?
-  unit              String?  @db.VarChar(50)
-  period            String   @default("monthly") @db.VarChar(50)
-  recordedAt        DateTime @default(now())
-  createdAt         DateTime @default(now())
+  id            String   @id @default(cuid())
+  programId     String
+  program       Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  indicatorKey  String   @db.VarChar(100)
+  indicatorName String   @db.VarChar(255)
+  value         Float    @default(0)
+  target        Float?
+  unit          String?  @db.VarChar(50)
+  period        String   @default("monthly") @db.VarChar(50)
+  recordedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   @@unique([programId, indicatorKey, recordedAt])
   @@index([programId])
@@ -820,15 +923,15 @@ model ProgramIndicator {
 }
 
 model AnalyticsSnapshot {
-  id            String   @id @default(cuid())
-  title         String   @db.VarChar(500)
-  period        String   @db.VarChar(50)
-  periodStart   DateTime
-  periodEnd     DateTime
-  data          String   @db.Text    // JSON: full analytics payload
-  summary       String?  @db.Text
-  generatedBy   String?  @db.VarChar(200)
-  createdAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  title       String   @db.VarChar(500)
+  period      String   @db.VarChar(50)
+  periodStart DateTime
+  periodEnd   DateTime
+  data        String   @db.Text // JSON: full analytics payload
+  summary     String?  @db.Text
+  generatedBy String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
 
   @@index([period])
   @@index([periodStart])
@@ -841,23 +944,23 @@ model AnalyticsSnapshot {
 // ═══════════════════════════════════════════════════════════
 
 model CoordinationTask {
-  id            String      @id @default(cuid())
-  title         String      @db.VarChar(500)
-  description   String?     @db.Text
-  assignee      String?     @db.VarChar(200)
-  assigneeRole  String?     @db.VarChar(200)
-  status        TaskStatus  @default(PENDING)
-  priority      TaskPriority @default(MEDIUM)
-  dueDate       DateTime?
-  completedAt   DateTime?
-  notes         String?     @db.Text
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           String       @id @default(cuid())
+  title        String       @db.VarChar(500)
+  description  String?      @db.Text
+  assignee     String?      @db.VarChar(200)
+  assigneeRole String?      @db.VarChar(200)
+  status       TaskStatus   @default(PENDING)
+  priority     TaskPriority @default(MEDIUM)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  notes        String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  platformId    String?
-  platform      Platform?   @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  programId     String?
-  program       Program?    @relation(fields: [programId], references: [id], onDelete: SetNull)
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId  String?
+  program    Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([priority])
@@ -868,10 +971,10 @@ model CoordinationTask {
 }
 
 enum TaskStatus {
-  PENDING     // قيد الانتظار
+  PENDING // قيد الانتظار
   IN_PROGRESS // قيد التنفيذ
-  COMPLETED   // مكتمل
-  CANCELLED   // ملغى
+  COMPLETED // مكتمل
+  CANCELLED // ملغى
 }
 
 enum TaskPriority {
@@ -882,16 +985,16 @@ enum TaskPriority {
 }
 
 model DataStandard {
-  id          String   @id @default(cuid())
-  name        String   @db.VarChar(255)
-  slug        String   @unique @db.VarChar(255)
-  description String?  @db.Text
-  scope       String   @db.VarChar(100)  // beneficiary, enrollment, activity, etc.
-  requiredFields String @db.Text         // JSON array of field names
-  validationRules  String? @db.Text     // JSON: validation rules
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String   @db.VarChar(255)
+  slug            String   @unique @db.VarChar(255)
+  description     String?  @db.Text
+  scope           String   @db.VarChar(100) // beneficiary, enrollment, activity, etc.
+  requiredFields  String   @db.Text // JSON array of field names
+  validationRules String?  @db.Text // JSON: validation rules
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([slug])
   @@index([scope])
@@ -907,7 +1010,7 @@ model Evaluation {
   id              String           @id @default(cuid())
   title           String           @db.VarChar(500)
   evaluator       String           @db.VarChar(200)
-  evaluatorRole   String?          @db.VarChar(200)  // INTERNAL, EXTERNAL, PEER
+  evaluatorRole   String?          @db.VarChar(200) // INTERNAL, EXTERNAL, PEER
   type            EvaluationType   @default(PROGRAM)
   score           Float?
   maxScore        Float            @default(100)
@@ -917,38 +1020,53 @@ model Evaluation {
   evaluatedAt     DateTime         @default(now())
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  rejectionReason String?          @db.Text
 
-  platformId      String?
-  platform        Platform?        @relation(fields: [platformId], references: [id], onDelete: SetNull)
-  programId       String?
-  program         Program?         @relation(fields: [programId], references: [id], onDelete: SetNull)
-  activityId      String?
-  activity        Activity?        @relation(fields: [activityId], references: [id], onDelete: SetNull)
-  projectId       String?
-  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdById     String?
+  createdBy       AdminUser? @relation("EvaluationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  evaluatorUserId String?
+  evaluatorUser   AdminUser? @relation("EvaluationEvaluator", fields: [evaluatorUserId], references: [id], onDelete: SetNull)
+  approvedById    String?
+  approvedBy      AdminUser? @relation("EvaluationApprover", fields: [approvedById], references: [id], onDelete: SetNull)
 
-  impactLogs      ImpactLog[]
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  programId  String?
+  program    Program?  @relation(fields: [programId], references: [id], onDelete: SetNull)
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  impactLogs ImpactLog[]
 
   @@index([type])
   @@index([status])
   @@index([platformId])
   @@index([programId])
+  @@index([createdById])
+  @@index([evaluatorUserId])
+  @@index([approvedById])
   @@map("evaluations")
 }
 
 enum EvaluationType {
-  PROGRAM   // تقييم برنامج
-  ACTIVITY  // تقييم نشاط
-  PROJECT   // تقييم مشروع
-  PLATFORM  // تقييم منصة
-  SELF      // تقييم ذاتي
-  PEER      // تقييم الأقران
+  PROGRAM // تقييم برنامج
+  ACTIVITY // تقييم نشاط
+  PROJECT // تقييم مشروع
+  PLATFORM // تقييم منصة
+  SELF // تقييم ذاتي
+  PEER // تقييم الأقران
 }
 
 enum EvaluationStatus {
-  DRAFT     // مسودة
-  FINAL     // نهائي
-  APPROVED  // معتمد
+  DRAFT // مسودة
+  FINAL // نهائي (حالة قديمة للتوافق)
+  SUBMITTED // مرسل للمراجعة
+  APPROVED // معتمد
+  REJECTED // مرفوض
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -956,15 +1074,15 @@ enum EvaluationStatus {
 // ═══════════════════════════════════════════════════════════
 
 model BeneficiaryJourneyStage {
-  id             String   @id @default(cuid())
-  beneficiaryId  String
-  beneficiary    Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
-  stage          JourneyStage @default(DISCOVERY)
-  startedAt      DateTime @default(now())
-  completedAt    DateTime?
-  notes          String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String       @id @default(cuid())
+  beneficiaryId String
+  beneficiary   Beneficiary  @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  stage         JourneyStage @default(DISCOVERY)
+  startedAt     DateTime     @default(now())
+  completedAt   DateTime?
+  notes         String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([beneficiaryId])
   @@index([stage])
@@ -972,14 +1090,14 @@ model BeneficiaryJourneyStage {
 }
 
 enum JourneyStage {
-  DISCOVERY     // اكتشاف
-  APPLICATION   // تقديم
-  ONBOARDING    // تأهيل
-  ACTIVE        // نشط
-  ADVANCED      // متقدم
-  GRADUATED     // متخرج
-  ALUMNI        // خريج/شبكة
-  CHAMPION      // سفير
+  DISCOVERY // اكتشاف
+  APPLICATION // تقديم
+  ONBOARDING // تأهيل
+  ACTIVE // نشط
+  ADVANCED // متقدم
+  GRADUATED // متخرج
+  ALUMNI // خريج/شبكة
+  CHAMPION // سفير
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -991,23 +1109,23 @@ enum JourneyStage {
 // ═══════════════════════════════════════════════════════════
 
 model Visit {
-  id          String   @id @default(cuid())
-  path        String   @db.VarChar(500)
-  visitorId   String?  @db.VarChar(100)
-  ipAddress   String?  @db.VarChar(50)
-  country     String?  @db.VarChar(100)
-  city        String?  @db.VarChar(100)
-  region      String?  @db.VarChar(100)
-  latitude    Float?
-  longitude   Float?
-  deviceType  String?  @db.VarChar(50)   // mobile, desktop, tablet
-  browser     String?  @db.VarChar(100)
-  os          String?  @db.VarChar(100)
-  referrer    String?  @db.VarChar(1000)
-  userAgent   String?  @db.Text
-  screenSize  String?  @db.VarChar(30)
-  language    String?  @db.VarChar(20)
-  timestamp   DateTime @default(now())
+  id         String   @id @default(cuid())
+  path       String   @db.VarChar(500)
+  visitorId  String?  @db.VarChar(100)
+  ipAddress  String?  @db.VarChar(50)
+  country    String?  @db.VarChar(100)
+  city       String?  @db.VarChar(100)
+  region     String?  @db.VarChar(100)
+  latitude   Float?
+  longitude  Float?
+  deviceType String?  @db.VarChar(50) // mobile, desktop, tablet
+  browser    String?  @db.VarChar(100)
+  os         String?  @db.VarChar(100)
+  referrer   String?  @db.VarChar(1000)
+  userAgent  String?  @db.Text
+  screenSize String?  @db.VarChar(30)
+  language   String?  @db.VarChar(20)
+  timestamp  DateTime @default(now())
 
   @@index([timestamp])
   @@index([path])
@@ -1017,14 +1135,14 @@ model Visit {
 }
 
 model ActivityLog {
-  id          String   @id @default(cuid())
-  entity      String   @db.VarChar(100)  // beneficiary, enrollment, platform, etc.
-  entityId    String   @db.VarChar(100)
-  action      String   @db.VarChar(50)   // CREATE, UPDATE, DELETE, etc.
-  actor       String?  @db.VarChar(200)
-  changes     String?  @db.Text          // JSON: {field: {old, new}}
-  metadata    String?  @db.Text          // JSON: additional context
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  entity    String   @db.VarChar(100) // beneficiary, enrollment, platform, etc.
+  entityId  String   @db.VarChar(100)
+  action    String   @db.VarChar(50) // CREATE, UPDATE, DELETE, etc.
+  actor     String?  @db.VarChar(200)
+  changes   String?  @db.Text // JSON: {field: {old, new}}
+  metadata  String?  @db.Text // JSON: additional context
+  createdAt DateTime @default(now())
 
   @@index([entity])
   @@index([entityId])
@@ -1042,17 +1160,17 @@ model ActivityLog {
 // قائمة قابلة للتعديل من الإعدادات، كل نوع له نقاط ومحور
 
 model ImpactAction {
-  id          String           @id @default(cuid())
-  name        String           @db.VarChar(500)   // اسم النشاط
-  points       Int                                      // النقاط (قد تكون سالبة للخصومات)
-  category    ImpactCategory   @default(DIGITAL_ACTIVITY)  // المحور
-  note        String?          @db.Text
-  isActive    Boolean          @default(true)
-  sortOrder   Int              @default(0)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String         @id @default(cuid())
+  name      String         @db.VarChar(500) // اسم النشاط
+  points    Int // النقاط (قد تكون سالبة للخصومات)
+  category  ImpactCategory @default(DIGITAL_ACTIVITY) // المحور
+  note      String?        @db.Text
+  isActive  Boolean        @default(true)
+  sortOrder Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
-  impactLogs  ImpactLog[]
+  impactLogs ImpactLog[]
 
   @@index([category])
   @@index([isActive])
@@ -1063,58 +1181,59 @@ model ImpactAction {
 }
 
 enum ImpactCategory {
-  DIGITAL_ACTIVITY   // النشاط الرقمي
-  SCIENTIFIC_EVENTS  // المشاركة العلمية والفعاليات
-  INITIATIVES        // المبادرات والإنتاج
-  DISCIPLINE         // الالتزام والانضباط
+  DIGITAL_ACTIVITY // النشاط الرقمي
+  SCIENTIFIC_EVENTS // المشاركة العلمية والفعاليات
+  INITIATIVES // المبادرات والإنتاج
+  DISCIPLINE // الالتزام والانضباط
 }
 
 // ─── سجل الأنشطة/المساهمات المُدخلة (Impact Log) ───
 // كل صف يمثل مساهمة فعلية لعضو
 
 model ImpactLog {
-  id              String         @id @default(cuid())
+  id              String               @id @default(cuid())
   beneficiaryId   String
-  beneficiary     Beneficiary    @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  beneficiary     Beneficiary          @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   actionId        String
-  action          ImpactAction   @relation(fields: [actionId], references: [id], onDelete: Restrict)
-  sourceType      ImpactSourceType @default(MANUAL)
-  sourceId        String?        @db.VarChar(100)
-  count           Float          @default(1)        // العدد (مثلاً 3 منشورات)
-  quality         ImpactQuality  @default(ACCEPTABLE) // مستوى الجودة
+  action          ImpactAction         @relation(fields: [actionId], references: [id], onDelete: Restrict)
+  sourceType      ImpactSourceType     @default(MANUAL)
+  sourceId        String?              @db.VarChar(100)
+  count           Float                @default(1) // العدد (مثلاً 3 منشورات)
+  quality         ImpactQuality        @default(ACCEPTABLE) // مستوى الجودة
   status          ImpactApprovalStatus @default(PENDING_REVIEW) // حالة الاعتماد
-  date            DateTime       @default(now())
-  link            String?        @db.Text           // رابط النشاط (تغريدة، مقال...)
-  note            String?        @db.Text
-  pointsSnapshot  Int?                               // النقاط وقت الاعتماد/الاحتساب للتقارير التاريخية
-  createdBy       String?        @db.VarChar(200)   // من أدخل النشاط
-  approvedBy      String?        @db.VarChar(200)   // من اعتمد النشاط
-  approvedAt      DateTime?                          // وقت الاعتماد
-  rejectionReason String?        @db.Text            // سبب الرفض (إلزامي عند الرفض)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  date            DateTime             @default(now())
+  link            String?              @db.Text // رابط النشاط (تغريدة، مقال...)
+  note            String?              @db.Text
+  pointsSnapshot  Int? // النقاط وقت الاعتماد/الاحتساب للتقارير التاريخية
+  createdBy       String?              @db.VarChar(200) // من أدخل النشاط
+  approvedBy      String?              @db.VarChar(200) // من اعتمد النشاط
+  approvedAt      DateTime? // وقت الاعتماد
+  rejectionReason String?              @db.Text // سبب الرفض (إلزامي عند الرفض)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  platformId      String?
-  platform        Platform?      @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id], onDelete: SetNull)
 
-  programId       String?
-  program         Program?       @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
-  activityId      String?
-  activity        Activity?      @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
 
-  enrollmentId    String?
-  enrollment      Enrollment?    @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  enrollmentId String?
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
 
   participationId String?
   participation   Participation? @relation(fields: [participationId], references: [id], onDelete: SetNull)
 
-  reportId        String?
-  report          SubmittedReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  reportId String?
+  report   SubmittedReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
 
-  evaluationId    String?
-  evaluation      Evaluation?    @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
+  evaluationId String?
+  evaluation   Evaluation? @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
 
+  @@unique([sourceType, sourceId, actionId])
   @@index([beneficiaryId])
   @@index([actionId])
   @@index([sourceType])
@@ -1135,22 +1254,21 @@ model ImpactLog {
   @@index([actionId, date])
   @@index([beneficiaryId, actionId, date])
   @@index([beneficiaryId, sourceType, sourceId])
-  @@unique([sourceType, sourceId, actionId])
   @@map("impact_logs")
 }
 
 enum ImpactQuality {
-  WEAK        // ضعيف (-3)
-  ACCEPTABLE  // مقبول (0)
-  GOOD        // جيد (+3)
-  EXCELLENT   // ممتاز (+6)
+  WEAK // ضعيف (-3)
+  ACCEPTABLE // مقبول (0)
+  GOOD // جيد (+3)
+  EXCELLENT // ممتاز (+6)
   EXCEPTIONAL // استثنائي (+10)
 }
 
 enum ImpactApprovalStatus {
-  APPROVED         // معتمد
-  PENDING_REVIEW   // قيد المراجعة
-  REJECTED         // مرفوض
+  APPROVED // معتمد
+  PENDING_REVIEW // قيد المراجعة
+  REJECTED // مرفوض
 }
 
 enum ImpactSourceType {
@@ -1165,16 +1283,16 @@ enum ImpactSourceType {
 // ─── الدروع والمكافآت (Awards & Rewards) ───
 
 model ImpactAward {
-  id            String        @id @default(cuid())
+  id            String          @id @default(cuid())
   beneficiaryId String
-  beneficiary   Beneficiary   @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  beneficiary   Beneficiary     @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   type          ImpactAwardType // درع | مكافأة
-  title         String        @db.VarChar(500)  // اسم الدرع أو وصف المكافأة
-  value         Float         @default(0)        // قيمة المكافأة المالية إن وُجدت
-  date          DateTime      @default(now())
-  note          String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  title         String          @db.VarChar(500) // اسم الدرع أو وصف المكافأة
+  value         Float           @default(0) // قيمة المكافأة المالية إن وُجدت
+  date          DateTime        @default(now())
+  note          String?         @db.Text
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@index([beneficiaryId])
   @@index([type])
@@ -1185,21 +1303,21 @@ model ImpactAward {
 }
 
 enum ImpactAwardType {
-  SHIELD   // درع
-  REWARD   // مكافأة مالية
+  SHIELD // درع
+  REWARD // مكافأة مالية
 }
 
 // ─── البوابات الشهرية (Monthly Gates) ───
 // لكل عضو، لكل شهر: هل اجتاز المهام الإلزامية؟
 
 model ImpactGate {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   beneficiaryId String
   beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
   year          Int
-  month         Int       // 1-12
-  passed        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
+  month         Int // 1-12
+  passed        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
 
   @@unique([beneficiaryId, year, month])
   @@index([beneficiaryId])
@@ -1211,12 +1329,12 @@ model ImpactGate {
 // صف واحد (id=1) يحوي كل إعدادات النظام بصيغة JSON
 
 model ImpactSettings {
-  id            Int      @id @default(1)
-  qualityBonus  String   @db.Text   // JSON: {"WEAK": -3, "ACCEPTABLE": 0, ...}
-  levels        String   @db.Text   // JSON: [{"name":"عضو جديد","from":0,"to":99}, ...]
-  rewardTiers   String   @db.Text   // JSON: [{"name":"لا مكافأة","from":0,"to":99}, ...]
-  umrah         String   @db.Text   // JSON: {"minYearly":3000,"minMonths":9,...}
-  updatedAt     DateTime @default(now())
+  id           Int      @id @default(1)
+  qualityBonus String   @db.Text // JSON: {"WEAK": -3, "ACCEPTABLE": 0, ...}
+  levels       String   @db.Text // JSON: [{"name":"عضو جديد","from":0,"to":99}, ...]
+  rewardTiers  String   @db.Text // JSON: [{"name":"لا مكافأة","from":0,"to":99}, ...]
+  umrah        String   @db.Text // JSON: {"minYearly":3000,"minMonths":9,...}
+  updatedAt    DateTime @default(now())
 
   @@map("impact_settings")
 }

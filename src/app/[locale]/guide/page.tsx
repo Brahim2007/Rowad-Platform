@@ -175,7 +175,7 @@ const SECTIONS = [
   { id: 'tasks', icon: ListChecks, label: 'المهام والتنسيق' },
   { id: 'kpi', icon: Target, label: 'مؤشرات الأداء وقياس الأثر' },
   { id: 'reports', icon: FileText, label: 'التقارير والتحليلات' },
-  { id: 'library', icon: Library, label: 'المكتبة المعرفية' },
+  { id: 'library', icon: Library, label: 'الأرشيف المؤسسي' },
   { id: 'faq', icon: HelpCircle, label: 'أسئلة شائعة' },
 ]
 
@@ -220,7 +220,7 @@ export default function GuidePage() {
             </div>
             <p className="text-primary-100 max-w-2xl leading-relaxed text-sm md:text-base">
               هذا الدليل يشرح بالتفصيل جميع مكونات النظام: لوحة القيادة، إدارة الأعضاء ورحلة المستفيد،
-              المنصات والمبادرات، المهام والتنسيق، مؤشرات الأداء، التقارير، والمكتبة المعرفية.
+              المنصات والمبادرات، المهام والتنسيق، مؤشرات الأداء، التقارير، والأرشيف المؤسسي.
               يهدف الدليل إلى تمكين الفريق من استخدام المنظومة بكفاءة عالية.
             </p>
 
@@ -403,7 +403,7 @@ export default function GuidePage() {
                     <p className="text-xs text-neutral-600 leading-relaxed mb-2">
                       جدول يعرض أحدث الأعضاء المسجلين مع بيانات: الرقم الموحد، الاسم، الدولة،
                       المسار الحالي، النشاط (عدد التسجيلات والمشاركات)، الحالة. يمكنك البحث
-                      بالاسم أو الكود، والنقر على "فتح الملف" للذهاب إلى صفحة العضو الكاملة.
+                      بالاسم أو رقم العضو، والنقر على "فتح الملف" للذهاب إلى صفحة العضو الكاملة.
                     </p>
                   </div>
                 </div>
@@ -460,7 +460,7 @@ export default function GuidePage() {
                 <h3 className="font-bold text-neutral-900 mb-3 text-sm">الميزات الرئيسية لإدارة الأعضاء</h3>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { icon: Search, label: 'بحث متقدم', desc: 'ابحث بالاسم، الكود، البريد الإلكتروني، أو المنصة.' },
+                    { icon: Search, label: 'بحث متقدم', desc: 'ابحث بالاسم، رقم العضو، البريد الإلكتروني، أو المنصة.' },
                     { icon: Filter, label: 'تصفية متعددة', desc: 'فلترة حسب المرحلة، الحالة، المنصة، والدولة.' },
                     { icon: Route, label: 'عرض رحلة العضو', desc: 'نافذة timeline تفاعلية تظهر مسار التطور الكامل.' },
                     { icon: Edit3, label: 'تعديل البيانات', desc: 'تحديث معلومات العضو وتسجيلاته في البرامج.' },
@@ -693,26 +693,28 @@ export default function GuidePage() {
             </div>
           </GuideSection>
 
-          {/* === 8. Knowledge Library === */}
-          <GuideSection id="library" icon={Library} title="المكتبة المعرفية" subtitle="إدارة المحتوى المعرفي والموارد الرقمية">
+          {/* === 8. Institutional Archive === */}
+          <GuideSection id="library" icon={Library} title="الأرشيف المؤسسي ومركز المعرفة" subtitle="المستودع الرسمي لكل مخرجات المنصات">
             <div className="space-y-5">
               <p className="text-sm text-neutral-700 leading-relaxed">
-                المكتبة المعرفية هي مستودع مركزي للموارد الرقمية: الأدلة، القوالب، أفضل الممارسات،
-                والمواد التدريبية. يمكن تصنيف المحتوى والبحث فيه بسهولة.
+                الأرشيف المؤسسي هو المرجع المركزي لكل ما يصدر عن المنصات: التقارير، الميزانيات،
+                القرارات، محاضر الاجتماعات، الخطط، المراسلات، الأدلة، أفضل الممارسات والمواد التدريبية.
+                يجب ربط كل سجل بمنصته ونوعه وفترته لتسهيل المتابعة والتدقيق.
               </p>
 
-              <ImagePlaceholder label="صورة توضيحية: المكتبة المعرفية" height="h-56" icon={Library} />
+              <ImagePlaceholder label="صورة توضيحية: الأرشيف المؤسسي" height="h-56" icon={Library} />
 
               <div>
-                <h3 className="font-bold text-neutral-900 mb-3 text-sm">تصنيفات المحتوى</h3>
+                <h3 className="font-bold text-neutral-900 mb-3 text-sm">تصنيفات السجلات</h3>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { label: 'دليل (Manual)', color: 'bg-primary-100 text-primary-700 border-primary-200' },
+                    { label: 'تقارير وميزانيات', color: 'bg-primary-100 text-primary-700 border-primary-200' },
+                    { label: 'قرارات ومحاضر', color: 'bg-green-100 text-green-700 border-green-200' },
+                    { label: 'خطط ومراسلات', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' },
+                    { label: 'دليل (Manual)', color: 'bg-blue-100 text-blue-700 border-blue-200' },
                     { label: 'أفضل الممارسات', color: 'bg-green-100 text-green-700 border-green-200' },
                     { label: 'حقيبة أدوات', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' },
-                    { label: 'قوالب', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-                    { label: 'مواد تدريبية', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-                    { label: 'وثائق', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                    { label: 'بحوث ودراسات', color: 'bg-purple-100 text-purple-700 border-purple-200' },
                   ].map(cat => (
                     <span key={cat.label} className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${cat.color}`}>
                       {cat.label}
@@ -723,10 +725,10 @@ export default function GuidePage() {
 
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
-                  { icon: Upload, title: 'رفع المحتوى', desc: 'يمكنك رفع ملفات PDF, Word, صور، وروابط خارجية.' },
-                  { icon: Search, title: 'بحث ذكي', desc: 'ابحث في عناوين وأوصاف المحتوى بسرعة.' },
-                  { icon: Filter, title: 'تصفية حسب التصنيف', desc: 'فلترة المحتوى حسب النوع أو التصنيف.' },
-                  { icon: Eye, title: 'معاينة الملفات', desc: 'معاينة الملفات مباشرة قبل التحميل.' },
+                  { icon: Upload, title: 'حفظ المخرجات', desc: 'أضف ملف PDF أو Word أو Excel، أو احفظ قرارًا نصيًا دون ملف.' },
+                  { icon: Search, title: 'بحث موحد', desc: 'ابحث في عناوين وأوصاف ووسوم كل مخرجات المنصات.' },
+                  { icon: Filter, title: 'تصفية مؤسسية', desc: 'فلترة حسب المنصة والنوع والسنة وحالة الأرشفة.' },
+                  { icon: Eye, title: 'تتبع النسخ', desc: 'احتفظ بالنسخة الأولى وكل تحديث لاحق للملف.' },
                 ].map(item => (
                   <div key={item.title} className="flex gap-3 p-3.5 rounded-xl bg-neutral-50 border border-neutral-200">
                     <div className="w-9 h-9 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center shrink-0">

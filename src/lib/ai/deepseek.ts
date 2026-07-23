@@ -15,6 +15,7 @@
 import OpenAI from 'openai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { smartImpactReportSchema, type ImpactReportMetrics, type SmartImpactReport } from '@/lib/ai/impact-report'
 
 // ═══════════════════════════════════════════════════
 // الإعدادات
@@ -89,6 +90,7 @@ interface ChatOptions {
   temperature?: number
   userId?: string
   feature?: string
+  responseFormat?: { type: 'json_object' }
 }
 
 export const ai = {
@@ -107,6 +109,7 @@ export const ai = {
         messages,
         max_tokens: opts.maxTokens ?? 800,
         temperature: opts.temperature ?? 0.7,
+        ...(opts.responseFormat && { response_format: opts.responseFormat }),
       })
 
       const usage = response.usage
@@ -123,6 +126,7 @@ export const ai = {
       return {
         text: response.choices[0]?.message?.content || '',
         usage: usage ? { input: usage.prompt_tokens, output: usage.completion_tokens } : null,
+        finishReason: response.choices[0]?.finish_reason || null,
       }
     } catch (error: unknown) {
       logger.error('[deepseek] chat error', error instanceof Error ? error.message : error)
@@ -208,6 +212,55 @@ ${data.platforms.map(p => `- ${p.name}: ${p.current} نشاط (السابق: ${p
     } catch {
       return { comparison: result.text, trends: [] }
     }
+  },
+
+  /**
+   * تقرير أثر إداري موسّع مبني حصراً على مؤشرات محسوبة في الخادم.
+   */
+  async impactReport(metrics: ImpactReportMetrics, userId: string): Promise<SmartImpactReport> {
+    const withinBudget = await checkBudget()
+    if (!withinBudget) throw new Error('Budget exceeded')
+
+    const prompt = `أنشئ تقريراً إدارياً تحليلياً باللغة العربية اعتماداً حصراً على بيانات JSON التالية.
+لا تخترع أرقاماً أو أسباباً غير موجودة. عند غياب المقارنة أو ضعف البيانات اذكر ذلك بوضوح في dataNotes.
+اجعل التوصيات عملية وقابلة للقياس، وافصل بين الحقائق والتفسير.
+
+البيانات:
+${JSON.stringify(metrics, null, 2)}
+
+أعد JSON صالحاً فقط دون markdown بهذا الشكل:
+{
+  "title": "عنوان التقرير والفترة",
+  "executiveSummary": "ملخص تنفيذي من 4 إلى 6 جمل",
+  "performanceNarrative": "قراءة تحليلية للمؤشرات والمقارنة بالفترة السابقة",
+  "highlights": ["3 إلى 6 نقاط نجاح مدعومة بالأرقام"],
+  "risks": ["0 إلى 6 مخاطر أو تنبيهات مدعومة بالبيانات"],
+  "recommendations": [{"title":"عنوان مختصر","action":"إجراء محدد قابل للتنفيذ","priority":"عالية أو متوسطة أو منخفضة"}],
+  "platformInsights": ["رؤى مقارنة عن المنصات دون اختلاق أسباب"],
+  "memberInsights": ["رؤى عن التفاعل والمتصدرين والخمول"],
+  "nextPeriodFocus": ["3 إلى 5 أولويات للفترة القادمة"],
+  "dataNotes": ["قيود جودة البيانات أو المقارنة"]
+}`
+
+    const result = await this.chat(prompt, {
+      system: 'أنت محلل أداء تنفيذي لشبكة رواد. التزم بالأرقام المقدمة، اكتب بالعربية الفصحى، ولا تقدّم أي قرار اعتماد آلي.',
+      temperature: 0.2,
+      maxTokens: 3600,
+      userId,
+      feature: 'impact-smart-report',
+      responseFormat: { type: 'json_object' },
+    })
+
+    if (result.finishReason === 'length') {
+      throw new Error('AI report response was truncated')
+    }
+    const normalized = result.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    const parsed = smartImpactReportSchema.safeParse(JSON.parse(normalized))
+    if (!parsed.success) {
+      logger.error('[deepseek] invalid impact report structure', parsed.error.flatten())
+      throw new Error('Invalid AI report structure')
+    }
+    return parsed.data
   },
 
   /**

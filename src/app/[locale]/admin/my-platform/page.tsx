@@ -194,7 +194,7 @@ export default function MyPlatformDashboard() {
         toast.success('تم إضافة العضو بنجاح')
         setShowMemberModal(false)
         setCreatedCredentials(data.data?.credentials || null)
-        setMemberForm({ firstName: '', lastName: '', code: `R-${String(members.length + 2).padStart(3, '0')}`, email: '', phone: '', networkRole: '', joinDate: today() })
+        setMemberForm({ firstName: '', lastName: '', code: '', email: '', phone: '', networkRole: '', joinDate: today() })
         fetchData()
       } else {
         toast.error(data.message || 'فشل الحفظ')
@@ -322,7 +322,7 @@ export default function MyPlatformDashboard() {
             <div className="relative max-w-xs">
               <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <Input
-                placeholder="بحث بالاسم أو الكود"
+                placeholder="بحث بالاسم أو رقم العضو"
                 value={memberSearch}
                 onChange={e => setMemberSearch(e.target.value)}
                 className="input-field pr-9"
@@ -335,7 +335,7 @@ export default function MyPlatformDashboard() {
               <Table className="w-full text-sm">
                 <TableHeader>
                   <TableRow className="border-b border-neutral-200">
-                    <TableHead className="text-right p-3 text-neutral-500">الكود</TableHead>
+                    <TableHead className="text-right p-3 text-neutral-500">رقم العضو</TableHead>
                     <TableHead className="text-right p-3 text-neutral-500">الاسم</TableHead>
                     <TableHead className="text-right p-3 text-neutral-500">الصفة</TableHead>
                     <TableHead className="text-right p-3 text-neutral-500">البريد</TableHead>
@@ -445,8 +445,8 @@ export default function MyPlatformDashboard() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رمز العضو</label>
-                  <Input value={memberForm.code} onChange={e => setMemberForm({ ...memberForm, code: e.target.value })} className="input-field" />
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم العضو</label>
+                  <Input disabled value="يُولّد تلقائيًا بعد الحفظ" className="input-field" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>

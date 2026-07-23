@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
+import { emailDeliveryConfigured, sendMemberCredentialsEmail } from '@/lib/email'
+import { recordActivityLog } from '@/lib/activity-log'
+import bcrypt from 'bcryptjs'
+import { randomBytes } from 'node:crypto'
 
 async function requireMembersAccess() {
   const auth = await requireAuth()
@@ -218,6 +222,112 @@ export async function GET(
   }
 }
 
+/** إصدار كلمة مرور مؤقتة جديدة وإرسالها إلى البريد الحالي المحفوظ في ملف العضو. */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireMembersAccess()
+  if (!auth.ok) return auth.error
+
+  try {
+    const { id } = await params
+    const body = await request.json()
+    if (body.action !== 'send-credentials') {
+      return NextResponse.json({ success: false, message: 'الإجراء غير صالح' }, { status: 400 })
+    }
+
+    const member = await prisma.beneficiary.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        platformId: true,
+        platform: { select: { name: true } },
+      },
+    })
+    if (!member) {
+      return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
+    }
+    if (!(await verifyPlatformOwnership(auth.user, member.platformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    if (!member.email) {
+      return NextResponse.json({
+        success: false,
+        message: 'حدّث البريد الإلكتروني في ملف العضو أولاً ثم أعد المحاولة',
+      }, { status: 400 })
+    }
+    if (!emailDeliveryConfigured()) {
+      return NextResponse.json({
+        success: false,
+        message: 'إرسال البريد غير مهيأ على الخادم. اضبط إعدادات SMTP أولاً؛ لم يتم تغيير كلمة المرور.',
+      }, { status: 503 })
+    }
+
+    const temporaryPassword = `${randomBytes(9).toString('base64url')}A1!`
+    await prisma.beneficiary.update({
+      where: { id: member.id },
+      data: {
+        passwordHash: await bcrypt.hash(temporaryPassword, 12),
+        mustChangePassword: true,
+      },
+    })
+
+    const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3002'}/ar/member/login`
+    const memberName = `${member.firstName} ${member.lastName}`.trim()
+    let emailSent = false
+    try {
+      await sendMemberCredentialsEmail({
+        to: member.email,
+        memberName,
+        platformName: member.platform?.name || 'شبكة رواد',
+        managerName: auth.user.name,
+        platformId: member.platformId,
+        tempPassword: temporaryPassword,
+        loginUrl,
+      })
+      emailSent = true
+    } catch (error) {
+      logger.error('[email] failed to send refreshed member credentials', error)
+    }
+
+    try {
+      await recordActivityLog({
+        entity: 'beneficiary',
+        entityId: member.id,
+        action: 'RESET_MEMBER_CREDENTIALS',
+        actor: auth.user.email || auth.user.name,
+        metadata: {
+          recipientEmail: member.email,
+          emailSent,
+          platformId: member.platformId,
+        },
+      })
+    } catch (error) {
+      logger.error('Member credentials audit log error', error)
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        email: member.email,
+        emailSent,
+        loginUrl,
+        temporaryPassword: emailSent ? null : temporaryPassword,
+      },
+      message: emailSent
+        ? `تم إرسال بيانات الدخول إلى ${member.email}`
+        : 'تعذر إرسال البريد؛ اعرض كلمة المرور المؤقتة للعضو مرة واحدة',
+    })
+  } catch (error) {
+    logger.error('Member credentials POST error', error)
+    return NextResponse.json({ success: false, message: 'تعذر إصدار بيانات الدخول' }, { status: 500 })
+  }
+}
+
 /** تحديث حقول أثر العضو: networkRole, joinDate, impactNote, platformId */
 export async function PUT(
   request: NextRequest,
@@ -243,7 +353,6 @@ export async function PUT(
         ...(body.lastName !== undefined && { lastName: body.lastName }),
         ...(body.email !== undefined && { email: body.email || null }),
         ...(body.phone !== undefined && { phone: body.phone || null }),
-        ...(body.code !== undefined && { code: body.code }),
         ...(body.status !== undefined && { status: body.status }),
         // حقول الأثر
         ...(body.networkRole !== undefined && { networkRole: body.networkRole || null }),
@@ -259,7 +368,7 @@ export async function PUT(
   } catch (error) {
     const e = error as { code?: string }
     if (e.code === 'P2002') {
-      return NextResponse.json({ success: false, message: 'الكود أو البريد مستخدم مسبقاً' }, { status: 409 })
+      return NextResponse.json({ success: false, message: 'رقم العضو أو البريد مستخدم مسبقاً' }, { status: 409 })
     }
     logger.error('Member PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })

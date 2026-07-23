@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import Image from 'next/image'
+import { safeInternalPath } from '@/lib/safe-internal-path'
 import {
   ArrowLeft,
   BarChart3,
@@ -109,7 +110,7 @@ export default function AdminLoginPage() {
 
   const getCallbackUrl = () => {
     const params = new URLSearchParams(window.location.search)
-    return params.get('callbackUrl') || '/ar/admin/dashboard'
+    return safeInternalPath(params.get('callbackUrl'), '/ar/admin/dashboard')
   }
 
   const loginWithCredentials = async (loginEmail: string, loginPassword: string) => {

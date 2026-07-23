@@ -7,7 +7,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass } from 'lucide-react'
+import { Bell, Shield, LogOut, TrendingUp, Star, Medal, Send, Clock, Activity, FileText, Settings, Hourglass, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ═══════════════════════════════════════════════
@@ -27,7 +27,7 @@ interface MemberStats {
 
 interface ActivityItem {
   id: string; actionName: string; category: string; count: number
-  quality: string; status: string; date: string; note: string | null; rejectionReason: string | null
+  quality: string; status: string; date: string; note: string | null; rejectionReason: string | null; link: string | null
 }
 
 interface ImpactAction {
@@ -36,6 +36,17 @@ interface ImpactAction {
   category: string
   points: number
   isActive: boolean
+}
+
+interface MemberNotification {
+  id: string
+  type: string
+  title: string
+  body: string
+  link: string | null
+  isRead: boolean
+  createdAt: string
+  senderName: string | null
 }
 
 const QUALITY_LABELS: Record<string, string> = { WEAK: 'ضعيف', ACCEPTABLE: 'مقبول', GOOD: 'جيد', EXCELLENT: 'ممتاز', EXCEPTIONAL: 'استثنائي' }
@@ -57,6 +68,8 @@ export default function MemberPortalPage() {
   const [stats, setStats] = useState<MemberStats | null>(null)
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [actions, setActions] = useState<ImpactAction[]>([])
+  const [notifications, setNotifications] = useState<MemberNotification[]>([])
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
   // Submit form
@@ -70,14 +83,29 @@ export default function MemberPortalPage() {
     router.push(`/ar/member${t === 'dashboard' ? '' : `?tab=${t}`}`, { scroll: false })
   }
 
-  const logout = () => {
-    document.cookie = 'member_token=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/'
-    router.push('/ar/member/login')
+  const logout = async () => {
+    try {
+      await fetch('/api/member/auth', { method: 'DELETE' })
+    } finally {
+      router.replace('/ar/member/login')
+      router.refresh()
+    }
   }
 
   const fetchData = useCallback(async () => {
     if (!member?.id) return
     try {
+      if (tab === 'notifications') {
+        const notificationResponse = await fetch('/api/notifications?type=MEMBER&limit=100')
+        if (notificationResponse.ok) {
+          const notificationResult = await notificationResponse.json()
+          if (notificationResult.success) {
+            setNotifications(notificationResult.data || [])
+            setUnreadNotifications(notificationResult.unreadCount || 0)
+          }
+        }
+        return
+      }
       const url = `/api/member/dashboard?memberId=${member.id}&tab=${tab === 'dashboard' ? 'dashboard' : 'activities'}&status=${statusFilter}`
       const res = await fetch(url)
       if (res.ok) {
@@ -93,6 +121,18 @@ export default function MemberPortalPage() {
       }
     } catch { /* fallback */ }
   }, [member?.id, tab, statusFilter])
+
+  const markNotificationsRead = async () => {
+    const response = await fetch('/api/notifications', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ readAll: true, type: 'MEMBER' }),
+    })
+    if (response.ok) {
+      setNotifications(current => current.map(item => ({ ...item, isRead: true })))
+      setUnreadNotifications(0)
+    }
+  }
 
   // Load member session on mount
   useEffect(() => {
@@ -114,7 +154,7 @@ export default function MemberPortalPage() {
 
   // Load actions catalog
   useEffect(() => {
-    fetch('/api/admin/impact/actions?limit=100').then(r => r.json()).then(d => {
+    fetch('/api/member/impact/actions').then(r => r.json()).then(d => {
       if (d.success) setActions(d.data || [])
     }).catch(() => {})
   }, [])
@@ -124,25 +164,31 @@ export default function MemberPortalPage() {
     if (member?.id) fetchData()
   }, [member?.id, fetchData])
 
+  useEffect(() => {
+    if (!member?.id || tab === 'notifications') return
+    fetch('/api/notifications?type=MEMBER&limit=1')
+      .then(response => response.ok ? response.json() : null)
+      .then(result => {
+        if (result?.success) setUnreadNotifications(result.unreadCount || 0)
+      })
+      .catch(() => {})
+  }, [member?.id, tab])
+
   // Submit activity
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!member) return
     setSubmitting(true)
     try {
-      const res = await fetch('/api/admin/impact/logs', {
+      const res = await fetch('/api/member/impact/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          beneficiaryId: member.id,
           actionId: subForm.actionId,
           count: Number(subForm.count),
           date: subForm.date,
           link: subForm.link || null,
           note: subForm.note || null,
-          status: 'PENDING_REVIEW',
-          sourceType: 'MANUAL',
-          platformId: member.platformId || null,
         }),
       })
       const data = await res.json()
@@ -210,9 +256,15 @@ export default function MemberPortalPage() {
               <p className="text-xs text-neutral-500">{member.platformName || 'شبكة رواد'}</p>
             </div>
           </div>
-          <Button unstyled onClick={logout} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600">
-            <LogOut size={16} /> خروج
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button unstyled onClick={() => switchTab('notifications')} className="relative rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 hover:text-primary-600" aria-label="الإشعارات">
+              <Bell size={18} />
+              {unreadNotifications > 0 && <span className="absolute -end-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-[9px] leading-4 text-white">{Math.min(99, unreadNotifications)}</span>}
+            </Button>
+            <Button unstyled onClick={logout} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600">
+              <LogOut size={16} /> خروج
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -223,6 +275,7 @@ export default function MemberPortalPage() {
             { id: 'dashboard', label: 'لوحتي', icon: TrendingUp },
             { id: 'submit', label: 'إرسال نشاط', icon: Send },
             { id: 'history', label: 'سجل الأنشطة', icon: FileText },
+            { id: 'notifications', label: 'الإشعارات', icon: Bell },
             { id: 'profile', label: 'حسابي', icon: Settings },
           ].map(t => (
             <Button unstyled
@@ -344,8 +397,19 @@ export default function MemberPortalPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الدليل</label>
-                <Input value={subForm.link} onChange={e => setSubForm({ ...subForm, link: e.target.value })} className="input-field" placeholder="رابط التصميم، التغريدة، المقال..." />
+                <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط دليل النشاط</label>
+                <Input
+                  type="url"
+                  inputMode="url"
+                  dir="ltr"
+                  value={subForm.link}
+                  onChange={e => setSubForm({ ...subForm, link: e.target.value })}
+                  className="input-field"
+                  placeholder="https://drive.google.com/... أو أي رابط على الإنترنت"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  يمكنك إرفاق ملف Google Drive بعد ضبط مشاركته على «أي شخص لديه الرابط»، أو رابط مقال أو منشور أو تصميم.
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
@@ -405,6 +469,12 @@ export default function MemberPortalPage() {
                     {act.rejectionReason && (
                       <p className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">❌ سبب الرفض: {act.rejectionReason}</p>
                     )}
+                    {act.link && (
+                      <a href={act.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline">
+                        <ExternalLink size={13} />
+                        فتح دليل النشاط
+                      </a>
+                    )}
                     {act.note && <p className="text-xs text-neutral-500 mt-1">{act.note}</p>}
                   </div>
                 ))}
@@ -412,6 +482,37 @@ export default function MemberPortalPage() {
             ) : (
               <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>
             )}
+          </div>
+        )}
+
+        {tab === 'notifications' && (
+          <div className="card p-5">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 font-bold text-neutral-900"><Bell size={18} className="text-primary-600" /> إشعاراتي</h2>
+                <p className="mt-1 text-xs text-neutral-500">{unreadNotifications} غير مقروء</p>
+              </div>
+              {unreadNotifications > 0 && <Button unstyled onClick={markNotificationsRead} className="btn-ghost btn-sm">تحديد الكل كمقروء</Button>}
+            </div>
+            <div className="space-y-3">
+              {notifications.length ? notifications.map(notification => (
+                <button
+                  type="button"
+                  key={notification.id}
+                  onClick={() => notification.link && router.push(`/ar${notification.link}`)}
+                  className={`w-full rounded-xl border p-4 text-right transition-colors ${notification.isRead ? 'border-neutral-200 bg-white' : 'border-primary-200 bg-primary-50/60'}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-neutral-900">{notification.title}</div>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-600">{notification.body}</p>
+                      <div className="mt-2 text-[10px] text-neutral-400">{notification.senderName || 'النظام'} · {new Date(notification.createdAt).toLocaleString('ar-SA')}</div>
+                    </div>
+                    {!notification.isRead && <span className="mt-1 size-2 shrink-0 rounded-full bg-primary-600" />}
+                  </div>
+                </button>
+              )) : <p className="py-12 text-center text-sm text-neutral-400">لا توجد إشعارات حاليًا</p>}
+            </div>
           </div>
         )}
 
@@ -423,7 +524,7 @@ export default function MemberPortalPage() {
               <h2 className="font-bold text-neutral-900 mb-4">بياناتي</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between"><span className="text-neutral-500">الاسم</span><span className="font-semibold">{member.name}</span></div>
-                <div className="flex justify-between"><span className="text-neutral-500">الكود</span><span className="font-mono">{member.code}</span></div>
+                <div className="flex justify-between"><span className="text-neutral-500">رقم العضو</span><span className="font-mono">{member.code}</span></div>
                 <div className="flex justify-between"><span className="text-neutral-500">البريد</span><span>{member.email || '—'}</span></div>
                 <div className="flex justify-between"><span className="text-neutral-500">الصفة</span><span>{member.networkRole || '—'}</span></div>
                 <div className="flex justify-between"><span className="text-neutral-500">المنصة</span><span>{member.platformName || '—'}</span></div>

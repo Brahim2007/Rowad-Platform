@@ -6,12 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { requireMemberToken } from '@/lib/member-auth'
+import { requireActiveMember } from '@/lib/member-auth'
 import { logger } from '@/lib/logger'
+import { sendPasswordChangedEmail } from '@/lib/email'
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = requireMemberToken(request)
+    const auth = await requireActiveMember(request)
     if (!auth.ok) return auth.error
 
     const { memberId, currentPassword, newPassword } = await request.json()
@@ -25,10 +26,13 @@ export async function PUT(request: NextRequest) {
 
     const member = await prisma.beneficiary.findUnique({
       where: { id: memberId },
-      select: { passwordHash: true },
+      select: { passwordHash: true, status: true },
     })
 
-    if (!member?.passwordHash) {
+    if (!member || member.status !== 'ACTIVE') {
+      return NextResponse.json({ success: false, message: 'الحساب غير نشط' }, { status: 403 })
+    }
+    if (!member.passwordHash) {
       return NextResponse.json({ success: false, message: 'لا توجد كلمة مرور سابقة' }, { status: 400 })
     }
 
@@ -44,6 +48,18 @@ export async function PUT(request: NextRequest) {
         mustChangePassword: false,
       },
     })
+
+    if (auth.member.email) {
+      try {
+        await sendPasswordChangedEmail({
+          to: auth.member.email,
+          memberName: `${auth.member.firstName} ${auth.member.lastName}`.trim(),
+          platformId: auth.member.platformId,
+        })
+      } catch (error) {
+        logger.error('Password changed confirmation email error', error)
+      }
+    }
 
     return NextResponse.json({ success: true, message: 'تم تغيير كلمة المرور بنجاح' })
   } catch (error) {

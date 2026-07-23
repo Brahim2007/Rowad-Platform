@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import {
   CheckCircle,
   KeyRound,
@@ -23,7 +24,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER' | 'EVALUATOR'
 
 interface PlatformOption {
   id: string
@@ -37,6 +38,7 @@ interface AdminUser {
   role: AdminRole
   platformId: string | null
   platformName: string | null
+  assignmentRole: 'PRIMARY' | 'DEPUTY' | null
   isActive: boolean
   lastLoginAt: string | null
   createdAt: string
@@ -48,6 +50,7 @@ interface UserFormState {
   fullName: string
   role: AdminRole
   platformId: string
+  assignmentRole: 'PRIMARY' | 'DEPUTY'
   isActive: boolean
   password: string
 }
@@ -57,6 +60,7 @@ const ROLE_LABELS: Record<AdminRole, string> = {
   ADMIN: 'مدير',
   EDITOR: 'محرر',
   PLATFORM_MANAGER: 'مدير منصة',
+  EVALUATOR: 'مقيّم مستقل',
 }
 
 const ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
@@ -64,6 +68,7 @@ const ROLE_DESCRIPTIONS: Record<AdminRole, string> = {
   ADMIN: 'إدارة المحتوى والعمليات',
   EDITOR: 'تحرير المحتوى والبيانات التشغيلية',
   PLATFORM_MANAGER: 'إدارة أعضاء وأنشطة منصة واحدة فقط',
+  EVALUATOR: 'تنفيذ التقييمات المسندة إليه وإرسالها للمراجعة فقط',
 }
 
 const emptyForm: UserFormState = {
@@ -71,6 +76,7 @@ const emptyForm: UserFormState = {
   fullName: '',
   role: 'EDITOR',
   platformId: '',
+  assignmentRole: 'PRIMARY',
   isActive: true,
   password: '',
 }
@@ -90,11 +96,14 @@ function roleBadge(role: AdminRole) {
   if (role === 'SUPER_ADMIN') return 'bg-primary-100 text-primary-700'
   if (role === 'ADMIN') return 'bg-info-50 text-info-700'
   if (role === 'PLATFORM_MANAGER') return 'bg-amber-50 text-amber-700'
+  if (role === 'EVALUATOR') return 'bg-violet-50 text-violet-700'
   return 'bg-neutral-100 text-neutral-600'
 }
 
 export default function AdminUsersPage() {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const requestedPlatformId = searchParams.get('platformId') || ''
   const currentRole = (session?.user as { role?: string } | undefined)?.role
   const [users, setUsers] = useState<AdminUser[]>([])
   const [platforms, setPlatforms] = useState<PlatformOption[]>([])
@@ -148,7 +157,7 @@ export default function AdminUsersPage() {
 
   function openCreate() {
     setEditing(null)
-    setForm(emptyForm)
+    setForm(requestedPlatformId ? { ...emptyForm, role: 'PLATFORM_MANAGER', platformId: requestedPlatformId, assignmentRole: 'PRIMARY' } : emptyForm)
     setShowModal(true)
   }
 
@@ -159,6 +168,7 @@ export default function AdminUsersPage() {
       fullName: user.fullName,
       role: user.role,
       platformId: user.platformId || '',
+      assignmentRole: user.assignmentRole || 'PRIMARY',
       isActive: user.isActive,
       password: '',
     })
@@ -174,6 +184,7 @@ export default function AdminUsersPage() {
         ...(editing ? { id: editing.id } : {}),
         ...form,
         platformId: form.role === 'PLATFORM_MANAGER' ? form.platformId : null,
+        assignmentRole: form.role === 'PLATFORM_MANAGER' ? form.assignmentRole : 'PRIMARY',
       }
       const res = await fetch('/api/admin/users', {
         method: editing ? 'PUT' : 'POST',
@@ -332,7 +343,9 @@ export default function AdminUsersPage() {
                       </span>
                       <p className="text-[11px] text-neutral-400 mt-1">
                         {user.role === 'PLATFORM_MANAGER' && user.platformName
-                          ? `${ROLE_DESCRIPTIONS[user.role]} — ${user.platformName}`
+                          ? `${ROLE_DESCRIPTIONS[user.role]} — ${user.platformName} — ${
+                              user.assignmentRole === 'DEPUTY' ? 'نائب المدير' : 'مدير أساسي'
+                            }`
                           : ROLE_DESCRIPTIONS[user.role]}
                       </p>
                     </TableCell>
@@ -415,20 +428,29 @@ export default function AdminUsersPage() {
               </div>
 
               {form.role === 'PLATFORM_MANAGER' && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">المنصة التابعة له</label>
-                  <NativeSelect
-                    value={form.platformId}
-                    onChange={event => setForm({ ...form, platformId: event.target.value })}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">— اختر المنصة —</option>
-                    {platforms.map(platform => (
-                      <option key={platform.id} value={platform.id}>{platform.name}</option>
-                    ))}
-                  </NativeSelect>
-                  <p className="text-xs text-neutral-400 mt-1">لن يتمكن مدير المنصة من الوصول إلى بيانات أي منصة أخرى.</p>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">المنصة التابعة له</label>
+                    <NativeSelect
+                      value={form.platformId}
+                      onChange={event => setForm({ ...form, platformId: event.target.value })}
+                      className="input-field"
+                      required
+                    >
+                      <option value="">— اختر المنصة —</option>
+                      {platforms.map(platform => (
+                        <option key={platform.id} value={platform.id}>{platform.name}</option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-1">نوع المسؤولية</label>
+                    <NativeSelect value={form.assignmentRole} onChange={event => setForm({ ...form, assignmentRole: event.target.value as 'PRIMARY' | 'DEPUTY' })} className="input-field">
+                      <option value="PRIMARY">مدير أساسي</option>
+                      <option value="DEPUTY">نائب المدير</option>
+                    </NativeSelect>
+                  </div>
+                  <p className="text-xs text-neutral-400 mt-1 sm:col-span-2">لن يتمكن مدير المنصة من الوصول إلى بيانات أي منصة أخرى، ويمكن تعيين مدير أساسي واحد وعدة نواب.</p>
                 </div>
               )}
 

@@ -6,8 +6,9 @@ import { randomBytes } from 'crypto'
 import { UnifiedMemberSchema } from '@/lib/validations/member'
 import { sendWelcomeEmail } from '@/lib/email'
 import { z } from 'zod'
-import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
+import { getPlatformScope, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
+import { generateMemberCode } from '@/lib/member-code'
 
 async function requireMembersAccess() {
   const auth = await requireAuth()
@@ -27,8 +28,8 @@ async function requireMembersAccess() {
   return auth
 }
 
-function scopedMemberData(input: z.infer<typeof UnifiedMemberSchema>, user: SessionUser) {
-  const data = toMemberData(input)
+function scopedMemberData(input: z.infer<typeof UnifiedMemberSchema>, user: SessionUser, code: string) {
+  const data = toMemberData(input, code)
   if (user.role === 'PLATFORM_MANAGER') {
     data.platformId = user.platformId
   }
@@ -50,11 +51,11 @@ function parseDate(value?: string | null) {
   return value ? new Date(value) : null
 }
 
-function toMemberData(input: z.infer<typeof UnifiedMemberSchema>) {
+function toMemberData(input: z.infer<typeof UnifiedMemberSchema>, code: string) {
   const isTeamLike = input.type === 'TEAM' || input.type === 'BOTH'
 
   return {
-    code: input.code,
+    code,
     firstName: input.firstName,
     lastName: input.lastName,
     email: nullable(input.email),
@@ -148,6 +149,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
     const stage = searchParams.get('stage') || ''
+    const requestedPlatformId = searchParams.get('platformId') || ''
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
     const pageSizeParam = Number(searchParams.get('pageSize') || searchParams.get('limit')) || 50
     const pageSize = Math.min(Math.max(1, pageSizeParam), 50)
@@ -155,9 +157,11 @@ export async function GET(request: NextRequest) {
     const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
-    const where: Prisma.BeneficiaryWhereInput = {
-      ...platformWhere(scope),
+    if (requestedPlatformId && !(await verifyPlatformOwnership(auth.user, requestedPlatformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
+    const effectivePlatformId = scope.filterId || requestedPlatformId || null
+    const where: Prisma.BeneficiaryWhereInput = effectivePlatformId ? { platformId: effectivePlatformId } : {}
 
     const typeFilter = typeWhere(type)
     if (typeFilter) where.type = typeFilter
@@ -178,7 +182,7 @@ export async function GET(request: NextRequest) {
     if (compact) {
       const searchPattern = `%${search}%`
       const clauses = [
-        scope.filterId ? Prisma.sql`b."platformId" = ${scope.filterId}` : null,
+        effectivePlatformId ? Prisma.sql`b."platformId" = ${effectivePlatformId}` : null,
         type === 'BENEFICIARY' ? Prisma.sql`b.type IN ('BENEFICIARY'::"MemberType", 'BOTH'::"MemberType")` : null,
         type === 'TEAM' ? Prisma.sql`b.type IN ('TEAM'::"MemberType", 'BOTH'::"MemberType")` : null,
         status ? Prisma.sql`b.status = ${status}::"BeneficiaryStatus"` : null,
@@ -317,6 +321,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const input = UnifiedMemberSchema.parse(await request.json())
+    const memberCode = await generateMemberCode()
     // توليد كلمة مرور مؤقتة إن وُجد بريد إلكتروني
     const memberEmail = input.email?.trim() || null
     const tempPassword = memberEmail ? `${randomBytes(9).toString('base64url')}A1!` : null
@@ -324,7 +329,7 @@ export async function POST(request: NextRequest) {
 
     const member = await prisma.beneficiary.create({
       data: {
-        ...scopedMemberData(input, auth.user),
+        ...scopedMemberData(input, auth.user, memberCode),
         ...(passwordHash ? { passwordHash, mustChangePassword: true } : {}),
       },
       include: {
@@ -391,7 +396,7 @@ export async function POST(request: NextRequest) {
     }
     const e = error as { code?: string }
     if (e.code === 'P2002') {
-      return NextResponse.json({ success: false, message: 'الكود أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
+      return NextResponse.json({ success: false, message: 'رقم العضو أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
     }
     logger.error('Members POST error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
@@ -408,12 +413,12 @@ export async function PUT(request: NextRequest) {
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
 
     const input = UnifiedMemberSchema.parse(body)
-    const previous = await prisma.beneficiary.findUnique({ where: { id }, select: { memberSince: true, platformId: true } })
+    const previous = await prisma.beneficiary.findUnique({ where: { id }, select: { code: true, memberSince: true, platformId: true } })
     if (!previous) return NextResponse.json({ success: false, message: 'العضو غير موجود' }, { status: 404 })
     if (!(await verifyPlatformOwnership(auth.user, previous.platformId))) {
       return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
-    const data = scopedMemberData(input, auth.user)
+    const data = scopedMemberData(input, auth.user, previous.code)
     const isTeamLike = input.type === 'TEAM' || input.type === 'BOTH'
 
     const member = await prisma.beneficiary.update({
@@ -439,7 +444,7 @@ export async function PUT(request: NextRequest) {
     }
     const e = error as { code?: string }
     if (e.code === 'P2002') {
-      return NextResponse.json({ success: false, message: 'الكود أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
+      return NextResponse.json({ success: false, message: 'رقم العضو أو البريد أو الرابط المختصر مستخدم مسبقاً' }, { status: 409 })
     }
     logger.error('Members PUT error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })

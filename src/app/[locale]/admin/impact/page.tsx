@@ -13,20 +13,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   Activity, Calculator, TrendingUp,
-  CheckCircle, ClipboardCheck, Crown, Download, Eye,
+  CheckCircle, ClipboardCheck, Crown, Download, Eye, FileText,
   Settings,
   Info, Medal, Pencil, Plus, Printer,
-  Shield, LayoutGrid, Star, Trash,
+  Shield, Star, Trash,
   User, UserCheck, Users, TriangleAlert, X,
-  ChevronDown,
+  ChevronDown, Search, Building2, UserRoundCheck, ListFilter, RotateCcw, Mail,
+  Copy, ExternalLink, CalendarDays, Target, IdCard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import { finalPoints, buildActionMap, type ImpactCategory } from '@/lib/impact-scoring'
-import { exportMembersCSV, exportActivitiesCSV } from '@/lib/export-csv'
+import { downloadCSV, exportMembersCSV, exportActivitiesCSV } from '@/lib/export-csv'
+import type { ImpactReportMetrics, SmartImpactReport } from '@/lib/ai/impact-report'
+import { printElement } from '@/lib/report-export'
 
 // ═══════════════════════════════════════════════
 // Types
@@ -208,6 +212,7 @@ function resourcesForTab(tab: string) {
 export default function ImpactDashboardPage() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') || 'dashboard'
+  const platformIdParam = searchParams.get('platformId') || ''
   const [activeTab, setActiveTab] = useState(tabParam)
   const loadedTabsRef = useRef(new Set<string>())
   const loadedResourcesRef = useRef(new Set<string>())
@@ -248,7 +253,7 @@ export default function ImpactDashboardPage() {
   const [loadingMoreLogs, setLoadingMoreLogs] = useState(false)
 
   const loadMembersPage = useCallback(async (page = 1, append = false) => {
-    const res = await fetch(`/api/admin/members?page=${page}&pageSize=${PAGE_SIZE}&compact=1`)
+    const res = await fetch(`/api/admin/members?page=${page}&pageSize=${PAGE_SIZE}&compact=1${platformIdParam ? `&platformId=${encodeURIComponent(platformIdParam)}` : ''}`)
     const data = await res.json()
     if (!data.success) throw new Error(data.message || 'فشل تحميل الأعضاء')
     const nextMembers = data.data?.members || data.data || []
@@ -260,10 +265,10 @@ export default function ImpactDashboardPage() {
       totalPages: data.pagination?.totalPages ?? null,
       hasMore: data.pagination?.hasMore ?? false,
     })
-  }, [])
+  }, [platformIdParam])
 
   const loadLogsPage = useCallback(async (page = 1, append = false) => {
-    const res = await fetch(`/api/admin/impact/logs?page=${page}&pageSize=${PAGE_SIZE}&compact=1`)
+    const res = await fetch(`/api/admin/impact/logs?page=${page}&pageSize=${PAGE_SIZE}&compact=1${platformIdParam ? `&platformId=${encodeURIComponent(platformIdParam)}` : ''}`)
     const data = await res.json()
     if (!data.success) throw new Error(data.message || 'فشل تحميل الأنشطة')
     const nextLogs = data.data || []
@@ -275,7 +280,7 @@ export default function ImpactDashboardPage() {
       totalPages: data.pagination?.totalPages ?? null,
       hasMore: data.pagination?.hasMore ?? false,
     })
-  }, [])
+  }, [platformIdParam])
 
   const loadMoreMembers = useCallback(async () => {
     if (loadingMoreMembers || !membersPagination.hasMore) return
@@ -384,7 +389,7 @@ export default function ImpactDashboardPage() {
   }, [activeTab, ensureTabData])
 
   // Compute member card data
-  const [cardMemberId, setCardMemberId] = useState<string>('')
+  const [cardMemberId, setCardMemberId] = useState<string>(searchParams.get('memberId') || '')
 
   /** إعدادات الجودة الديناميكية من ImpactSettings — إن لم تكن محفوظة، نستخدم الافتراضية */
   const qualityBonus: Record<string, number> = dashData?.settings?.qualityBonus ?? DEFAULT_QUALITY_BONUS
@@ -422,10 +427,10 @@ export default function ImpactDashboardPage() {
         <TabContentSkeleton />
       ) : (
         <>
-          {activeTab === 'dashboard' && <DashboardTab dashData={dashData} />}
+          {activeTab === 'dashboard' && <DashboardTab dashData={dashData} switchTab={switchTab} setCardMemberId={setCardMemberId} />}
           {activeTab === 'members' && <MembersTab beneficiaries={beneficiaries} logs={logs} actions={actions} fetchAll={fetchAll} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} pagination={membersPagination} onLoadMore={loadMoreMembers} loadingMore={loadingMoreMembers} />}
           {activeTab === 'activities' && <ActivitiesTab logs={logs} actions={actions} beneficiaries={beneficiaries} fetchAll={fetchAll} qualityBonus={qualityBonus} pagination={logsPagination} onLoadMore={loadMoreLogs} loadingMore={loadingMoreLogs} />}
-          {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
+          {activeTab === 'pulse' && <PulseTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} setCardMemberId={setCardMemberId} switchTab={switchTab} />}
           {activeTab === 'card' && (
             <CardTab
               beneficiaries={beneficiaries} logs={logs} actions={actions} awards={awards}
@@ -434,7 +439,7 @@ export default function ImpactDashboardPage() {
             />
           )}
           {activeTab === 'rewards' && <RewardsTab beneficiaries={beneficiaries} logs={logs} actions={actions} awards={awards} gates={gates} fetchAll={fetchAll} qualityBonus={qualityBonus} />}
-          {activeTab === 'reports' && <ReportsTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} />}
+          {activeTab === 'reports' && <ReportsTab beneficiaries={beneficiaries} logs={logs} actions={actions} qualityBonus={qualityBonus} initialPlatformId={platformIdParam} />}
           {activeTab === 'settings' && <SettingsTab actions={actions} fetchAll={fetchAll} />}
         </>
       )}
@@ -459,95 +464,358 @@ function TabContentSkeleton() {
 // Tab: Dashboard (الرئيسية)
 // ═══════════════════════════════════════════════
 
-function DashboardTab({ dashData }: { dashData: DashboardData | null }) {
-  const [scope, setScope] = useState<{ type: string; year?: number; month?: number; ref?: string }>({ type: 'all' })
+function DashboardTab({
+  dashData,
+  switchTab,
+  setCardMemberId,
+}: {
+  dashData: DashboardData | null
+  switchTab: (tab: string) => void
+  setCardMemberId: (id: string) => void
+}) {
+  const now = useMemo(() => new Date(), [])
+  const [data, setData] = useState<DashboardData | null>(dashData)
+  const [draftScope, setDraftScope] = useState<{ type: string; year?: number; month?: number; ref?: string }>(
+    dashData?.scope ?? { type: 'all' },
+  )
+  const [scopeLoading, setScopeLoading] = useState(false)
 
-  if (!dashData) {
+  useEffect(() => {
+    setData(dashData)
+    if (dashData?.scope) setDraftScope(dashData.scope)
+  }, [dashData])
+
+  const applyScope = async (event: FormEvent) => {
+    event.preventDefault()
+    const params = new URLSearchParams({ scope: draftScope.type })
+    if (draftScope.type === 'month') {
+      params.set('year', String(draftScope.year || now.getFullYear()))
+      params.set('month', String(draftScope.month || now.getMonth() + 1))
+    }
+    if (draftScope.type === 'week') {
+      params.set('ref', draftScope.ref || now.toISOString().slice(0, 10))
+    }
+
+    setScopeLoading(true)
+    try {
+      const response = await fetch(`/api/admin/impact/dashboard?${params.toString()}`, { cache: 'no-store' })
+      const result = await response.json()
+      if (!response.ok || !result.success) throw new Error(result.message || 'تعذر تحديث المؤشرات')
+      setData(result.data)
+      setDraftScope(result.data.scope)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تحديث المؤشرات')
+    } finally {
+      setScopeLoading(false)
+    }
+  }
+
+  if (!data) {
     return <div className="card text-center py-12 text-neutral-400"><Shield size={36} className="mx-auto mb-3 text-neutral-300" /><p>لا توجد بيانات للوحة الأثر بعد</p></div>
   }
 
-  const { kpis, top10 } = dashData
+  const { kpis, top10, platforms, alerts, topByRole } = data
+  const engagementRate = kpis.memberCount ? Math.round((kpis.activeNow / kpis.memberCount) * 100) : 0
+  const categoryEntries = Object.entries(data.catTotals).sort((a, b) => b[1] - a[1])
+  const maxCategoryPoints = Math.max(...categoryEntries.map(([, value]) => value), 1)
+  const topPlatform = platforms[0]
+  const quickActions = [
+    { label: 'إضافة عضو', hint: 'إنشاء وإدارة الحسابات', icon: Users, tab: 'members' },
+    { label: 'تسجيل نشاط', hint: 'إضافة مساهمة جديدة', icon: Plus, tab: 'activities' },
+    { label: 'متابعة الأداء', hint: 'الحضور والالتزام', icon: TrendingUp, tab: 'pulse' },
+    { label: 'إنشاء تقرير', hint: 'التقارير والذكاء الاصطناعي', icon: FileText, tab: 'reports' },
+  ]
+
+  const openAlert = (alert: DashboardData['alerts'][number]) => {
+    if (alert.memberId && alert.tab === 'card') setCardMemberId(alert.memberId)
+    switchTab(alert.tab)
+  }
 
   return (
-    <div>
-      {/* Scope selector */}
-      <div className="card p-4 mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-semibold text-neutral-700">نطاق العرض:</label>
-          <NativeSelect value={scope.type} onChange={e => setScope({ ...scope, type: e.target.value })} className="input-field max-w-[140px]">
-            <option value="all">الإجمالي</option>
-            <option value="month">شهري</option>
-            <option value="week">أسبوعي</option>
+    <div className={`space-y-5 transition-opacity ${scopeLoading ? 'opacity-70' : ''}`} aria-busy={scopeLoading}>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-primary-800 via-primary-700 to-primary-600 p-5 text-white shadow-lg md:p-7">
+        <div className="absolute -start-20 -top-24 h-56 w-56 rounded-full bg-white/10" />
+        <div className="absolute -bottom-28 end-1/4 h-52 w-52 rounded-full bg-cyan-300/10" />
+        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-end">
+          <div>
+            <Badge className="mb-4 bg-white/15 text-white">مركز قيادة الأثر</Badge>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">صورة تشغيلية موحّدة لأداء شبكة الرواد</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-primary-50">
+              راقب نشاط الأعضاء والمنصات، التقط الحالات التي تحتاج تدخلاً، وانتقل مباشرة إلى الإجراء المناسب.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-white/12 px-3 py-1.5">الفترة: {scopeLabel(data.scope)}</span>
+              <span className="rounded-full bg-white/12 px-3 py-1.5">نشاط الشهر الحالي: {engagementRate}%</span>
+              <span className="rounded-full bg-white/12 px-3 py-1.5">تنبيهات تشغيلية: {alerts.length}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+              <div className="text-xs text-primary-100">المنصة الأعلى أثرًا</div>
+              <div className="mt-2 line-clamp-2 text-sm font-bold">{topPlatform?.platform || 'لا توجد بيانات'}</div>
+              <div className="mt-1 text-xl font-black">{topPlatform?.points?.toLocaleString('ar-SA') || 0} <span className="text-xs font-medium">نقطة</span></div>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+              <div className="text-xs text-primary-100">متصدر الفترة</div>
+              <div className="mt-2 line-clamp-2 text-sm font-bold">{kpis.topMember?.name || 'لا يوجد'}</div>
+              <div className="mt-1 text-xl font-black">{kpis.topMember?.total?.toLocaleString('ar-SA') || 0} <span className="text-xs font-medium">نقطة</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <form onSubmit={applyScope} className="card flex flex-wrap items-end gap-3 p-4">
+        <div className="min-w-[150px] flex-1">
+          <label htmlFor="impact-dashboard-scope" className="mb-1.5 block text-xs font-bold text-neutral-600">نطاق المؤشرات</label>
+          <NativeSelect
+            id="impact-dashboard-scope"
+            aria-label="نطاق المؤشرات"
+            value={draftScope.type}
+            onChange={event => {
+              const type = event.target.value
+              setDraftScope(type === 'month'
+                ? { type, year: now.getFullYear(), month: now.getMonth() + 1 }
+                : type === 'week'
+                  ? { type, ref: now.toISOString().slice(0, 10) }
+                  : { type })
+            }}
+          >
+            <option value="all">الإجمالي التراكمي</option>
+            <option value="month">شهر محدد</option>
+            <option value="week">أسبوع محدد</option>
           </NativeSelect>
         </div>
-        {scope.type === 'month' && (
-          <div className="flex items-center gap-3">
-            <Input type="number" value={scope.year || new Date().getFullYear()} className="input-field max-w-[100px]" placeholder="السنة" onChange={e => setScope({ ...scope, year: +e.target.value })} />
-            <NativeSelect value={scope.month || new Date().getMonth() + 1} className="input-field max-w-[140px]" onChange={e => setScope({ ...scope, month: +e.target.value })}>
-              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </NativeSelect>
+        {draftScope.type === 'month' && (
+          <>
+            <div className="w-[110px]">
+              <label htmlFor="impact-dashboard-year" className="mb-1.5 block text-xs font-bold text-neutral-600">السنة</label>
+              <Input id="impact-dashboard-year" aria-label="سنة المؤشرات" type="number" min="2020" max="2100" value={draftScope.year || now.getFullYear()} onChange={event => setDraftScope(current => ({ ...current, year: Number(event.target.value) }))} />
+            </div>
+            <div className="min-w-[140px] flex-1">
+              <label htmlFor="impact-dashboard-month" className="mb-1.5 block text-xs font-bold text-neutral-600">الشهر</label>
+              <NativeSelect id="impact-dashboard-month" aria-label="شهر المؤشرات" value={draftScope.month || now.getMonth() + 1} onChange={event => setDraftScope(current => ({ ...current, month: Number(event.target.value) }))}>
+                {MONTHS.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}
+              </NativeSelect>
+            </div>
+          </>
+        )}
+        {draftScope.type === 'week' && (
+          <div className="min-w-[180px] flex-1">
+            <label htmlFor="impact-dashboard-week" className="mb-1.5 block text-xs font-bold text-neutral-600">مرجع الأسبوع</label>
+            <Input id="impact-dashboard-week" aria-label="تاريخ أسبوع المؤشرات" type="date" value={draftScope.ref || now.toISOString().slice(0, 10)} onChange={event => setDraftScope(current => ({ ...current, ref: event.target.value }))} />
           </div>
         )}
-        <Badge className="bg-neutral-100 text-neutral-600">{scopeLabel(scope)}</Badge>
-      </div>
+        <Button type="submit" disabled={scopeLoading} className="h-10 min-w-[110px]">
+          {scopeLoading ? 'جارٍ التحديث...' : 'تطبيق الفترة'}
+        </Button>
+        <Badge className="bg-neutral-100 text-neutral-600">{scopeLabel(data.scope)}</Badge>
+      </form>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <KpiCard icon={Users} label="الأعضاء" value={kpis.memberCount} color="bg-primary-100 text-primary-600" />
-        <KpiCard icon={UserCheck} label="النشطون" value={kpis.activeNow} color="bg-green-100 text-green-600" />
-        <KpiCard icon={CheckCircle} label="الأنشطة" value={kpis.actCount} color="bg-teal-100 text-teal-600" />
-        <KpiCard icon={Star} label="النقاط" value={kpis.totalPoints} color="bg-amber-100 text-amber-600" />
-        <KpiCard icon={Shield} label="الدروع" value={kpis.badgeCount} color="bg-orange-100 text-orange-600" />
-        <KpiCard icon={Crown} label="المتصدر" value={kpis.topMember?.name ?? '—'} color="bg-purple-100 text-purple-600" isText />
-      </div>
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <KpiCard icon={Users} label="إجمالي الأعضاء" value={kpis.memberCount} color="bg-primary-100 text-primary-700" />
+        <KpiCard icon={UserCheck} label="نشطون هذا الشهر" value={kpis.activeNow} color="bg-emerald-100 text-emerald-700" />
+        <KpiCard icon={CheckCircle} label="أنشطة الفترة" value={kpis.actCount} color="bg-cyan-100 text-cyan-700" />
+        <KpiCard icon={Star} label="نقاط الفترة" value={kpis.totalPoints.toLocaleString('ar-SA')} color="bg-amber-100 text-amber-700" />
+        <KpiCard icon={Shield} label="الدروع الممنوحة" value={kpis.badgeCount} color="bg-orange-100 text-orange-700" />
+        <KpiCard icon={Activity} label="معدل المشاركة" value={`${engagementRate}%`} color="bg-violet-100 text-violet-700" />
+      </section>
 
-      {/* Top 10 Table */}
-      <div className="card mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><LayoutGrid size={18} className="text-primary-600" /> الترتيب — {scopeLabel(scope)}</h2>
-          <span className="text-xs text-neutral-500">{top10.length} عضو</span>
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+        <div className="card p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-neutral-100 p-5">
+            <div>
+              <h2 className="font-bold text-neutral-900">أداء المنصات</h2>
+              <p className="mt-1 text-xs text-neutral-500">مقارنة النقاط والأنشطة ومتوسط أثر العضو</p>
+            </div>
+            <Link href="/ar/admin/platforms-overview" className="btn-ghost btn-sm flex items-center gap-1.5">
+              مركز المتابعة <ExternalLink size={14} />
+            </Link>
+          </div>
+          {platforms.length ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">المنصة</TableHead>
+                    <TableHead className="text-center">الأعضاء</TableHead>
+                    <TableHead className="text-center">الأنشطة</TableHead>
+                    <TableHead className="text-center">النقاط</TableHead>
+                    <TableHead className="text-center">المتوسط</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {platforms.slice(0, 6).map((platform, index) => (
+                    <TableRow key={platform.platform}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-xs font-black text-primary-700">{index + 1}</span>
+                          <div>
+                            <div className="max-w-[260px] truncate font-semibold text-neutral-800">{platform.platform}</div>
+                            <div className="text-[11px] text-neutral-400">الأفضل: {platform.best}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">{platform.count}</TableCell>
+                      <TableCell className="text-center">{platform.acts}</TableCell>
+                      <TableCell className="text-center font-bold">{platform.points.toLocaleString('ar-SA')}</TableCell>
+                      <TableCell className="text-center"><Badge className="bg-neutral-100 text-neutral-700">{platform.avg}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : <EmptyDashboardState text="لا توجد أنشطة منصات ضمن الفترة المختارة" />}
         </div>
-        {top10.length > 0 ? (
+
+        <div className="card">
+          <div className="mb-5 flex items-start justify-between">
+            <div>
+              <h2 className="font-bold text-neutral-900">حالات تحتاج متابعة</h2>
+              <p className="mt-1 text-xs text-neutral-500">تنبيهات محسوبة من السجلات الحالية</p>
+            </div>
+            <Badge className={alerts.length ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>{alerts.length}</Badge>
+          </div>
+          {alerts.length ? (
+            <div className="space-y-2.5">
+              {alerts.slice(0, 5).map((alert, index) => (
+                <button key={`${alert.title}-${index}`} type="button" onClick={() => openAlert(alert)} className="group flex w-full items-center gap-3 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-3 text-right transition hover:border-primary-200 hover:bg-primary-50">
+                  <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${alert.kind === 'danger' ? 'bg-red-100 text-red-700' : alert.kind === 'warn' ? 'bg-amber-100 text-amber-700' : alert.kind === 'ok' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                    <TriangleAlert size={17} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold text-neutral-800">{alert.title}</span>
+                    <span className="block truncate text-xs text-neutral-500">{alert.sub}</span>
+                  </span>
+                  <ChevronDown size={16} className="rotate-90 text-neutral-300 transition group-hover:text-primary-600" />
+                </button>
+              ))}
+            </div>
+          ) : <EmptyDashboardState text="لا توجد حالات عاجلة حاليًا" positive />}
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-3">
+        <div className="card">
+          <div className="mb-5">
+            <h2 className="font-bold text-neutral-900">توزيع مجالات الأثر</h2>
+            <p className="mt-1 text-xs text-neutral-500">النقاط حسب نوع المساهمة</p>
+          </div>
+          {categoryEntries.length ? (
+            <div className="space-y-4">
+              {categoryEntries.map(([category, value], index) => (
+                <div key={category}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-neutral-700">{category}</span>
+                    <span className="font-bold text-neutral-900">{value.toLocaleString('ar-SA')}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div className={`h-full rounded-full ${['bg-primary-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500'][index % 4]}`} style={{ width: `${Math.max((value / maxCategoryPoints) * 100, value ? 4 : 0)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <EmptyDashboardState text="لا توجد نقاط ضمن الفترة" />}
+        </div>
+
+        <div className="card">
+          <div className="mb-5">
+            <h2 className="font-bold text-neutral-900">المتميزون حسب الصفة</h2>
+            <p className="mt-1 text-xs text-neutral-500">أعلى عضو في كل مسار</p>
+          </div>
+          <div className="space-y-2.5">
+            {Object.entries(topByRole).map(([role, member]) => (
+              <div key={role} className="flex items-center gap-3 rounded-xl border border-neutral-100 p-3">
+                <Crown size={16} className="text-amber-500" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-neutral-800">{member?.name || 'لا يوجد عضو'}</div>
+                  <div className="text-xs text-neutral-500">{role}</div>
+                </div>
+                <span className="text-xs font-black text-primary-700">{member?.val || 0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="mb-5">
+            <h2 className="font-bold text-neutral-900">إجراءات سريعة</h2>
+            <p className="mt-1 text-xs text-neutral-500">انتقل مباشرة إلى العمل المطلوب</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {quickActions.map(action => (
+              <button key={action.tab} type="button" onClick={() => switchTab(action.tab)} className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3 text-right transition hover:border-primary-200 hover:bg-primary-50">
+                <action.icon size={18} className="mb-3 text-primary-600" />
+                <span className="block text-sm font-bold text-neutral-800">{action.label}</span>
+                <span className="mt-1 block text-[11px] leading-5 text-neutral-500">{action.hint}</span>
+              </button>
+            ))}
+          </div>
+          <Link href="/ar/admin/ai-governance" className="mt-3 flex items-center justify-between rounded-2xl bg-neutral-900 p-3 text-sm font-bold text-white transition hover:bg-neutral-800">
+            مركز التقييم والتقويم الذكي
+            <ExternalLink size={15} />
+          </Link>
+        </div>
+      </section>
+
+      <div className="card p-0 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-neutral-100 p-5">
+          <div>
+            <h2 className="font-bold text-neutral-900">ترتيب الرواد — {scopeLabel(data.scope)}</h2>
+            <p className="mt-1 text-xs text-neutral-500">أعلى عشرة أعضاء حسب النقاط المعتمدة</p>
+          </div>
+          <Button unstyled onClick={() => switchTab('members')} className="btn-ghost btn-sm">عرض الأعضاء</Button>
+        </div>
+        {top10.length ? (
           <div className="overflow-x-auto">
-            <Table className="w-full text-sm">
+            <Table>
               <TableHeader>
-                <TableRow className="border-b border-neutral-200">
-                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">#</TableHead>
-                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">العضو</TableHead>
-                  <TableHead className="text-right p-3 text-neutral-500 font-semibold">الصفة</TableHead>
-                  <TableHead className="text-center p-3 text-neutral-500 font-semibold">النقاط</TableHead>
-                  <TableHead className="text-center p-3 text-neutral-500 font-semibold">المستوى</TableHead>
+                <TableRow>
+                  <TableHead className="text-right">الترتيب</TableHead>
+                  <TableHead className="text-right">العضو</TableHead>
+                  <TableHead className="text-right">المنصة</TableHead>
+                  <TableHead className="text-center">الأنشطة</TableHead>
+                  <TableHead className="text-center">النقاط</TableHead>
+                  <TableHead className="text-center">المستوى</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {top10.map((m, i) => (
-                  <TableRow key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <TableCell className="p-3">
-                      <span className={`w-7 h-7 rounded-full inline-flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-slate-400 text-white' : i === 2 ? 'bg-amber-700 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{i + 1}</span>
+                {top10.map((member, index) => (
+                  <TableRow key={member.code}>
+                    <TableCell><span className={`inline-flex size-7 items-center justify-center rounded-full text-xs font-black ${index < 3 ? 'bg-amber-100 text-amber-800' : 'bg-neutral-100 text-neutral-500'}`}>{index + 1}</span></TableCell>
+                    <TableCell>
+                      <div className="font-bold text-neutral-800">{member.name}</div>
+                      <div className="text-[11px] text-neutral-400">ID: {member.code}</div>
                     </TableCell>
-                    <TableCell className="p-3 font-semibold">{m.name}</TableCell>
-                    <TableCell className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{m.networkRole || '—'}</Badge></TableCell>
-                    <TableCell className="p-3 text-center font-mono font-bold">{m.total}</TableCell>
-                    <TableCell className="p-3 text-center"><Badge className="bg-primary-100 text-primary-700">{m.level}</Badge></TableCell>
+                    <TableCell className="max-w-[220px] truncate text-neutral-600">{member.platformName || 'غير محدد'}</TableCell>
+                    <TableCell className="text-center">{member.acts}</TableCell>
+                    <TableCell className="text-center font-black">{member.total.toLocaleString('ar-SA')}</TableCell>
+                    <TableCell className="text-center"><Badge className="bg-primary-100 text-primary-700">{member.level}</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-        ) : <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء بعد</p>}
+        ) : <EmptyDashboardState text="لا يوجد ترتيب ضمن الفترة المختارة" />}
       </div>
     </div>
   )
 }
 
-function KpiCard({ icon: Icon, label, value, color, isText }: { icon: any; label: string; value: string | number; color: string; isText?: boolean }) {
+function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
   return (
-    <div className="card p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}><Icon size={18} /></div>
-      <div>
-        <div className={`${isText ? 'text-sm' : 'text-lg'} font-bold text-neutral-900`}>{value}</div>
-        <div className="text-xs text-neutral-500">{label}</div>
-      </div>
+    <div className="card group min-w-0 p-4 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className={`mb-3 flex size-10 items-center justify-center rounded-2xl ${color}`}><Icon size={18} /></div>
+      <div className="truncate text-xl font-black text-neutral-900">{value}</div>
+      <div className="mt-1 text-xs text-neutral-500">{label}</div>
+    </div>
+  )
+}
+
+function EmptyDashboardState({ text, positive = false }: { text: string; positive?: boolean }) {
+  return (
+    <div className="flex min-h-36 flex-col items-center justify-center px-5 py-8 text-center">
+      {positive ? <CheckCircle size={26} className="mb-2 text-emerald-500" /> : <Activity size={26} className="mb-2 text-neutral-300" />}
+      <p className="text-sm text-neutral-500">{text}</p>
     </div>
   )
 }
@@ -581,6 +849,9 @@ function MembersTab({
 }) {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  const [platformFilter, setPlatformFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [sortBy, setSortBy] = useState<'newest' | 'name' | 'points' | 'activities'>('newest')
   const [showModal, setShowModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editing, setEditing] = useState<BeneficiaryInfo | null>(null)
@@ -593,33 +864,68 @@ function MembersTab({
 
   /** فتح نافذة إضافة عضو جديد */
   const openCreate = () => {
-    setCreateForm({ firstName: '', lastName: '', code: `R-${String(beneficiaries.length + 1).padStart(3, '0')}`, email: '', phone: '', networkRole: '', platformId: '', joinDate: today(), impactNote: '' })
+    setCreateForm({ firstName: '', lastName: '', code: '', email: '', phone: '', networkRole: '', platformId: '', joinDate: today(), impactNote: '' })
     setShowCreateModal(true)
   }
 
-  const filtered = useMemo(() => {
-    return beneficiaries.filter(b => {
-      const name = fullName(b.firstName, b.lastName)
-      if (search && !name.includes(search) && !b.code.includes(search)) return false
-      if (roleFilter && b.networkRole !== roleFilter) return false
-      return true
-    })
-  }, [beneficiaries, search, roleFilter])
+  const platformOptions = useMemo(() => {
+    const platforms = new Map<string, string>()
+    for (const member of beneficiaries) {
+      if (member.platformId) platforms.set(member.platformId, member.platformName || member.platformId)
+    }
+    return Array.from(platforms.entries()).sort((a, b) => a[1].localeCompare(b[1], 'ar'))
+  }, [beneficiaries])
 
-  // For each member, compute total points
-  const memberPoints = useMemo(() => {
-    const map = new Map<string, number>()
+  // تجميع النقاط والأنشطة بمرور واحد لتجنب تصفية السجل كاملًا لكل عضو.
+  const memberMetrics = useMemo(() => {
+    const map = new Map<string, { points: number; activities: number }>()
     const actionMap = new Map(actions.map(a => [a.id, a]))
-    for (const b of beneficiaries) {
-      const pts = logs
-        .filter(l => l.beneficiaryId === b.id)
-        .reduce((sum, l) => {
-          return sum + finalPoints(l as any, actionMap as any, qualityBonus as any)
-        }, 0)
-      map.set(b.id, pts)
+    for (const log of logs) {
+      const current = map.get(log.beneficiaryId) || { points: 0, activities: 0 }
+      current.points += finalPoints(log as any, actionMap as any, qualityBonus as any)
+      current.activities += 1
+      map.set(log.beneficiaryId, current)
     }
     return map
-  }, [beneficiaries, logs, actions, qualityBonus])
+  }, [logs, actions, qualityBonus])
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('ar')
+    const result = beneficiaries.filter(member => {
+      const searchable = [
+        fullName(member.firstName, member.lastName), member.code, member.email,
+        member.phone, member.platformName, member.networkRole,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('ar')
+      if (query && !searchable.includes(query)) return false
+      if (roleFilter && member.networkRole !== roleFilter) return false
+      if (platformFilter && member.platformId !== platformFilter) return false
+      if (statusFilter && member.status !== statusFilter) return false
+      return true
+    })
+
+    return result.sort((a, b) => {
+      if (sortBy === 'name') return fullName(a.firstName, a.lastName).localeCompare(fullName(b.firstName, b.lastName), 'ar')
+      if (sortBy === 'points') return (memberMetrics.get(b.id)?.points || 0) - (memberMetrics.get(a.id)?.points || 0)
+      if (sortBy === 'activities') return (memberMetrics.get(b.id)?.activities || 0) - (memberMetrics.get(a.id)?.activities || 0)
+      return (new Date(b.joinDate || 0).getTime() - new Date(a.joinDate || 0).getTime())
+    })
+  }, [beneficiaries, memberMetrics, platformFilter, roleFilter, search, sortBy, statusFilter])
+
+  const summary = useMemo(() => ({
+    total: pagination.total ?? beneficiaries.length,
+    active: beneficiaries.filter(member => member.status === 'ACTIVE').length,
+    engaged: beneficiaries.filter(member => (memberMetrics.get(member.id)?.activities || 0) > 0).length,
+    platforms: new Set(beneficiaries.map(member => member.platformId).filter(Boolean)).size,
+  }), [beneficiaries, memberMetrics, pagination.total])
+
+  const hasActiveFilters = Boolean(search || roleFilter || platformFilter || statusFilter || sortBy !== 'newest')
+  const clearFilters = () => {
+    setSearch('')
+    setRoleFilter('')
+    setPlatformFilter('')
+    setStatusFilter('')
+    setSortBy('newest')
+  }
 
   const openEdit = (b: BeneficiaryInfo) => {
     setEditing(b)
@@ -665,10 +971,10 @@ function MembersTab({
         body: JSON.stringify({
           firstName: createForm.firstName,
           lastName: createForm.lastName,
-          code: createForm.code,
           email: createForm.email || null,
           phone: createForm.phone || null,
           networkRole: createForm.networkRole || null,
+          platformId: createForm.platformId || null,
           impactNote: createForm.impactNote || null,
           status: 'ACTIVE',
           type: 'BENEFICIARY',
@@ -687,12 +993,30 @@ function MembersTab({
     finally { setSubmitting(false) }
   }
 
+  const statusMeta: Record<string, { label: string; className: string }> = {
+    ACTIVE: { label: 'نشط', className: 'bg-green-50 text-green-700 ring-green-600/15' },
+    INACTIVE: { label: 'غير نشط', className: 'bg-neutral-100 text-neutral-600 ring-neutral-500/15' },
+    SUSPENDED: { label: 'موقوف', className: 'bg-red-50 text-red-700 ring-red-600/15' },
+  }
+
+  const memberActions = (member: BeneficiaryInfo) => (
+    <div className="flex items-center justify-end gap-1">
+      <Button unstyled onClick={() => { setCardMemberId(member.id); switchTab('card') }} className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-teal-50 hover:text-teal-700" title="عرض بطاقة الرائد" aria-label={`عرض بطاقة ${fullName(member.firstName, member.lastName)}`}><Eye size={15} /></Button>
+      <Button unstyled onClick={() => switchTab('activities')} className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-primary-50 hover:text-primary-700" title="تسجيل نشاط سريع" aria-label={`تسجيل نشاط لـ ${fullName(member.firstName, member.lastName)}`}><Plus size={15} /></Button>
+      <Button unstyled onClick={() => openEdit(member)} className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-amber-50 hover:text-amber-700" title="تعديل بيانات العضو" aria-label={`تعديل ${fullName(member.firstName, member.lastName)}`}><Pencil size={15} /></Button>
+    </div>
+  )
+
   return (
-    <div>
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Users size={18} className="text-primary-600" /> سجل الأعضاء</h2>
-          <div className="flex items-center gap-2">
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-l from-primary-900 via-primary-800 to-primary-700 text-white shadow-sm">
+        <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary-100"><Users size={15} /> إدارة مجتمع الرواد</div>
+            <h2 className="text-xl font-bold md:text-2xl">سجل الأعضاء</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-100">إدارة ملفات الأعضاء، ربطهم بالمنصات، ومتابعة نشاطهم ونقاط أثرهم من مساحة موحدة.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button unstyled
               onClick={() => {
                 const data = filtered.map(b => ({
@@ -700,89 +1024,140 @@ function MembersTab({
                   code: b.code,
                   networkRole: b.networkRole || '',
                   platformName: b.platformName || '',
-                  points: memberPoints.get(b.id) || 0,
+                  points: memberMetrics.get(b.id)?.points || 0,
                   status: b.status,
                 }))
                 exportMembersCSV(data)
               }}
-              className="btn-ghost btn-sm flex items-center gap-1.5"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-bold text-white hover:bg-white/20"
               title="تصدير CSV"
             >
-              <Download size={14} />
+              <Download size={16} />
               تصدير
             </Button>
-            <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
-              <Plus size={14} />
+            <Button unstyled onClick={openCreate} className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-primary-800 shadow-sm hover:bg-primary-50">
+              <Plus size={16} />
               إضافة عضو
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4 mb-4">
-          <div className="flex-1 min-w-[200px]">
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: 'إجمالي الأعضاء', value: summary.total, icon: Users, color: 'bg-primary-50 text-primary-700' },
+          { label: 'الأعضاء النشطون', value: summary.active, icon: UserRoundCheck, color: 'bg-green-50 text-green-700' },
+          { label: 'لديهم نشاط مسجل', value: summary.engaged, icon: Activity, color: 'bg-amber-50 text-amber-700' },
+          { label: 'المنصات الممثلة', value: summary.platforms, icon: Building2, color: 'bg-violet-50 text-violet-700' },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className={`flex size-10 items-center justify-center rounded-xl ${item.color}`}><item.icon size={19} /></div>
+              <div><div className="text-xl font-black text-neutral-950">{item.value.toLocaleString('ar-SA')}</div><div className="text-xs text-neutral-500">{item.label}</div></div>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="border-b border-neutral-100 p-4 md:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div><h3 className="flex items-center gap-2 font-bold text-neutral-900"><ListFilter size={17} className="text-primary-600" /> البحث والتصفية</h3><p className="mt-1 text-xs text-neutral-500">ابحث بالاسم أو الرمز أو البريد، ثم صفّ النتائج حسب المنصة والحالة.</p></div>
+            {hasActiveFilters && <Button unstyled onClick={clearFilters} className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800"><RotateCcw size={14} /> مسح الفلاتر</Button>}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="relative sm:col-span-2 xl:col-span-1">
+              <Search size={17} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <Input
-              placeholder="🔍 بحث بالاسم أو الكود"
+              placeholder="الاسم، رقم العضو، البريد..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="input-field"
+              className="w-full pr-10"
+              aria-label="البحث في الأعضاء"
             />
           </div>
-          <NativeSelect value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input-field max-w-[200px]">
+          <NativeSelect value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية حسب الصفة">
             <option value="">كل الصفات</option>
             {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
           </NativeSelect>
+          <NativeSelect value={platformFilter} onChange={e => setPlatformFilter(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية حسب المنصة">
+            <option value="">كل المنصات</option>
+            {platformOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          </NativeSelect>
+          <NativeSelect value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية حسب الحالة">
+            <option value="">كل الحالات</option><option value="ACTIVE">نشط</option><option value="INACTIVE">غير نشط</option><option value="SUSPENDED">موقوف</option>
+          </NativeSelect>
+          <NativeSelect value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)} className="w-full" wrapperClassName="w-full" aria-label="ترتيب الأعضاء">
+            <option value="newest">الأحدث انضمامًا</option><option value="name">الاسم أبجديًا</option><option value="points">الأعلى نقاطًا</option><option value="activities">الأكثر نشاطًا</option>
+          </NativeSelect>
+        </div>
         </div>
 
         {filtered.length > 0 ? (
           <>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <Table className="w-full text-sm">
               <TableHeader>
-                <TableRow className="border-b border-neutral-200">
-                  <TableHead className="text-right p-3 text-neutral-500">الكود</TableHead>
-                  <TableHead className="text-right p-3 text-neutral-500">الاسم</TableHead>
-                  <TableHead className="text-right p-3 text-neutral-500">الصفة</TableHead>
-                  <TableHead className="text-right p-3 text-neutral-500">المنصة</TableHead>
-                  <TableHead className="text-center p-3 text-neutral-500">النقاط</TableHead>
-                  <TableHead className="text-center p-3 text-neutral-500">إجراءات</TableHead>
+                <TableRow className="border-b border-neutral-200 bg-neutral-50/80">
+                  <TableHead className="text-right px-5 py-3 text-neutral-500">العضو</TableHead>
+                  <TableHead className="text-right px-4 py-3 text-neutral-500">الصفة والمنصة</TableHead>
+                  <TableHead className="text-center px-4 py-3 text-neutral-500">الأنشطة</TableHead>
+                  <TableHead className="text-center px-4 py-3 text-neutral-500">النقاط</TableHead>
+                  <TableHead className="text-center px-4 py-3 text-neutral-500">الحالة</TableHead>
+                  <TableHead className="text-left px-5 py-3 text-neutral-500">الإجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(b => (
-                  <TableRow key={b.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <TableCell className="p-3 font-mono text-xs">{b.code}</TableCell>
-                    <TableCell className="p-3 font-semibold">{fullName(b.firstName, b.lastName)}</TableCell>
-                    <TableCell className="p-3"><Badge className="bg-neutral-100 text-neutral-600">{b.networkRole || '—'}</Badge></TableCell>
-                    <TableCell className="p-3 text-xs">{b.platformName || b.platformId || '—'}</TableCell>
-                    <TableCell className="p-3 text-center font-mono font-bold">{memberPoints.get(b.id) || 0}</TableCell>
-                    <TableCell className="p-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button unstyled
-                          onClick={() => { setCardMemberId(b.id); switchTab('card') }}
-                          className="p-1.5 text-neutral-400 hover:text-teal-600"
-                          title="بطاقة الرائد"
-                        >
-                          <Eye size={14} />
-                        </Button>
-                        <Button unstyled
-                          onClick={() => switchTab('activities')}
-                          className="p-1.5 text-neutral-400 hover:text-primary-600"
-                          title="تسجيل نشاط سريع"
-                        >
-                          <Plus size={14} />
-                        </Button>
-                        <Button unstyled onClick={() => openEdit(b)} className="p-1.5 text-neutral-400 hover:text-primary-600" title="تعديل">
-                          <Pencil size={14} />
-                        </Button>
+                  <TableRow key={b.id} className="border-b border-neutral-100 transition-colors hover:bg-primary-50/30">
+                    <TableCell className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 font-black text-primary-700">{b.firstName?.charAt(0)}{b.lastName?.charAt(0)}</div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-neutral-900">{fullName(b.firstName, b.lastName)}</div>
+                          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-neutral-400"><span className="font-mono">{b.code}</span>{b.email && <><span>•</span><span className="max-w-40 truncate" dir="ltr">{b.email}</span></>}</div>
+                        </div>
                       </div>
                     </TableCell>
+                    <TableCell className="px-4 py-4"><Badge className="mb-1 bg-neutral-100 text-neutral-700">{b.networkRole || 'غير محدد'}</Badge><div className="max-w-56 truncate text-xs text-neutral-500">{b.platformName || 'غير مرتبط بمنصة'}</div></TableCell>
+                    <TableCell className="px-4 py-4 text-center font-bold text-neutral-700">{memberMetrics.get(b.id)?.activities || 0}</TableCell>
+                    <TableCell className="px-4 py-4 text-center"><span className="inline-flex min-w-12 justify-center rounded-lg bg-primary-50 px-2 py-1 font-black text-primary-700">{(memberMetrics.get(b.id)?.points || 0).toLocaleString('ar-SA')}</span></TableCell>
+                    <TableCell className="px-4 py-4 text-center"><span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${(statusMeta[b.status] || statusMeta.INACTIVE).className}`}>{(statusMeta[b.status] || statusMeta.INACTIVE).label}</span></TableCell>
+                    <TableCell className="px-5 py-4">{memberActions(b)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
+
+          <div className="divide-y divide-neutral-100 md:hidden">
+            {filtered.map(member => (
+              <article key={member.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary-100 font-black text-primary-700">{member.firstName?.charAt(0)}{member.lastName?.charAt(0)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div><h4 className="font-bold text-neutral-900">{fullName(member.firstName, member.lastName)}</h4><p className="mt-0.5 font-mono text-[11px] text-neutral-400">{member.code}</p></div>
+                      <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-bold ring-1 ring-inset ${(statusMeta[member.status] || statusMeta.INACTIVE).className}`}>{(statusMeta[member.status] || statusMeta.INACTIVE).label}</span>
+                    </div>
+                    <div className="mt-3 space-y-1.5 text-xs text-neutral-500">
+                      <p className="flex items-center gap-2"><User size={13} />{member.networkRole || 'صفة غير محددة'}</p>
+                      <p className="flex items-center gap-2"><Building2 size={13} /><span className="truncate">{member.platformName || 'غير مرتبط بمنصة'}</span></p>
+                      {member.email && <p className="flex items-center gap-2"><Mail size={13} /><span className="truncate" dir="ltr">{member.email}</span></p>}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3">
+                      <div className="flex gap-3 text-xs"><span><b className="text-neutral-900">{memberMetrics.get(member.id)?.activities || 0}</b> نشاط</span><span><b className="text-primary-700">{(memberMetrics.get(member.id)?.points || 0).toLocaleString('ar-SA')}</b> نقطة</span></div>
+                      {memberActions(member)}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 px-4 py-4 text-sm md:px-5">
             <span className="text-neutral-500">
-              المعروض: <b className="text-neutral-800">{beneficiaries.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
+              عرض <b className="text-neutral-800">{filtered.length}</b> نتيجة من أصل <b className="text-neutral-800">{pagination.total ?? beneficiaries.length}</b>
             </span>
             {pagination.hasMore && (
               <Button unstyled onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
@@ -792,8 +1167,15 @@ function MembersTab({
             )}
           </div>
           </>
-        ) : <p className="text-center py-8 text-neutral-400">لا يوجد أعضاء مطابقون</p>}
-      </div>
+        ) : (
+          <div className="px-5 py-14 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400"><Search size={21} /></div>
+            <h3 className="mt-3 font-bold text-neutral-800">لا توجد نتائج مطابقة</h3>
+            <p className="mt-1 text-sm text-neutral-500">جرّب تعديل عبارة البحث أو إزالة بعض الفلاتر.</p>
+            {hasActiveFilters && <Button unstyled onClick={clearFilters} className="btn-ghost btn-sm mt-4">مسح الفلاتر</Button>}
+          </div>
+        )}
+      </section>
 
       {/* Edit modal */}
       {showModal && (
@@ -801,25 +1183,32 @@ function MembersTab({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900">تحديث بيانات الأثر</h2>
-              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
+              <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600" aria-label="إغلاق نافذة التعديل"><X size={18} /></Button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                  <NativeSelect value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
+                  <label htmlFor="edit-member-role" className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
+                  <NativeSelect id="edit-member-role" value={form.networkRole} onChange={e => setForm({ ...form, networkRole: e.target.value })} className="input-field">
                     <option value="">— اختر الصفة —</option>
                     {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
-                  <Input type="date" value={form.joinDate} onChange={e => setForm({ ...form, joinDate: e.target.value })} className="input-field" />
+                  <label htmlFor="edit-member-join-date" className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
+                  <Input id="edit-member-join-date" type="date" value={form.joinDate} onChange={e => setForm({ ...form, joinDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
-                <Textarea rows={3} value={form.impactNote} onChange={e => setForm({ ...form, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات خاصة بلوحة الأثر..." />
+                <label htmlFor="edit-member-platform" className="block text-sm font-semibold text-neutral-700 mb-1">المنصة التابعة</label>
+                <NativeSelect id="edit-member-platform" value={form.platformId} onChange={e => setForm({ ...form, platformId: e.target.value })} className="input-field" wrapperClassName="w-full">
+                  <option value="">— غير مرتبط بمنصة —</option>
+                  {platformOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                </NativeSelect>
+              </div>
+              <div>
+                <label htmlFor="edit-member-impact-note" className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
+                <Textarea id="edit-member-impact-note" rows={3} value={form.impactNote} onChange={e => setForm({ ...form, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات خاصة بلوحة الأثر..." />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
@@ -836,49 +1225,58 @@ function MembersTab({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b">
               <h2 className="font-bold text-neutral-900 flex items-center gap-2"><UserCheck size={20} className="text-primary-600" /> إضافة عضو جديد</h2>
-              <Button unstyled onClick={() => setShowCreateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
+              <Button unstyled onClick={() => setShowCreateModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600" aria-label="إغلاق نافذة إضافة عضو"><X size={18} /></Button>
             </div>
             <form onSubmit={handleCreate} className="p-5 space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الاسم الأول *</label>
-                  <Input required value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="input-field" placeholder="مثال: أحمد" />
+                  <label htmlFor="new-member-first-name" className="block text-sm font-semibold text-neutral-700 mb-1">الاسم الأول *</label>
+                  <Input id="new-member-first-name" required value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} className="input-field" placeholder="مثال: أحمد" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">اسم العائلة *</label>
-                  <Input required value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="input-field" placeholder="مثال: العمري" />
+                  <label htmlFor="new-member-last-name" className="block text-sm font-semibold text-neutral-700 mb-1">اسم العائلة *</label>
+                  <Input id="new-member-last-name" required value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} className="input-field" placeholder="مثال: العمري" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رمز العضو</label>
-                  <Input value={createForm.code} onChange={e => setCreateForm({ ...createForm, code: e.target.value })} className="input-field" placeholder="R-001" />
+                  <label htmlFor="new-member-code" className="block text-sm font-semibold text-neutral-700 mb-1">رقم العضو</label>
+                  <Input id="new-member-code" disabled value="يُولّد تلقائيًا بعد الحفظ" className="input-field" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
-                  <Input type="date" value={createForm.joinDate} onChange={e => setCreateForm({ ...createForm, joinDate: e.target.value })} className="input-field" />
+                  <label htmlFor="new-member-join-date" className="block text-sm font-semibold text-neutral-700 mb-1">تاريخ الانضمام</label>
+                  <Input id="new-member-join-date" type="date" value={createForm.joinDate} onChange={e => setCreateForm({ ...createForm, joinDate: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني</label>
-                  <Input type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
+                  <label htmlFor="new-member-email" className="block text-sm font-semibold text-neutral-700 mb-1">البريد الإلكتروني *</label>
+                  <Input id="new-member-email" required type="email" value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} className="input-field" placeholder="email@example.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
-                  <Input type="tel" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
+                  <label htmlFor="new-member-phone" className="block text-sm font-semibold text-neutral-700 mb-1">رقم الهاتف</label>
+                  <Input id="new-member-phone" type="tel" value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} className="input-field" placeholder="+965..." />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="new-member-role" className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
+                  <NativeSelect id="new-member-role" value={createForm.networkRole} onChange={e => setCreateForm({ ...createForm, networkRole: e.target.value })} className="input-field" wrapperClassName="w-full">
+                    <option value="">— اختر الصفة —</option>
+                    {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </NativeSelect>
+                </div>
+                <div>
+                  <label htmlFor="new-member-platform" className="block text-sm font-semibold text-neutral-700 mb-1">المنصة التابعة *</label>
+                  <NativeSelect id="new-member-platform" required value={createForm.platformId} onChange={e => setCreateForm({ ...createForm, platformId: e.target.value })} className="input-field" wrapperClassName="w-full">
+                    <option value="">— اختر المنصة —</option>
+                    {platformOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                  </NativeSelect>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">الصفة في الشبكة</label>
-                <NativeSelect value={createForm.networkRole} onChange={e => setCreateForm({ ...createForm, networkRole: e.target.value })} className="input-field">
-                  <option value="">— اختر الصفة —</option>
-                  {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                </NativeSelect>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
-                <Textarea rows={2} value={createForm.impactNote} onChange={e => setCreateForm({ ...createForm, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات أولية..." />
+                <label htmlFor="new-member-impact-note" className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات الأثر</label>
+                <Textarea id="new-member-impact-note" rows={2} value={createForm.impactNote} onChange={e => setCreateForm({ ...createForm, impactNote: e.target.value })} className="input-field" placeholder="ملاحظات أولية..." />
               </div>
 
               <div className="rounded-xl bg-primary-50 border border-primary-100 p-3 text-xs text-primary-700 flex items-start gap-2">
@@ -924,18 +1322,32 @@ function ActivitiesTab({
   const [filterMember, setFilterMember] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterSource, setFilterSource] = useState('')
+  const [activitySearch, setActivitySearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<ImpactLogFull | null>(null)
   const [form, setForm] = useState({ beneficiaryId: '', actionId: '', count: '1', quality: 'ACCEPTABLE', status: 'PENDING_REVIEW', date: today(), link: '', note: '', rejectionReason: '', sourceType: 'MANUAL' })
   const [submitting, setSubmitting] = useState(false)
 
   const filtered = useMemo(() => {
-    let result = [...logs].reverse()
+    const query = activitySearch.trim().toLocaleLowerCase('ar')
+    let result = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     if (filterMember) result = result.filter(l => l.beneficiaryId === filterMember)
     if (filterCategory) result = result.filter(l => l.action?.category === filterCategory)
     if (filterStatus) result = result.filter(l => l.status === filterStatus)
+    if (filterSource) result = result.filter(l => (l as any).sourceType === filterSource)
+    if (dateFrom) result = result.filter(l => l.date.slice(0, 10) >= dateFrom)
+    if (dateTo) result = result.filter(l => l.date.slice(0, 10) <= dateTo)
+    if (query) result = result.filter(log => [
+      log.action?.name,
+      log.beneficiary ? fullName(log.beneficiary.firstName, log.beneficiary.lastName) : '',
+      log.beneficiary?.code,
+      log.note,
+    ].filter(Boolean).join(' ').toLocaleLowerCase('ar').includes(query))
     return result
-  }, [logs, filterMember, filterCategory, filterStatus])
+  }, [logs, filterMember, filterCategory, filterStatus, filterSource, activitySearch, dateFrom, dateTo])
 
   const openCreate = () => {
     setEditing(null)
@@ -990,15 +1402,52 @@ function ActivitiesTab({
     } catch { toast.error('فشل') }
   }
 
+  const approveLog = async (id: string) => {
+    try {
+      const response = await fetch('/api/admin/impact/logs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'APPROVED' }),
+      })
+      const result = await response.json()
+      if (!result.success) throw new Error(result.message || 'تعذر اعتماد النشاط')
+      toast.success('تم اعتماد النشاط واحتساب نقاطه')
+      fetchAll()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر اعتماد النشاط')
+    }
+  }
+
   const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
-  const calcPts = (log: ImpactLogFull) => finalPoints(log as any, actionMap, qualityBonus as any)
+  const calcPts = useCallback((log: ImpactLogFull) => finalPoints(log as any, actionMap, qualityBonus as any), [actionMap, qualityBonus])
+  const activitySummary = useMemo(() => ({
+    total: filtered.length,
+    approved: filtered.filter(log => log.status === 'APPROVED').length,
+    pending: filtered.filter(log => log.status === 'PENDING_REVIEW').length,
+    rejected: filtered.filter(log => log.status === 'REJECTED').length,
+    points: filtered.filter(log => log.status === 'APPROVED').reduce((sum, log) => sum + calcPts(log), 0),
+  }), [filtered, calcPts])
+  const hasActivityFilters = Boolean(filterMember || filterCategory || filterStatus || filterSource || activitySearch || dateFrom || dateTo)
+  const clearActivityFilters = () => {
+    setFilterMember('')
+    setFilterCategory('')
+    setFilterStatus('')
+    setFilterSource('')
+    setActivitySearch('')
+    setDateFrom('')
+    setDateTo('')
+  }
 
   return (
-    <div>
-      <div className="card">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><ClipboardCheck size={18} className="text-primary-600" /> سجل الأنشطة</h2>
-          <div className="flex items-center gap-2">
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-l from-primary-900 via-primary-800 to-primary-700 text-white shadow-sm">
+        <div className="flex flex-col gap-5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary-100"><ClipboardCheck size={15} /> مركز توثيق الأثر</div>
+            <h2 className="text-xl font-black md:text-2xl">سجل الأنشطة والمساهمات</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-100">توثيق مساهمات الأعضاء، مراجعة الأدلة، واعتماد النقاط من سجل مركزي واحد.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button unstyled
               onClick={() => {
                 const data = filtered.map(l => ({
@@ -1014,39 +1463,60 @@ function ActivitiesTab({
                 }))
                 exportActivitiesCSV(data as any)
               }}
-              className="btn-ghost btn-sm flex items-center gap-1.5"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 text-sm font-bold text-white hover:bg-white/20"
               title="تصدير CSV"
             >
-              <Download size={14} />
+              <Download size={16} />
               تصدير
             </Button>
-            <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> تسجيل نشاط</Button>
+            <Button unstyled onClick={openCreate} className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-primary-800 shadow-sm hover:bg-primary-50"><Plus size={16} /> تسجيل نشاط</Button>
           </div>
         </div>
+      </section>
 
-        <div className="flex flex-wrap items-center gap-4 mb-4">
-          <NativeSelect value={filterMember} onChange={e => setFilterMember(e.target.value)} className="input-field max-w-[220px]">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[
+          { label: 'إجمالي الأنشطة', value: activitySummary.total, tone: 'bg-primary-50 text-primary-700', icon: Activity },
+          { label: 'معتمدة', value: activitySummary.approved, tone: 'bg-green-50 text-green-700', icon: CheckCircle },
+          { label: 'قيد المراجعة', value: activitySummary.pending, tone: 'bg-amber-50 text-amber-700', icon: ClipboardCheck },
+          { label: 'مرفوضة', value: activitySummary.rejected, tone: 'bg-red-50 text-red-700', icon: X },
+          { label: 'النقاط المعتمدة', value: activitySummary.points, tone: 'bg-violet-50 text-violet-700', icon: Star },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><div className={`flex size-9 items-center justify-center rounded-xl ${item.tone}`}><item.icon size={17} /></div><div><div className="text-xl font-black text-neutral-900">{item.value.toLocaleString('ar-SA')}</div><div className="text-[11px] text-neutral-500">{item.label}</div></div></div></div>
+        ))}
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="border-b border-neutral-100 p-4 md:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="flex items-center gap-2 font-bold text-neutral-900"><ListFilter size={17} className="text-primary-600" /> البحث والتصفية</h3><p className="mt-1 text-xs text-neutral-500">صفّ السجل حسب العضو والمحور والحالة والمصدر والفترة.</p></div>{hasActivityFilters && <Button unstyled onClick={clearActivityFilters} className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-neutral-500 hover:bg-neutral-100"><RotateCcw size={14} /> مسح الفلاتر</Button>}</div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="relative sm:col-span-2">
+            <Search size={17} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <Input value={activitySearch} onChange={event => setActivitySearch(event.target.value)} placeholder="اسم العضو، رقم العضو، النشاط..." className="w-full pr-10" aria-label="البحث في الأنشطة" />
+          </div>
+          <NativeSelect value={filterMember} onChange={e => setFilterMember(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية الأنشطة حسب العضو">
             <option value="">كل الأعضاء</option>
-            {beneficiaries.map(b => <option key={b.id} value={b.id}>{fullName(b.firstName, b.lastName)}</option>)}
+            {beneficiaries.map(b => <option key={b.id} value={b.id}>{fullName(b.firstName, b.lastName)} ({b.code})</option>)}
           </NativeSelect>
-          <NativeSelect value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="input-field max-w-[200px]">
+          <NativeSelect value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية الأنشطة حسب المحور">
             <option value="">كل المحاور</option>
             {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </NativeSelect>
-          <NativeSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-field max-w-[160px]">
+          <NativeSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية الأنشطة حسب الحالة">
             <option value="">كل الحالات</option>
             {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
           </NativeSelect>
+          <NativeSelect value={filterSource} onChange={e => setFilterSource(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية الأنشطة حسب المصدر">
+            <option value="">كل المصادر</option><option value="MANUAL">يدوي</option><option value="PARTICIPATION">مشاركة</option><option value="ENROLLMENT">تسجيل</option><option value="REPORT">تقرير</option><option value="EVALUATION">تقييم</option><option value="EXTERNAL">خارجي</option>
+          </NativeSelect>
+          <label className="space-y-1"><span className="text-[11px] font-bold text-neutral-500">من تاريخ</span><Input type="date" value={dateFrom} onChange={event => setDateFrom(event.target.value)} className="w-full" /></label>
+          <label className="space-y-1"><span className="text-[11px] font-bold text-neutral-500">إلى تاريخ</span><Input type="date" value={dateTo} onChange={event => setDateTo(event.target.value)} className="w-full" /></label>
+        </div>
         </div>
 
         {filtered.length > 0 ? (
           <>
-            <div className="flex items-center gap-4 mb-3 p-3 bg-neutral-50 rounded-lg text-sm">
-              <span className="text-neutral-500">عدد الأنشطة: <b className="text-neutral-800">{filtered.length}</b></span>
-              <span className="text-neutral-500">إجمالي النقاط (المعتمدة): <b className="text-primary-700 font-mono">{filtered.filter(l => l.status === 'APPROVED').reduce((s, l) => s + calcPts(l), 0)}</b></span>
-              <span className="text-neutral-500">قيد المراجعة: <b className="text-amber-700">{filtered.filter(l => l.status === 'PENDING_REVIEW').length}</b></span>
-            </div>
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
             <Table className="w-full text-sm">
               <TableHeader>
                 <TableRow className="border-b border-neutral-200">
@@ -1076,8 +1546,12 @@ function ActivitiesTab({
                       <TableCell className={`p-3 text-center font-mono font-bold ${pts < 0 ? 'text-red-600' : 'text-neutral-800'}`}>{pts}</TableCell>
                       <TableCell className="p-3 text-center"><Badge className={STATUS_COLORS[log.status] || 'bg-neutral-50'}>{STATUS_LABELS[log.status] || log.status}</Badge></TableCell>
                       <TableCell className="p-3 text-center">
-                        <Button unstyled onClick={() => openEdit(log)} className="p-1 text-neutral-400 hover:text-primary-600"><Pencil size={13} /></Button>
-                        <Button unstyled onClick={() => delLog(log.id)} className="p-1 text-neutral-400 hover:text-red-600"><Trash size={13} /></Button>
+                        <div className="flex items-center justify-center gap-1">
+                          {log.link && <Link href={log.link} target="_blank" rel="noopener noreferrer" className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-teal-50 hover:text-teal-700" title="فتح الدليل" aria-label="فتح دليل النشاط"><ExternalLink size={14} /></Link>}
+                          {log.status === 'PENDING_REVIEW' && <Button unstyled onClick={() => approveLog(log.id)} className="inline-flex size-8 items-center justify-center rounded-lg text-green-600 hover:bg-green-50 hover:text-green-700" title="اعتماد النشاط" aria-label="اعتماد النشاط"><CheckCircle size={14} /></Button>}
+                          <Button unstyled onClick={() => openEdit(log)} className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-primary-50 hover:text-primary-700" title="تعديل النشاط" aria-label="تعديل النشاط"><Pencil size={14} /></Button>
+                          <Button unstyled onClick={() => delLog(log.id)} className="inline-flex size-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-red-50 hover:text-red-700" title="حذف النشاط" aria-label="حذف النشاط"><Trash size={14} /></Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -1085,9 +1559,27 @@ function ActivitiesTab({
               </TableBody>
             </Table>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mt-4 border-t border-neutral-100 pt-4 text-sm">
+
+          <div className="divide-y divide-neutral-100 md:hidden">
+            {filtered.map(log => {
+              const points = calcPts(log)
+              const category = log.action?.category || ''
+              return (
+                <article key={log.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><h4 className="truncate font-bold text-neutral-900">{log.action?.name || 'نشاط غير مسمى'}</h4><p className="mt-1 text-xs text-neutral-500">{log.beneficiary ? fullName(log.beneficiary.firstName, log.beneficiary.lastName) : 'عضو غير محدد'} · {dateLabel(log.date)}</p></div>
+                    <span className={`rounded-lg px-2.5 py-1 font-mono text-sm font-black ${points < 0 ? 'bg-red-50 text-red-700' : 'bg-primary-50 text-primary-700'}`}>{points > 0 ? '+' : ''}{points.toLocaleString('ar-SA')}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2"><Badge className={CATEGORY_COLORS[category] || 'bg-neutral-100'}>{CATEGORY_LABELS[category] || 'غير مصنف'}</Badge><Badge className={STATUS_COLORS[log.status] || 'bg-neutral-50'}>{STATUS_LABELS[log.status] || log.status}</Badge><span className="text-[11px] text-neutral-500">{QUALITY_LABELS[log.quality] || log.quality} · العدد {log.count}</span></div>
+                  <div className="mt-3 flex justify-end border-t border-neutral-100 pt-2">{log.link && <Link href={log.link} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm no-underline">الدليل</Link>}{log.status === 'PENDING_REVIEW' && <Button unstyled onClick={() => approveLog(log.id)} className="btn-ghost btn-sm text-green-700">اعتماد</Button>}<Button unstyled onClick={() => openEdit(log)} className="btn-ghost btn-sm">تعديل</Button><Button unstyled onClick={() => delLog(log.id)} className="btn-ghost btn-sm text-red-600">حذف</Button></div>
+                </article>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 px-4 py-4 text-sm md:px-5">
             <span className="text-neutral-500">
-              المعروض: <b className="text-neutral-800">{logs.length}</b>{pagination.total !== null ? <> من <b className="text-neutral-800">{pagination.total}</b></> : null}
+              عرض <b className="text-neutral-800">{filtered.length}</b> نتيجة من أصل <b className="text-neutral-800">{pagination.total ?? logs.length}</b>
             </span>
             {pagination.hasMore && (
               <Button unstyled onClick={onLoadMore} disabled={loadingMore} className="btn-ghost btn-sm flex items-center gap-1.5">
@@ -1097,8 +1589,8 @@ function ActivitiesTab({
             )}
           </div>
           </>
-        ) : <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>}
-      </div>
+        ) : <div className="px-5 py-14 text-center"><Activity size={28} className="mx-auto text-neutral-300" /><h3 className="mt-3 font-bold text-neutral-800">لا توجد أنشطة مطابقة</h3><p className="mt-1 text-sm text-neutral-500">عدّل الفلاتر أو سجّل نشاطًا جديدًا.</p>{hasActivityFilters && <Button unstyled onClick={clearActivityFilters} className="btn-ghost btn-sm mt-4">مسح الفلاتر</Button>}</div>}
+      </section>
 
       {showModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
@@ -1187,17 +1679,26 @@ function ActivitiesTab({
 // Tab: Pulse (المتابعة الدورية)
 // ═══════════════════════════════════════════════
 
-function PulseTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number> }) {
+function PulseTab({ beneficiaries, logs, actions, qualityBonus, setCardMemberId, switchTab }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number>; setCardMemberId: (id: string) => void; switchTab: (tab: string) => void }) {
   const now = new Date()
   const curMonth = now.getMonth() + 1
   const curYear = now.getFullYear()
+  const [pulseSearch, setPulseSearch] = useState('')
+  const [pulseStatus, setPulseStatus] = useState('')
+  const [pulsePlatform, setPulsePlatform] = useState('')
 
   const memberStatuses = useMemo(() => {
     const actionMap = buildActionMap(actions as any)
     const nowTime = Date.now()
+    const logsByMember = new Map<string, ImpactLogFull[]>()
+    for (const log of logs) {
+      const current = logsByMember.get(log.beneficiaryId) || []
+      current.push(log)
+      logsByMember.set(log.beneficiaryId, current)
+    }
 
     return beneficiaries.map(b => {
-      const myLogs = logs.filter(l => l.beneficiaryId === b.id)
+      const myLogs = logsByMember.get(b.id) || []
       const approved = myLogs.filter(l => l.status === 'APPROVED').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       const lastDate = approved[0]?.date || null
       const daysSince = lastDate ? Math.floor((nowTime - new Date(lastDate).getTime()) / 86400000) : Infinity
@@ -1216,67 +1717,112 @@ function PulseTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiarie
 
   const idleMembers = memberStatuses.filter(m => m.status.key === 'idle' || m.status.key === 'dormant')
   const activeMembers = memberStatuses.filter(m => m.status.key === 'active' || m.status.key === 'month').sort((a, b) => b.curPts - a.curPts)
+  const neverStarted = memberStatuses.filter(member => member.daysSince === Infinity).length
+  const weeklyActive = memberStatuses.filter(member => member.status.key === 'active').length
+  const monthlyActive = memberStatuses.filter(member => member.status.key === 'month').length
+  const activeRate = memberStatuses.length ? Math.round(((weeklyActive + monthlyActive) / memberStatuses.length) * 100) : 0
+  const platformOptions = useMemo(() => Array.from(new Map(beneficiaries.filter(member => member.platformId).map(member => [member.platformId!, member.platformName || member.platformId!])).entries()).sort((a, b) => a[1].localeCompare(b[1], 'ar')), [beneficiaries])
+  const filteredStatuses = useMemo(() => {
+    const query = pulseSearch.trim().toLocaleLowerCase('ar')
+    return memberStatuses.filter(member => {
+      if (pulseStatus && member.status.key !== pulseStatus) return false
+      if (pulsePlatform && member.platformId !== pulsePlatform) return false
+      if (query && ![fullName(member.firstName, member.lastName), member.code, member.platformName, member.networkRole].filter(Boolean).join(' ').toLocaleLowerCase('ar').includes(query)) return false
+      return true
+    }).sort((a, b) => b.daysSince - a.daysSince)
+  }, [memberStatuses, pulsePlatform, pulseSearch, pulseStatus])
+
+  const openMemberCard = (id: string) => {
+    setCardMemberId(id)
+    switchTab('card')
+  }
 
   return (
-    <div>
-      <div className="card mb-6">
-        <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-primary-600" /> رصد نبض الشبكة</h2>
-        <p className="text-sm text-neutral-500 mb-4">تحليل حالة النشاط للأعضاء حسب آخر نشاط معتمد</p>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-green-50 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-green-700">{memberStatuses.filter(m => m.status.key === 'active').length}</div>
-            <div className="text-xs text-green-600">نشطون هذا الأسبوع</div>
-          </div>
-          <div className="bg-amber-50 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-amber-700">{idleMembers.length}</div>
-            <div className="text-xs text-amber-600">خاملون / متوقفون</div>
-          </div>
-          <div className="bg-teal-50 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-teal-700">{activeMembers.length}</div>
-            <div className="text-xs text-teal-600">متفاعلون</div>
-          </div>
-          <div className="bg-purple-50 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-purple-700">{logs.filter(l => l.status === 'PENDING_REVIEW').length}</div>
-            <div className="text-xs text-purple-600">بانتظار الاعتماد</div>
-          </div>
+    <div className="space-y-5">
+      <section className="overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-l from-primary-950 via-primary-800 to-primary-700 p-5 text-white shadow-sm md:p-6">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div><div className="mb-2 flex items-center gap-2 text-xs font-bold text-primary-100"><TrendingUp size={15} /> مركز المتابعة الاستباقية</div><h2 className="text-xl font-black md:text-2xl">نبض شبكة الرواد</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-primary-100">رصد انتظام الأعضاء، اكتشاف حالات الانقطاع مبكرًا، وتحديد أولويات المتابعة.</p></div>
+          <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-center backdrop-blur"><div className="text-3xl font-black">{activeRate}%</div><div className="mt-1 text-xs text-primary-100">معدل النشاط خلال 30 يومًا</div></div>
         </div>
-      </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[
+          { label: 'نشطون هذا الأسبوع', value: weeklyActive, tone: 'bg-green-50 text-green-700', icon: CheckCircle },
+          { label: 'نشطون هذا الشهر', value: monthlyActive, tone: 'bg-teal-50 text-teal-700', icon: TrendingUp },
+          { label: 'يحتاجون متابعة', value: idleMembers.length, tone: 'bg-amber-50 text-amber-700', icon: TriangleAlert },
+          { label: 'لم يبدأوا بعد', value: neverStarted, tone: 'bg-red-50 text-red-700', icon: User },
+          { label: 'بانتظار الاعتماد', value: logs.filter(log => log.status === 'PENDING_REVIEW').length, tone: 'bg-violet-50 text-violet-700', icon: ClipboardCheck },
+        ].map(item => <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"><div className="flex items-center gap-3"><div className={`flex size-9 items-center justify-center rounded-xl ${item.tone}`}><item.icon size={17} /></div><div><div className="text-xl font-black text-neutral-900">{item.value.toLocaleString('ar-SA')}</div><div className="text-[11px] text-neutral-500">{item.label}</div></div></div></div>)}
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm md:p-5">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="relative"><Search size={17} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" /><Input value={pulseSearch} onChange={event => setPulseSearch(event.target.value)} placeholder="الاسم أو رقم العضو..." className="w-full pr-10" aria-label="البحث في المتابعة" /></div>
+          <NativeSelect value={pulseStatus} onChange={event => setPulseStatus(event.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية المتابعة حسب الحالة"><option value="">كل حالات النشاط</option><option value="active">نشط هذا الأسبوع</option><option value="month">نشط هذا الشهر</option><option value="idle">خامل 30–60 يومًا</option><option value="dormant">متوقف أو لم يبدأ</option></NativeSelect>
+          <NativeSelect value={pulsePlatform} onChange={event => setPulsePlatform(event.target.value)} className="w-full" wrapperClassName="w-full" aria-label="تصفية المتابعة حسب المنصة"><option value="">كل المنصات</option>{platformOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</NativeSelect>
+        </div>
+        <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-neutral-100" aria-label="توزيع حالات نشاط الأعضاء">
+          <div className="bg-green-500" style={{ width: `${memberStatuses.length ? (weeklyActive / memberStatuses.length) * 100 : 0}%` }} />
+          <div className="bg-teal-400" style={{ width: `${memberStatuses.length ? (monthlyActive / memberStatuses.length) * 100 : 0}%` }} />
+          <div className="bg-amber-400" style={{ width: `${memberStatuses.length ? (memberStatuses.filter(member => member.status.key === 'idle').length / memberStatuses.length) * 100 : 0}%` }} />
+          <div className="bg-red-400" style={{ width: `${memberStatuses.length ? (memberStatuses.filter(member => member.status.key === 'dormant').length / memberStatuses.length) * 100 : 0}%` }} />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-bold text-neutral-500"><span className="before:ml-1 before:inline-block before:size-2 before:rounded-full before:bg-green-500">أسبوعي</span><span className="before:ml-1 before:inline-block before:size-2 before:rounded-full before:bg-teal-400">شهري</span><span className="before:ml-1 before:inline-block before:size-2 before:rounded-full before:bg-amber-400">خامل</span><span className="before:ml-1 before:inline-block before:size-2 before:rounded-full before:bg-red-400">متوقف</span></div>
+      </section>
 
       {idleMembers.length > 0 && (
-        <div className="card mb-6">
-          <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><TriangleAlert size={18} className="text-amber-600" /> أعضاء يحتاجون متابعة</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {idleMembers.map(m => (
-              <div key={m.id} className={`border rounded-xl p-3 flex items-center gap-3 ${m.status.key === 'dormant' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
-                <div className={`w-2 h-2 rounded-full ${m.status.dot === 'r' ? 'bg-red-500' : 'bg-amber-500'}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-neutral-800">{fullName(m.firstName, m.lastName)}</div>
-                  <div className="text-xs text-neutral-500">{m.status.label}{m.daysSince !== Infinity ? ` · ${m.daysSince} يوم` : ''}</div>
+        <section className="rounded-2xl border border-amber-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><TriangleAlert size={18} className="text-amber-600" /> أولوية المتابعة</h2><p className="mt-1 text-xs text-neutral-500">ابدأ بالأعضاء الأطول انقطاعًا أو الذين لم يسجلوا نشاطًا.</p></div><span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">{idleMembers.length} عضوًا</span></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {[...idleMembers].sort((a, b) => b.daysSince - a.daysSince).map(m => (
+              <div key={m.id} className={`rounded-xl border p-4 ${m.status.key === 'dormant' ? 'border-red-200 bg-red-50/70' : 'border-amber-200 bg-amber-50/70'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`mt-1 size-2.5 shrink-0 rounded-full ${m.status.dot === 'r' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                  <div className="min-w-0 flex-1"><div className="truncate font-bold text-neutral-900">{fullName(m.firstName, m.lastName)}</div><div className="mt-1 text-xs text-neutral-500">{m.status.label}{m.daysSince !== Infinity ? ` · منذ ${m.daysSince.toLocaleString('ar-SA')} يومًا` : ''}</div><div className="mt-1 truncate text-[11px] text-neutral-400">{m.platformName || 'غير مرتبط بمنصة'} · {m.code}</div></div>
                 </div>
+                <div className="mt-3 flex justify-end border-t border-current/10 pt-2"><Button unstyled onClick={() => openMemberCard(m.id)} className="btn-ghost btn-sm flex items-center gap-1.5"><Eye size={13} /> عرض البطاقة</Button></div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {activeMembers.length > 0 && (
-        <div className="card">
-          <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-green-600" /> الأكثر تفاعلاً هذا الشهر</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <section className="rounded-2xl border border-green-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><TrendingUp size={18} className="text-green-600" /> الأكثر تفاعلاً هذا الشهر</h2><p className="mt-1 text-xs text-neutral-500">ترتيب الأعضاء النشطين حسب نقاط الشهر الحالي.</p></div><span className="text-xs font-bold text-green-700">{MONTHS[curMonth - 1]} {curYear}</span></div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {activeMembers.slice(0, 9).map(m => (
-              <div key={m.id} className="border border-green-200 rounded-xl p-3 flex items-center gap-3 bg-green-50/50">
+              <Button unstyled key={m.id} onClick={() => openMemberCard(m.id)} className="flex w-full items-center gap-3 rounded-xl border border-green-200 bg-green-50/50 p-3 text-right transition-colors hover:bg-green-100/60">
                 <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold">{m.firstName?.charAt(0) || '؟'}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-sm text-neutral-800">{fullName(m.firstName, m.lastName)}</div>
                   <div className="text-xs text-neutral-500">{m.status.label}</div>
                 </div>
-                <div className="text-lg font-bold font-mono text-primary-700">{m.curPts}</div>
-              </div>
+                <div className="text-lg font-bold font-mono text-primary-700">{m.curPts.toLocaleString('ar-SA')}</div>
+              </Button>
             ))}
           </div>
-        </div>
+        </section>
       )}
+
+      <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 p-5"><div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><Users size={18} className="text-primary-600" /> سجل المتابعة الكامل</h2><p className="mt-1 text-xs text-neutral-500">حالة كل عضو، آخر نشاط معتمد، ونقاط الشهر.</p></div><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">{filteredStatuses.length} نتيجة</span></div>
+        {filteredStatuses.length ? (
+          <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredStatuses.map(member => {
+              const statusClass = member.status.key === 'active' ? 'bg-green-50 text-green-700' : member.status.key === 'month' ? 'bg-teal-50 text-teal-700' : member.status.key === 'idle' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'
+              return (
+                <article key={member.id} className="rounded-xl border border-neutral-200 p-4 transition-colors hover:border-primary-200 hover:bg-primary-50/20">
+                  <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 font-black text-primary-700">{member.firstName?.charAt(0)}{member.lastName?.charAt(0)}</div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h3 className="truncate text-sm font-bold text-neutral-900">{fullName(member.firstName, member.lastName)}</h3><p className="mt-0.5 text-[11px] text-neutral-400">{member.code} · {member.platformName || 'دون منصة'}</p></div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${statusClass}`}>{member.status.label}</span></div></div></div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl bg-neutral-50 p-3 text-xs"><div><div className="text-neutral-400">آخر نشاط</div><div className="mt-1 font-bold text-neutral-700">{member.lastDate ? dateLabel(member.lastDate) : 'لا يوجد'}</div></div><div><div className="text-neutral-400">نقاط الشهر</div><div className="mt-1 font-black text-primary-700">{member.curPts.toLocaleString('ar-SA')}</div></div></div>
+                  <div className="mt-3 flex justify-end"><Button unstyled onClick={() => openMemberCard(member.id)} className="btn-ghost btn-sm flex items-center gap-1.5"><Eye size={13} /> بطاقة العضو</Button></div>
+                </article>
+              )
+            })}
+          </div>
+        ) : <div className="py-12 text-center"><Search size={27} className="mx-auto text-neutral-300" /><p className="mt-2 text-sm text-neutral-500">لا توجد نتائج مطابقة للفلاتر</p></div>}
+      </section>
     </div>
   )
 }
@@ -1292,6 +1838,7 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
 }) {
   const [cardYear, setCardYear] = useState(new Date().getFullYear())
   const [cardMonth, setCardMonth] = useState(new Date().getMonth() + 1)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   if (beneficiaries.length === 0) {
     return <div className="card text-center py-12 text-neutral-400"><User size={36} className="mx-auto mb-3" /><p>أضف أعضاء أولاً</p></div>
@@ -1323,92 +1870,176 @@ function CardTab({ beneficiaries, logs, actions, awards, cardMemberId, setCardMe
   // Monthly/yearly
   const monthlyPts = myLogs.filter(l => new Date(l.date).getFullYear() === cardYear && new Date(l.date).getMonth() + 1 === cardMonth).reduce((s, l) => s + calcPts(l), 0)
   const yearlyPts = myLogs.filter(l => new Date(l.date).getFullYear() === cardYear).reduce((s, l) => s + calcPts(l), 0)
+  const approvedActivities = myLogs.filter(log => log.status === 'APPROVED').length
+  const shields = myAwards.filter(award => award.type === 'SHIELD')
+  const rewards = myAwards.filter(award => award.type !== 'SHIELD')
+  const currentLevelIndex = levels.findIndex(level => level.name === lvl.name)
+  const nextLevel = currentLevelIndex >= 0 ? levels[currentLevelIndex + 1] : undefined
+  const remainingToNext = nextLevel ? Math.max(0, nextLevel.from - total) : 0
+  const maxCategoryPoints = Math.max(1, ...Object.values(byCat))
+  const recentLogs = myLogs.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 12)
+  const portfolioUrl = `/${'ar'}/member/${encodeURIComponent(b.code)}/portfolio`
+
+  const copyPortfolioLink = async () => {
+    const url = `${window.location.origin}${portfolioUrl}`
+    await navigator.clipboard.writeText(url)
+    toast.success('تم نسخ رابط ملف العضو')
+  }
+
+  const printCard = () => {
+    if (cardRef.current) printElement(cardRef.current, `بطاقة الرائد - ${fullName(b.firstName, b.lastName)}`)
+  }
 
   return (
-    <div>
-      <div className="card p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[220px]">
-            <NativeSelect value={memberId} onChange={e => setCardMemberId(e.target.value)} className="input-field">
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden print:hidden">
+        <div className="border-b border-neutral-100 bg-gradient-to-l from-primary-50/80 to-white px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 font-bold text-neutral-900"><IdCard size={19} className="text-primary-700" /> بطاقة الرائد</h2>
+              <p className="mt-1 text-xs text-neutral-500">اختر العضو والفترة لاستعراض هويته الرقمية وملخص أثره.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button unstyled onClick={copyPortfolioLink} className="btn-ghost btn-sm flex items-center gap-1.5"><Copy size={14} /> نسخ الرابط</Button>
+              <Link href={portfolioUrl} target="_blank" className="btn-ghost btn-sm flex items-center gap-1.5 no-underline"><ExternalLink size={14} /> الملف العام</Link>
+              <Button unstyled onClick={printCard} className="btn-primary btn-sm flex items-center gap-1.5"><Printer size={14} /> طباعة البطاقة</Button>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_140px_170px] md:p-5">
+          <label className="space-y-1.5">
+            <span className="text-xs font-bold text-neutral-600">العضو</span>
+            <NativeSelect value={memberId} onChange={e => setCardMemberId(e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="اختيار العضو">
               {beneficiaries.map(m => <option key={m.id} value={m.id}>{fullName(m.firstName, m.lastName)} ({m.code})</option>)}
             </NativeSelect>
-          </div>
-          <div className="flex items-center gap-2">
-            <Input type="number" value={cardYear} onChange={e => setCardYear(+e.target.value)} className="input-field max-w-[100px]" />
-            <NativeSelect value={cardMonth} onChange={e => setCardMonth(+e.target.value)} className="input-field max-w-[140px]">
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-bold text-neutral-600">السنة</span>
+            <Input type="number" min={2020} max={2100} value={cardYear} onChange={e => setCardYear(+e.target.value)} className="w-full" aria-label="سنة البطاقة" />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-bold text-neutral-600">الشهر</span>
+            <NativeSelect value={cardMonth} onChange={e => setCardMonth(+e.target.value)} className="w-full" wrapperClassName="w-full" aria-label="شهر البطاقة">
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </NativeSelect>
-          </div>
+          </label>
         </div>
-      </div>
+      </section>
 
       {/* Member Profile */}
-      <div className="card mb-6 p-6 bg-gradient-to-l from-neutral-50 to-white border-2 border-primary-200">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-600 to-teal-500 text-white flex items-center justify-center text-3xl font-bold shadow-lg">{b.firstName?.charAt(0) || '؟'}</div>
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-neutral-900">{fullName(b.firstName, b.lastName)} <Badge className="bg-primary-100 text-primary-700 text-sm">{b.code}</Badge></h3>
-            <div className="flex flex-wrap gap-4 mt-2 text-sm text-neutral-500">
-              <span>🛡️ {b.networkRole || '—'}</span>
-              <span>📋 {b.platformName || b.platformId || '—'}</span>
-              <span>📅 انضم: {b.joinDate ? dateLabel(b.joinDate) : '—'}</span>
+      <div ref={cardRef} className="space-y-5 rounded-2xl bg-neutral-100/40 print:bg-white" dir="rtl">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-950 via-primary-800 to-primary-600 p-6 text-white shadow-lg md:p-8">
+        <div className="absolute -left-16 -top-20 size-64 rounded-full bg-white/5" />
+        <div className="absolute -bottom-24 right-1/3 size-52 rounded-full bg-secondary-400/10" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center">
+          <div className="flex size-24 shrink-0 items-center justify-center rounded-3xl border border-white/20 bg-white/10 text-4xl font-black shadow-xl backdrop-blur">{b.firstName?.charAt(0) || '؟'}{b.lastName?.charAt(0) || ''}</div>
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-primary-100"><Shield size={14} /> شبكة الرواد الإلكترونية <span className="h-1 w-1 rounded-full bg-primary-200" /> بطاقة عضو موحدة</div>
+            <h3 className="text-2xl font-black md:text-3xl">{fullName(b.firstName, b.lastName)}</h3>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-primary-100">
+              <span className="flex items-center gap-1.5"><User size={15} />{b.networkRole || 'صفة غير محددة'}</span>
+              <span className="flex items-center gap-1.5"><Building2 size={15} />{b.platformName || 'غير مرتبط بمنصة'}</span>
+              <span className="flex items-center gap-1.5"><CalendarDays size={15} />انضم {b.joinDate ? dateLabel(b.joinDate) : '—'}</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-white rounded-xl p-3 border shadow-sm">
-              <div className="text-xs text-neutral-500">الإجمالي</div>
-              <div className="text-2xl font-bold text-primary-700 font-mono">{total}</div>
+          <div className="grid grid-cols-2 gap-3 sm:min-w-[270px]">
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-[11px] font-bold text-primary-100">رقم العضو</div>
+              <div className="mt-1 font-mono text-2xl font-black tracking-wider">{b.code}</div>
             </div>
-            <div className="bg-white rounded-xl p-3 border shadow-sm">
-              <div className="text-xs text-neutral-500">الدروع</div>
-              <div className="text-2xl font-bold text-amber-600">{myAwards.filter(a => a.type === 'SHIELD').length}</div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+              <div className="text-[11px] font-bold text-primary-100">المستوى الحالي</div>
+              <div className="mt-1 text-lg font-black">{lvl.name}</div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Level Progress */}
-      <div className="card mb-6 p-4">
-        <div className="flex justify-between text-sm font-semibold mb-2">
-          <span>المستوى: {lvl.name}</span>
-          <span>{total} / {lvl.to >= 9999999 ? '∞' : lvl.to}</span>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-bold text-neutral-900"><Target size={17} className="text-primary-600" /> التقدم في مسار الأثر</div>
+            <p className="mt-1 text-xs text-neutral-500">{nextLevel ? `تبقى ${remainingToNext.toLocaleString('ar-SA')} نقطة للوصول إلى مستوى «${nextLevel.name}»` : 'وصل العضو إلى أعلى مستوى متاح'}</p>
+          </div>
+          <div className="text-left"><span className="text-2xl font-black text-primary-700">{total.toLocaleString('ar-SA')}</span><span className="text-xs text-neutral-400"> / {lvl.to >= 9999999 ? '∞' : lvl.to.toLocaleString('ar-SA')}</span></div>
         </div>
-        <div className="h-3 bg-neutral-100 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-teal-500 to-amber-400 rounded-full transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-3 overflow-hidden rounded-full bg-neutral-100" role="progressbar" aria-label="تقدم مستوى العضو" aria-valuenow={Math.round(progress)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-gradient-to-l from-primary-700 via-primary-500 to-secondary-400 transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
-      </div>
+        <div className="mt-2 flex justify-between text-[10px] font-bold text-neutral-400"><span>{lvl.name}</span><span>{Math.round(progress)}%</span></div>
+      </section>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="card p-4 text-center"><div className="text-xs text-neutral-500">نقاط الشهر</div><div className="text-xl font-bold font-mono">{monthlyPts}</div></div>
-        <div className="card p-4 text-center"><div className="text-xs text-neutral-500">النقاط السنوية</div><div className="text-xl font-bold font-mono">{yearlyPts}</div></div>
-        <div className="card p-4 text-center"><div className="text-xs text-neutral-500">الدروع</div><div className="text-xl font-bold">{myAwards.filter(a => a.type === 'SHIELD').length}</div></div>
-        <div className="card p-4 text-center"><div className="text-xs text-neutral-500">الأنشطة</div><div className="text-xl font-bold">{myLogs.length}</div></div>
-      </div>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: `نقاط ${MONTHS[cardMonth - 1]}`, value: monthlyPts, icon: Star, tone: 'bg-primary-50 text-primary-700' },
+          { label: `نقاط سنة ${cardYear}`, value: yearlyPts, icon: TrendingUp, tone: 'bg-teal-50 text-teal-700' },
+          { label: 'الأنشطة المعتمدة', value: approvedActivities, icon: CheckCircle, tone: 'bg-green-50 text-green-700' },
+          { label: 'الدروع والجوائز', value: myAwards.length, icon: Medal, tone: 'bg-amber-50 text-amber-700' },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3"><div className={`flex size-10 items-center justify-center rounded-xl ${item.tone}`}><item.icon size={18} /></div><div><div className="text-xl font-black text-neutral-900">{item.value.toLocaleString('ar-SA')}</div><div className="text-xs text-neutral-500">{item.label}</div></div></div>
+          </div>
+        ))}
+      </section>
 
-      {/* Activities List */}
-      <div className="card">
-        <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Activity size={18} className="text-primary-600" /> آخر الأنشطة</h2>
-        {myLogs.length > 0 ? (
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {myLogs.slice().reverse().slice(0, 30).map(log => {
-              const pts = calcPts(log)
+      <div className="grid gap-5 xl:grid-cols-5">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm xl:col-span-3">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><TrendingUp size={18} className="text-primary-600" /> توزيع نقاط الأثر</h2><p className="mt-1 text-xs text-neutral-500">مساهمة كل مجال في إجمالي نقاط العضو.</p></div>
+            <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700">{total.toLocaleString('ar-SA')} نقطة</span>
+          </div>
+          <div className="space-y-4">
+            {Object.keys(CATEGORY_LABELS).map(category => {
+              const points = byCat[category] || 0
+              const width = Math.max(points > 0 ? 5 : 0, (points / maxCategoryPoints) * 100)
               return (
-                <div key={log.id} className="border rounded-lg p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-sm">{log.action?.name || '—'}</div>
-                    <div className="flex gap-2 mt-1 text-xs text-neutral-500">
-                      <span>{dateLabel(log.date)}</span>
-                      <Badge className={STATUS_COLORS[log.status] || ''}>{STATUS_LABELS[log.status] || log.status}</Badge>
-                      <span>{QUALITY_LABELS[log.quality]}</span>
-                    </div>
-                  </div>
-                  <div className={`font-mono font-bold ${pts < 0 ? 'text-red-600' : 'text-primary-700'}`}>{pts}</div>
+                <div key={category}>
+                  <div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="font-bold text-neutral-700">{CATEGORY_LABELS[category]}</span><span className="font-mono font-black text-neutral-900">{points.toLocaleString('ar-SA')}</span></div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100"><div className="h-full rounded-full bg-gradient-to-l from-primary-700 to-primary-400 transition-all" style={{ width: `${width}%` }} /></div>
                 </div>
               )
             })}
           </div>
-        ) : <p className="text-center py-6 text-neutral-400">لا توجد أنشطة مسجلة</p>}
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm xl:col-span-2">
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><Medal size={18} className="text-amber-600" /> سجل التكريم</h2><p className="mt-1 text-xs text-neutral-500">الدروع والمكافآت التي حصل عليها العضو.</p></div><span className="text-xs font-bold text-neutral-400">{shields.length} درع · {rewards.length} مكافأة</span></div>
+          {myAwards.length > 0 ? (
+            <div className="space-y-2">
+              {myAwards.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6).map(award => (
+                <div key={award.id} className="flex items-center gap-3 rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Medal size={17} /></div>
+                  <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-neutral-900">{award.title}</div><div className="mt-0.5 text-[11px] text-neutral-500">{dateLabel(award.date)}{award.value ? ` · ${award.value} نقطة` : ''}</div></div>
+                </div>
+              ))}
+            </div>
+          ) : <div className="rounded-xl border border-dashed border-neutral-200 py-8 text-center"><Medal size={25} className="mx-auto text-neutral-300" /><p className="mt-2 text-sm text-neutral-400">لا توجد جوائز مسجلة بعد</p></div>}
+        </section>
+      </div>
+
+      {/* Activities List */}
+      <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="flex items-center gap-2 font-bold text-neutral-900"><Activity size={18} className="text-primary-600" /> سجل الأنشطة الأخير</h2><p className="mt-1 text-xs text-neutral-500">آخر 12 نشاطًا مع حالة الاعتماد والنقاط المحتسبة.</p></div><span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-bold text-neutral-600">{myLogs.length.toLocaleString('ar-SA')} نشاط</span></div>
+        {recentLogs.length > 0 ? (
+          <div className="divide-y divide-neutral-100">
+            {recentLogs.map(log => {
+              const pts = calcPts(log)
+              return (
+                <div key={log.id} className="flex items-center gap-3 py-3.5">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700"><Activity size={16} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-neutral-900">{log.action?.name || 'نشاط غير مسمى'}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-neutral-500"><span>{dateLabel(log.date)}</span><Badge className={STATUS_COLORS[log.status] || ''}>{STATUS_LABELS[log.status] || log.status}</Badge><span>{QUALITY_LABELS[log.quality] || log.quality}</span></div>
+                  </div>
+                  <div className={`rounded-lg px-2.5 py-1 font-mono text-sm font-black ${pts < 0 ? 'bg-red-50 text-red-700' : 'bg-primary-50 text-primary-700'}`}>{pts > 0 ? '+' : ''}{pts.toLocaleString('ar-SA')}</div>
+                </div>
+              )
+            })}
+          </div>
+        ) : <div className="rounded-xl border border-dashed border-neutral-200 py-10 text-center"><Activity size={26} className="mx-auto text-neutral-300" /><p className="mt-2 text-sm text-neutral-400">لا توجد أنشطة مسجلة لهذا العضو</p></div>}
+      </section>
       </div>
     </div>
   )
@@ -1427,6 +2058,7 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
   const [showAwardModal, setShowAwardModal] = useState(false)
   const [awardForm, setAwardForm] = useState({ beneficiaryId: '', type: 'SHIELD', title: '', date: today(), value: '0', note: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [rewardSearch, setRewardSearch] = useState('')
 
   const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
 
@@ -1447,6 +2079,24 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
       return { ...b, pts, gatePassed, tier, eligible: gatePassed && pts > 0 }
     }).sort((a, b) => b.pts - a.pts)
   }, [beneficiaries, logs, actionMap, gates, rYear, rMonth, qualityBonus])
+
+  const visibleRewardRows = useMemo(() => {
+    const query = rewardSearch.trim().toLocaleLowerCase('ar')
+    if (!query) return rewardRows
+    return rewardRows.filter(row => [
+      fullName(row.firstName, row.lastName),
+      row.code,
+      row.platformName,
+      row.networkRole,
+    ].some(value => String(value || '').toLocaleLowerCase('ar').includes(query)))
+  }, [rewardRows, rewardSearch])
+
+  const rewardSummary = useMemo(() => ({
+    eligible: rewardRows.filter(row => row.eligible).length,
+    blocked: rewardRows.filter(row => !row.gatePassed).length,
+    topScore: rewardRows[0]?.pts || 0,
+    totalPoints: rewardRows.reduce((sum, row) => sum + row.pts, 0),
+  }), [rewardRows])
 
   const toggleGate = async (beneficiaryId: string, year: number, month: number, currentPassed: boolean) => {
     try {
@@ -1481,17 +2131,56 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      <section className="rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-primary-50 p-5 md:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-800 mb-3">
+              <Medal size={14} /> إدارة الاستحقاق والتقدير
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold text-neutral-950">مكافآت مبنية على الإنجاز الفعلي</h2>
+            <p className="text-sm text-neutral-600 mt-2 max-w-2xl leading-6">راجع نقاط الفترة، تحقق من بوابة الالتزام، ثم امنح الدرع أو المكافأة مع بقاء سجل واضح لكل قرار.</p>
+          </div>
+          <Button unstyled onClick={() => { setAwardForm({ beneficiaryId: beneficiaries[0]?.id || '', type: 'SHIELD', title: BADGE_CATALOG[0], date: today(), value: '0', note: '' }); setShowAwardModal(true) }} className="btn-primary flex items-center justify-center gap-2">
+            <Plus size={16} /> منح درع أو مكافأة
+          </Button>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {[
+          { label: 'المستحقون', value: rewardSummary.eligible, hint: 'اجتازوا البوابة ولديهم نقاط', color: 'text-green-700 bg-green-50' },
+          { label: 'بوابة متعثرة', value: rewardSummary.blocked, hint: 'تحتاج مراجعة قبل الصرف', color: 'text-red-700 bg-red-50' },
+          { label: 'أعلى رصيد', value: rewardSummary.topScore, hint: 'نقطة في الفترة', color: 'text-amber-700 bg-amber-50' },
+          { label: 'إجمالي النقاط', value: rewardSummary.totalPoints, hint: `${MONTHS[rMonth - 1]} ${rYear}`, color: 'text-primary-700 bg-primary-50' },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className={`w-fit rounded-lg px-2.5 py-1 text-xl font-bold ${item.color}`}>{item.value.toLocaleString('ar-SA')}</div>
+            <div className="font-semibold text-sm text-neutral-800 mt-3">{item.label}</div>
+            <div className="text-[11px] text-neutral-500 mt-1">{item.hint}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Monthly eligibility table */}
       <div className="card mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Calculator size={18} className="text-primary-600" /> حاسبة الاستحقاق الشهري</h2>
-          <Input type="number" value={rYear} onChange={e => setRYear(+e.target.value)} className="input-field max-w-[90px]" />
-          <NativeSelect value={rMonth} onChange={e => setRMonth(+e.target.value)} className="input-field max-w-[130px]">
-            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </NativeSelect>
+        <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4 mb-5">
+          <div>
+            <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Calculator size={18} className="text-primary-600" /> حاسبة الاستحقاق الشهري</h2>
+            <p className="text-xs text-neutral-500 mt-1">تغيير حالة البوابة ينعكس فورًا على أهلية العضو للمكافأة.</p>
+          </div>
+          <div className="grid sm:grid-cols-[minmax(220px,1fr)_100px_140px] gap-2 w-full xl:w-auto">
+            <div className="relative">
+              <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <Input value={rewardSearch} onChange={e => setRewardSearch(e.target.value)} placeholder="بحث بالاسم أو الرمز أو المنصة" className="pe-9" />
+            </div>
+            <Input aria-label="السنة" type="number" min={2020} max={2100} value={rYear} onChange={e => setRYear(+e.target.value)} />
+            <NativeSelect aria-label="الشهر" value={rMonth} onChange={e => setRMonth(+e.target.value)} wrapperClassName="w-full">
+              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </NativeSelect>
+          </div>
         </div>
-        {rewardRows.length > 0 ? (
+        {visibleRewardRows.length > 0 ? (
           <div className="overflow-x-auto">
             <Table className="w-full text-sm">
               <TableHeader>
@@ -1503,7 +2192,7 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rewardRows.map(r => (
+                {visibleRewardRows.map(r => (
                   <TableRow key={r.id} className="border-b border-neutral-100">
                     <TableCell className="p-3 font-semibold">{fullName(r.firstName, r.lastName)}</TableCell>
                     <TableCell className="p-3 text-center font-mono font-bold">{r.pts}</TableCell>
@@ -1522,14 +2211,14 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
               </TableBody>
             </Table>
           </div>
-        ) : <p className="text-center py-6 text-neutral-400">لا يوجد أعضاء</p>}
+        ) : <p className="text-center py-8 text-neutral-400">{rewardSearch ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد أعضاء'}</p>}
       </div>
 
       {/* Awards History */}
       <div className="card">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Medal size={18} className="text-primary-600" /> سجل الدروع والمكافآت</h2>
-          <Button unstyled onClick={() => { setAwardForm({ beneficiaryId: beneficiaries[0]?.id || '', type: 'SHIELD', title: BADGE_CATALOG[0], date: today(), value: '0', note: '' }); setShowAwardModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> منح درع/مكافأة</Button>
+          <Badge className="bg-neutral-100 text-neutral-700 border border-neutral-200">{awards.length} سجل</Badge>
         </div>
         {awards.length > 0 ? (
           <div className="overflow-x-auto">
@@ -1615,106 +2304,100 @@ function RewardsTab({ beneficiaries, logs, actions, awards, gates, fetchAll, qua
 // Tab: Reports (التقارير)
 // ═══════════════════════════════════════════════
 
-function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number> }) {
+function ReportInsightList({ title, items, tone, emptyLabel = 'لا توجد بيانات كافية' }: {
+  title: string
+  items: string[]
+  tone: 'primary' | 'success' | 'warning' | 'neutral'
+  emptyLabel?: string
+}) {
+  const styles = {
+    primary: 'border-primary-100 bg-primary-50/40 text-primary-700',
+    success: 'border-green-100 bg-green-50/50 text-green-700',
+    warning: 'border-amber-100 bg-amber-50/60 text-amber-700',
+    neutral: 'border-neutral-200 bg-neutral-50 text-neutral-600',
+  }
+  return (
+    <section className={`rounded-xl border p-4 ${styles[tone]}`}>
+      <h4 className="font-bold text-sm mb-2">{title}</h4>
+      {items.length ? (
+        <ul className="space-y-2">
+          {items.map((item, index) => <li key={`${title}-${index}`} className="text-sm leading-6 flex items-start gap-2"><span className="mt-2 w-1.5 h-1.5 rounded-full bg-current shrink-0" />{item}</li>)}
+        </ul>
+      ) : <p className="text-sm opacity-75">{emptyLabel}</p>}
+    </section>
+  )
+}
+
+function ReportsTab({ beneficiaries, logs, actions, qualityBonus, initialPlatformId = '' }: { beneficiaries: BeneficiaryInfo[]; logs: ImpactLogFull[]; actions: ImpactActionItem[]; qualityBonus: Record<string, number>; initialPlatformId?: string }) {
   const { data: session } = useSession()
+  const router = useRouter()
+  const params = useParams<{ locale: string }>()
   const userRole = (session?.user as any)?.role || ''
   const isSuperAdmin = userRole === 'SUPER_ADMIN'
 
-  const [repType, setRepType] = useState<'monthly' | 'weekly' | 'yearly'>('monthly')
+  const [repType, setRepType] = useState<'monthly' | 'yearly'>('monthly')
   const [repYear, setRepYear] = useState(new Date().getFullYear())
   const [repMonth, setRepMonth] = useState(new Date().getMonth() + 1)
-  const [repPlat, setRepPlat] = useState('')
+  const [repPlat, setRepPlat] = useState(initialPlatformId)
   const [repRole, setRepRole] = useState('')
 
   // AI state
-  const [aiSummary, setAiSummary] = useState('')
-  const [aiAnalysis, setAiAnalysis] = useState<{ comparison: string; trends: string[] } | null>(null)
+  const [aiReport, setAiReport] = useState<{ report: SmartImpactReport; metrics: ImpactReportMetrics; generatedAt: string } | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [savedReports, setSavedReports] = useState<Array<{ id: string; title: string; periodType: string; periodYear: number; periodMonth: number | null; createdAt: string }>>([])
 
   const actionMap = useMemo(() => buildActionMap(actions as any), [actions])
 
   const calcPts = (l: ImpactLogFull) => finalPoints(l as any, actionMap, qualityBonus as any)
 
+  useEffect(() => {
+    if (!isSuperAdmin) return
+    fetch('/api/admin/ai/impact-report', { cache: 'no-store' })
+      .then(response => response.json())
+      .then(result => { if (result.success) setSavedReports(result.data) })
+      .catch(() => undefined)
+  }, [isSuperAdmin])
+
   // AI handlers
-  const handleGenerateSummary = async () => {
+  const handleGenerateSmartReport = async () => {
     if (!isSuperAdmin) { toast.error('الإدارة العليا فقط'); return }
     setAiLoading(true)
     try {
-      const periodName = repType === 'monthly'
-        ? `${MONTHS[repMonth - 1]} ${repYear}`
-        : repType === 'yearly' ? `السنة ${repYear}` : 'الأسبوع الحالي'
-
-      const totalPts = reportRows.reduce((s, r) => s + r.pts, 0)
-      const activeCount = reportRows.filter(r => r.pts > 0).length
-      const totalActs = reportRows.reduce((s, r) => s + r.actCount, 0)
-      const top = reportRows[0]
-      // المنصة الأنشط
-      const platMap = new Map<string, number>()
-      reportRows.filter(r => r.platformId).forEach(r => { const k = r.platformName || r.platformId!; platMap.set(k, (platMap.get(k) || 0) + r.actCount) })
-      let topPlat = '—', topPlatCnt = 0
-      for (const [k, v] of platMap) { if (v > topPlatCnt) { topPlatCnt = v; topPlat = k } }
-
-      const res = await fetch('/api/admin/ai/report-summary', {
+      const res = await fetch('/api/admin/ai/impact-report', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          periodName,
-          totalPoints: totalPts, activeMembers: activeCount, totalActivities: totalActs,
-          topMember: top ? fullName(top.firstName, top.lastName) : '—',
-          topMemberPoints: top?.pts || 0,
-          topPlatform: topPlat, topPlatformApproved: topPlatCnt,
-          memberCount: reportRows.length, platformCount: platMap.size,
-          pendingCount: logs.filter(l => l.status === 'PENDING_REVIEW').length,
+          periodType: repType,
+          year: repYear,
+          ...(repType === 'monthly' && { month: repMonth }),
+          platformId: repPlat,
+          networkRole: repRole,
         }),
       })
       const data = await res.json()
-      if (data.success) { setAiSummary(data.data.text); toast.success('تم توليد الملخص') }
+      if (data.success) {
+        setAiReport(data.data)
+        toast.success('تم إنشاء التقرير وحفظه')
+        router.push(`/${params.locale || 'ar'}/admin/impact/ai-reports/${data.data.id}`)
+      }
       else toast.error(data.message || 'فشل')
     } catch { toast.error('فشل الاتصال بـ DeepSeek') }
     finally { setAiLoading(false) }
   }
 
-  const handleAnalyze = async () => {
-    if (!isSuperAdmin) { toast.error('الإدارة العليا فقط'); return }
-    setAiLoading(true)
-    try {
-      const periodName = `${MONTHS[repMonth - 1]} ${repYear}`
-      // بيانات الشهر الحالي
-      const curPts = reportRows.reduce((s, r) => s + r.pts, 0)
-      const curActive = reportRows.filter(r => r.pts > 0).length
-      const curActs = reportRows.reduce((s, r) => s + r.actCount, 0)
-      // الشهر السابق
-      const prevMonth = repMonth === 1 ? 12 : repMonth - 1
-      const prevYear = repMonth === 1 ? repYear - 1 : repYear
-      const prevRows = beneficiaries.map(b => {
-        const prevLogs = logs.filter(l => l.beneficiaryId === b.id && new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth)
-        return prevLogs.reduce((s, l) => s + calcPts(l), 0)
-      })
-      const prevPts = prevRows.reduce((s, r) => s + r, 0)
-      const prevActive = prevRows.filter(r => r > 0).length
-      const prevActs = logs.filter(l => new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth).length
-      // platforms
-      const platData: Array<{ name: string; current: number; previous: number }> = []
-      const platSet = new Set(beneficiaries.map(b => b.platformName || b.platformId).filter(Boolean) as string[])
-      for (const p of platSet) {
-        const cur = reportRows.filter(r => (r.platformName || r.platformId) === p).reduce((s, r) => s + r.actCount, 0)
-        const prev = logs.filter(l => (l.platformId === p) && new Date(l.date).getFullYear() === prevYear && new Date(l.date).getMonth() + 1 === prevMonth).length
-        platData.push({ name: p, current: cur, previous: prev })
-      }
-
-      const res = await fetch('/api/admin/ai/report-analysis', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          periodName,
-          current: { totalPoints: curPts, activeMembers: curActive, totalActivities: curActs },
-          previous: { totalPoints: prevPts, activeMembers: prevActive, totalActivities: prevActs },
-          platforms: platData.slice(0, 10),
-        }),
-      })
-      const data = await res.json()
-      if (data.success) { setAiAnalysis(data.data); toast.success('تم التحليل') }
-      else toast.error(data.message || 'فشل')
-    } catch { toast.error('فشل الاتصال بـ DeepSeek') }
-    finally { setAiLoading(false) }
+  const copySmartReport = async () => {
+    if (!aiReport) return
+    const { report } = aiReport
+    const list = (items: string[]) => items.map(item => `- ${item}`).join('\n')
+    const text = [
+      report.title, '', 'الملخص التنفيذي', report.executiveSummary, '',
+      'قراءة الأداء', report.performanceNarrative, '', 'أبرز النجاحات', list(report.highlights), '',
+      'المخاطر والتنبيهات', list(report.risks), '', 'التوصيات',
+      report.recommendations.map(item => `- [${item.priority}] ${item.title}: ${item.action}`).join('\n'), '',
+      'رؤى المنصات', list(report.platformInsights), '', 'رؤى الأعضاء', list(report.memberInsights), '',
+      'تركيز الفترة القادمة', list(report.nextPeriodFocus), '', 'ملاحظات البيانات', list(report.dataNotes),
+    ].join('\n')
+    await navigator.clipboard.writeText(text)
+    toast.success('تم نسخ التقرير الذكي')
   }
 
   // Filter
@@ -1734,54 +2417,148 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
   const totalPts = reportRows.reduce((s, r) => s + r.pts, 0)
   const totalActs = reportRows.reduce((s, r) => s + r.actCount, 0)
   const activeCount = reportRows.filter(r => r.pts > 0).length
+  const participationRate = reportRows.length ? Math.round((activeCount / reportRows.length) * 100) : 0
 
-  const titleMap = { monthly: `التقرير الشهري (${MONTHS[repMonth - 1]} ${repYear})`, weekly: 'التقرير الأسبوعي', yearly: `التقرير السنوي (${repYear})` }
+  const titleMap = { monthly: `التقرير الشهري (${MONTHS[repMonth - 1]} ${repYear})`, yearly: `التقرير السنوي (${repYear})` }
+
+  const exportReportData = () => {
+    downloadCSV(reportRows.map((row, index) => ({
+      'الترتيب': index + 1,
+      'رمز العضو': row.code || '',
+      'الاسم': fullName(row.firstName, row.lastName),
+      'المنصة': row.platformName || '',
+      'الصفة': row.networkRole || '',
+      'عدد الأنشطة': row.actCount,
+      'النقاط': row.pts,
+    })), `تقرير-أثر-${repType === 'monthly' ? `${repYear}-${String(repMonth).padStart(2, '0')}` : repYear}.csv`)
+    toast.success('تم تصدير بيانات التقرير')
+  }
 
   return (
-    <div>
-      <div className="card p-4 mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <NativeSelect value={repType} onChange={e => setRepType(e.target.value as any)} className="input-field max-w-[130px]">
-            <option value="monthly">تقرير شهري</option>
-            <option value="yearly">تقرير سنوي</option>
-          </NativeSelect>
-          <Input type="number" value={repYear} onChange={e => setRepYear(+e.target.value)} className="input-field max-w-[90px]" />
-          {repType === 'monthly' && (
-            <NativeSelect value={repMonth} onChange={e => setRepMonth(+e.target.value)} className="input-field max-w-[120px]">
-              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+    <div className="space-y-6">
+      <section className="rounded-2xl overflow-hidden border border-primary-200 bg-gradient-to-l from-primary-700 via-primary-600 to-indigo-600 p-5 md:p-6 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 border border-white/20 px-3 py-1 text-xs font-semibold mb-3">
+              <FileText size={14} /> مركز تقارير أثر الرواد
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold">من البيانات إلى قرار قابل للتنفيذ</h2>
+            <p className="text-sm text-white/80 mt-2 max-w-2xl leading-6">أنشئ تقريرًا تقليديًا مباشرًا، أو ولّد تحليلًا ذكيًا محفوظًا في الأرشيف مع صفحة مستقلة للطباعة والتصدير.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button unstyled onClick={exportReportData} className="rounded-xl bg-white text-primary-700 px-4 py-2.5 text-sm font-semibold flex items-center gap-2 hover:bg-primary-50">
+              <Download size={16} /> تصدير CSV
+            </Button>
+            {isSuperAdmin && (
+              <Link href={`/${params.locale || 'ar'}/admin/impact/ai-reports`} className="rounded-xl border border-white/30 bg-white/10 text-white px-4 py-2.5 text-sm font-semibold flex items-center gap-2 no-underline hover:bg-white/20">
+                <FileText size={16} /> أرشيف التقارير
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm mb-6 overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-100 bg-gradient-to-l from-primary-50/70 to-white">
+          <h3 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={17} className="text-primary-600" /> إعداد التقرير</h3>
+          <p className="text-xs text-neutral-500 mt-1">حدد الفترة والنطاق قبل إنشاء التقرير أو تصدير البيانات التقليدية.</p>
+        </div>
+        <div className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold text-neutral-600">نوع التقرير</span>
+            <NativeSelect value={repType} onChange={e => setRepType(e.target.value as 'monthly' | 'yearly')} className="w-full" wrapperClassName="w-full">
+              <option value="monthly">تقرير شهري</option>
+              <option value="yearly">تقرير سنوي</option>
             </NativeSelect>
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold text-neutral-600">السنة</span>
+            <Input type="number" min={2020} max={2100} value={repYear} onChange={e => setRepYear(+e.target.value)} className="w-full" />
+          </label>
+          {repType === 'monthly' && (
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-neutral-600">الشهر</span>
+              <NativeSelect value={repMonth} onChange={e => setRepMonth(+e.target.value)} className="w-full" wrapperClassName="w-full">
+                {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </NativeSelect>
+            </label>
           )}
-          <NativeSelect value={repPlat} onChange={e => setRepPlat(e.target.value)} className="input-field max-w-[180px]">
-            <option value="">كل المنصات</option>
-            {(() => {
-              const platforms = new Map<string, string>() // id -> name
-              for (const b of beneficiaries) {
-                if (b.platformId && !platforms.has(b.platformId)) {
-                  platforms.set(b.platformId, b.platformName || b.platformId)
-                }
-              }
-              return Array.from(platforms.entries()).map(([id, name]) => <option key={id} value={id}>{name}</option>)
-            })()}
-          </NativeSelect>
-          <NativeSelect value={repRole} onChange={e => setRepRole(e.target.value)} className="input-field max-w-[150px]">
-            <option value="">كل الصفات</option>
-            {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-          </NativeSelect>
+          <label className={`space-y-1.5 ${repType === 'yearly' ? 'lg:col-span-2' : ''}`}>
+            <span className="text-xs font-semibold text-neutral-600">المنصة</span>
+            <NativeSelect value={repPlat} onChange={e => setRepPlat(e.target.value)} className="w-full" wrapperClassName="w-full">
+              <option value="">كل المنصات</option>
+              {(() => {
+                const platforms = new Map<string, string>()
+                for (const b of beneficiaries) if (b.platformId && !platforms.has(b.platformId)) platforms.set(b.platformId, b.platformName || b.platformId)
+                return Array.from(platforms.entries()).map(([id, name]) => <option key={id} value={id}>{name}</option>)
+              })()}
+            </NativeSelect>
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold text-neutral-600">صفة العضو</span>
+            <NativeSelect value={repRole} onChange={e => setRepRole(e.target.value)} className="w-full" wrapperClassName="w-full">
+              <option value="">كل الصفات</option>
+              {NETWORK_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </NativeSelect>
+          </label>
         </div>
       </div>
 
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {[
+          { label: 'نطاق التقرير', value: reportRows.length, hint: 'عضوًا ضمن المرشحات', tone: 'bg-primary-50 text-primary-700' },
+          { label: 'نسبة المشاركة', value: `${participationRate}%`, hint: `${activeCount} أعضاء متفاعلين`, tone: 'bg-green-50 text-green-700' },
+          { label: 'إجمالي الأنشطة', value: totalActs, hint: 'نشاطًا في الفترة', tone: 'bg-purple-50 text-purple-700' },
+          { label: 'إجمالي النقاط', value: totalPts, hint: titleMap[repType], tone: 'bg-amber-50 text-amber-700' },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className={`inline-flex rounded-lg px-2.5 py-1 text-xl font-bold ${item.tone}`}>{typeof item.value === 'number' ? item.value.toLocaleString('ar-SA') : item.value}</div>
+            <div className="font-semibold text-sm text-neutral-800 mt-3">{item.label}</div>
+            <div className="text-[11px] text-neutral-500 mt-1">{item.hint}</div>
+          </div>
+        ))}
+      </div>
+
+      {isSuperAdmin && savedReports.length > 0 && (
+        <div className="card p-4 mb-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2"><FileText size={17} className="text-primary-600" /> التقارير الذكية المحفوظة</h3>
+              <p className="text-xs text-neutral-500 mt-1">كل توليد محفوظ في صفحة مستقلة قابلة للطباعة والتصدير.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs rounded-full bg-primary-50 text-primary-700 px-2.5 py-1">{savedReports.length} تقريرًا</span>
+              <Link href={`/${params.locale || 'ar'}/admin/impact/ai-reports`} className="btn-ghost btn-sm no-underline">عرض الأرشيف</Link>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {savedReports.slice(0, 6).map(report => (
+              <Link key={report.id} href={`/${params.locale || 'ar'}/admin/impact/ai-reports/${report.id}`} className="rounded-xl border border-neutral-200 hover:border-primary-300 hover:bg-primary-50/40 p-3 no-underline transition-colors">
+                <div className="font-semibold text-sm text-neutral-800 line-clamp-1">{report.title}</div>
+                <div className="text-xs text-neutral-500 mt-1">{report.periodType === 'monthly' && report.periodMonth ? `${MONTHS[report.periodMonth - 1]} ` : 'السنة '}{report.periodYear} · {new Date(report.createdAt).toLocaleDateString('ar-SA')}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* طباعة + التقرير */}
-      <div className="flex justify-end mb-3">
+      <div className="flex flex-wrap justify-end gap-2 mb-3">
+        <Button unstyled onClick={exportReportData} className="btn-ghost btn-sm flex items-center gap-1.5">
+          <Download size={14} />
+          تصدير البيانات
+        </Button>
         <Button unstyled
           onClick={() => {
             const printArea = document.getElementById('reportPrintArea')
             if (!printArea) return
+            const smartReport = document.getElementById('smartAiReport')
             const win = window.open('', '_blank', 'width=800,height=600')
             if (!win) return
             win.document.write(`
               <html dir="rtl"><head><meta charset="utf-8"><title>تقرير لوحة الأثر</title>
-              <style>body{font-family:sans-serif;padding:30px;color:#222}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:right}th{background:#f5f5f5}.text-center{text-align:center}.text-xs{font-size:12px;color:#666}</style>
-              </head><body>${printArea.innerHTML}</body></html>
+              <style>body{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;padding:30px;color:#222}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:right}th{background:#f5f5f5}.text-center{text-align:center}.text-xs{font-size:12px;color:#666}</style>
+              </head><body>${smartReport?.innerHTML || ''}${printArea.innerHTML}</body></html>
             `)
             win.document.close()
             win.focus()
@@ -1795,57 +2572,84 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
         {isSuperAdmin && (
           <>
             <Button unstyled
-              onClick={handleGenerateSummary}
+              onClick={handleGenerateSmartReport}
               disabled={aiLoading}
               className="btn-ghost btn-sm flex items-center gap-1.5 text-primary-600"
             >
               {aiLoading ? <div className="w-4 h-4 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin" /> : <Star size={14} />}
-              توليد ملخص ذكي
-            </Button>
-            <Button unstyled
-              onClick={handleAnalyze}
-              disabled={aiLoading}
-              className="btn-ghost btn-sm flex items-center gap-1.5 text-teal-600"
-            >
-              <TrendingUp size={14} />
-              تحليل الاتجاهات
+              {aiLoading ? 'جاري تحليل كامل البيانات...' : 'توليد تقرير ذكي شامل'}
             </Button>
           </>
         )}
       </div>
 
-      {/* AI Summary */}
-      {aiSummary && (
-        <div className="card p-5 mb-4 border-2 border-primary-200 bg-gradient-to-l from-primary-50/50 to-white">
-          <div className="flex items-center gap-2 mb-3">
-            <Star size={16} className="text-primary-600" />
-            <h3 className="font-bold text-primary-800 text-sm">الملخص الذكي</h3>
-            <span className="text-[10px] bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
+      {/* Expanded AI report */}
+      {aiReport && (
+        <div id="smartAiReport" className="card p-5 md:p-6 mb-5 border-2 border-primary-200 bg-gradient-to-l from-primary-50/50 to-white space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center"><Star size={18} /></div>
+              <div>
+                <h3 className="font-bold text-primary-900">{aiReport.report.title}</h3>
+                <p className="text-xs text-neutral-500 mt-1">تحليل {aiReport.metrics.dataQuality.recordsAnalyzed} سجلًا من بيانات الفترة الكاملة</p>
+              </div>
+            </div>
+            <div className="flex gap-2 print:hidden">
+              <Button unstyled onClick={copySmartReport} className="btn-ghost btn-sm flex items-center gap-1.5"><ClipboardCheck size={14} /> نسخ</Button>
+              <Button unstyled onClick={() => setAiReport(null)} className="btn-ghost btn-sm text-neutral-500">إخفاء</Button>
+            </div>
           </div>
-          <p className="text-neutral-700 text-sm leading-relaxed">{aiSummary}</p>
-          <Button unstyled onClick={() => setAiSummary('')} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</Button>
-        </div>
-      )}
 
-      {/* AI Analysis */}
-      {aiAnalysis && (
-        <div className="card p-5 mb-4 border-2 border-teal-200 bg-gradient-to-l from-teal-50/50 to-white">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={16} className="text-teal-600" />
-            <h3 className="font-bold text-teal-800 text-sm">التحليل الذكي</h3>
-            <span className="text-[10px] bg-teal-100 text-teal-600 px-2 py-0.5 rounded-full">مساعد ذكي</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              ['النقاط', aiReport.metrics.totalPoints.toLocaleString('ar-SA')],
+              ['الأنشطة', aiReport.metrics.totalActivities.toLocaleString('ar-SA')],
+              ['نسبة الاعتماد', `${aiReport.metrics.approvalRate}%`],
+              ['الأعضاء النشطون', `${aiReport.metrics.activeMembers}/${aiReport.metrics.memberCount}`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-white/80 border border-primary-100 p-3 text-center">
+                <div className="font-bold text-primary-800 text-lg">{value}</div><div className="text-xs text-neutral-500">{label}</div>
+              </div>
+            ))}
           </div>
-          <p className="text-neutral-700 text-sm leading-relaxed mb-3">{aiAnalysis.comparison}</p>
-          {aiAnalysis.trends.length > 0 && (
-            <ul className="space-y-1">
-              {aiAnalysis.trends.map((t, i) => (
-                <li key={i} className="text-sm text-neutral-600 flex items-start gap-2">
-                  <span className="text-teal-500 mt-1">•</span> {t}
-                </li>
+
+          <section>
+            <h4 className="font-bold text-neutral-900 mb-2">الملخص التنفيذي</h4>
+            <p className="text-sm leading-7 text-neutral-700">{aiReport.report.executiveSummary}</p>
+          </section>
+          <section>
+            <h4 className="font-bold text-neutral-900 mb-2 flex items-center gap-2"><TrendingUp size={16} className="text-teal-600" /> قراءة الأداء والمقارنة</h4>
+            <p className="text-sm leading-7 text-neutral-700">{aiReport.report.performanceNarrative}</p>
+          </section>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <ReportInsightList title="أبرز النجاحات" items={aiReport.report.highlights} tone="success" />
+            <ReportInsightList title="المخاطر والتنبيهات" items={aiReport.report.risks} tone="warning" emptyLabel="لا توجد مخاطر بارزة في البيانات المتاحة" />
+          </div>
+
+          <section>
+            <h4 className="font-bold text-neutral-900 mb-3">التوصيات التنفيذية</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              {aiReport.report.recommendations.map((item, index) => (
+                <div key={`${item.title}-${index}`} className="rounded-xl border bg-white/80 p-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <strong className="text-sm text-neutral-900">{item.title}</strong>
+                    <span className={`text-[10px] rounded-full px-2 py-0.5 ${item.priority === 'عالية' ? 'bg-red-100 text-red-700' : item.priority === 'متوسطة' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>{item.priority}</span>
+                  </div>
+                  <p className="text-sm leading-6 text-neutral-600">{item.action}</p>
+                </div>
               ))}
-            </ul>
-          )}
-          <Button unstyled onClick={() => setAiAnalysis(null)} className="text-xs text-neutral-400 hover:text-red-500 mt-2">إخفاء</Button>
+            </div>
+          </section>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <ReportInsightList title="رؤى المنصات" items={aiReport.report.platformInsights} tone="primary" />
+            <ReportInsightList title="رؤى الأعضاء" items={aiReport.report.memberInsights} tone="primary" />
+            <ReportInsightList title="تركيز الفترة القادمة" items={aiReport.report.nextPeriodFocus} tone="success" />
+            <ReportInsightList title="ملاحظات جودة البيانات" items={aiReport.report.dataNotes} tone="neutral" emptyLabel="لا توجد ملاحظات" />
+          </div>
+
+          <p className="text-[11px] text-neutral-400 border-t pt-3">هذا التقرير مساعد تحليلي قابل للمراجعة ولا ينفذ قرارات اعتماد تلقائية.</p>
         </div>
       )}
 
@@ -1920,6 +2724,7 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
   const [submitting, setSubmitting] = useState(false)
   const [section, setSection] = useState<'catalog' | 'quality' | 'levels' | 'tiers'>('catalog')
   const [settings, setSettings] = useState<any>(null)
+  const [actionSearch, setActionSearch] = useState('')
 
   useEffect(() => { setLocalActions(initialActions) }, [initialActions])
 
@@ -1959,8 +2764,25 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
 
   const grouped = useMemo(() => {
     const groups: Record<string, ImpactActionItem[]> = {}
-    for (const a of localActions) { const cat = a.category || 'OTHER'; if (!groups[cat]) groups[cat] = []; groups[cat].push(a) }
+    const query = actionSearch.trim().toLocaleLowerCase('ar')
+    for (const a of localActions) {
+      if (query && ![a.name, a.note, CATEGORY_LABELS[a.category]].some(value => String(value || '').toLocaleLowerCase('ar').includes(query))) continue
+      const cat = a.category || 'OTHER'
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(a)
+    }
     return groups
+  }, [localActions, actionSearch])
+
+  const actionStats = useMemo(() => {
+    const active = localActions.filter(action => action.isActive)
+    const points = active.map(action => action.points)
+    return {
+      total: active.length,
+      categories: new Set(active.map(action => action.category)).size,
+      average: points.length ? Math.round(points.reduce((sum, point) => sum + point, 0) / points.length) : 0,
+      max: points.length ? Math.max(...points) : 0,
+    }
   }, [localActions])
 
   const sectionOpts = [
@@ -1971,11 +2793,36 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
   ]
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-4 overflow-x-auto">
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-neutral-200 bg-gradient-to-l from-neutral-900 via-neutral-800 to-primary-900 text-white p-5 md:p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0"><Settings size={20} /></div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold">إعدادات احتساب الأثر</h2>
+            <p className="text-sm text-white/70 mt-2 max-w-2xl leading-6">هذه القيم هي المرجع المركزي للنقاط والجودة والمستويات والمكافآت. راجع أثر أي تعديل قبل حفظه لأنه ينعكس على التقارير والاستحقاق.</p>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {[
+          { label: 'الأنشطة الفعالة', value: actionStats.total, hint: 'نوع نشاط قابل للتسجيل' },
+          { label: 'محاور القياس', value: actionStats.categories, hint: 'تصنيفًا مستخدمًا' },
+          { label: 'متوسط النقاط', value: actionStats.average, hint: 'لكل نشاط' },
+          { label: 'أعلى وزن', value: actionStats.max, hint: 'نقطة للنشاط' },
+        ].map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className="text-2xl font-bold text-primary-700">{item.value.toLocaleString('ar-SA')}</div>
+            <div className="font-semibold text-sm text-neutral-800 mt-2">{item.label}</div>
+            <div className="text-[11px] text-neutral-500 mt-1">{item.hint}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-neutral-200 bg-white p-2 flex items-center gap-2 overflow-x-auto">
         {sectionOpts.map(s => (
           <Button unstyled key={s.key} onClick={() => setSection(s.key)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${section === s.key ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors whitespace-nowrap flex items-center gap-1.5 ${section === s.key ? 'bg-primary-600 text-white shadow-sm' : 'text-neutral-600 hover:bg-neutral-100'}`}>
             <s.icon size={14} /> {s.label}
           </Button>
         ))}
@@ -1983,13 +2830,25 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
 
       {section === 'catalog' && (
         <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={18} className="text-primary-600" /> كتالوج الأنشطة</h2>
-            {showModal ? null : <Button unstyled onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center gap-1"><Plus size={14} /> إضافة نشاط</Button>}
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
+            <div>
+              <h2 className="font-bold text-neutral-900 flex items-center gap-2"><Settings size={18} className="text-primary-600" /> كتالوج الأنشطة</h2>
+              <p className="text-xs text-neutral-500 mt-1">عرّف الأنشطة وأوزانها مرة واحدة ليستخدمها مديرو المنصات بصورة موحدة.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+              <div className="relative min-w-0 sm:min-w-[260px]">
+                <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <Input value={actionSearch} onChange={e => setActionSearch(e.target.value)} placeholder="ابحث في الأنشطة والمحاور" className="pe-9" />
+              </div>
+              {showModal ? null : <Button unstyled onClick={() => { setForm({ name: '', points: '10', category: 'DIGITAL_ACTIVITY', note: '' }); setShowModal(true) }} className="btn-primary btn-sm flex items-center justify-center gap-1"><Plus size={14} /> إضافة نشاط</Button>}
+            </div>
           </div>
-          {Object.entries(grouped).map(([cat, items]) => (
+          {Object.entries(grouped).length > 0 ? Object.entries(grouped).map(([cat, items]) => (
             <div key={cat} className="mb-6">
-              <h3 className="font-semibold text-neutral-700 mb-2 bg-neutral-50 p-2 rounded-lg">{CATEGORY_LABELS[cat] || cat}</h3>
+              <div className="flex items-center justify-between gap-3 mb-2 bg-neutral-50 p-2.5 rounded-xl">
+                <h3 className="font-semibold text-neutral-700">{CATEGORY_LABELS[cat] || cat}</h3>
+                <Badge className="bg-white text-neutral-600 border border-neutral-200">{items.length} نشاط</Badge>
+              </div>
               <div className="overflow-x-auto">
                 <Table className="w-full text-sm">
                   <TableHeader><TableRow className="border-b border-neutral-100"><TableHead className="text-right p-2 text-neutral-500">اسم النشاط</TableHead><TableHead className="text-center p-2 text-neutral-500">النقاط</TableHead><TableHead className="text-right p-2 text-neutral-500">ملاحظات</TableHead><TableHead className="text-center p-2 text-neutral-500">حذف</TableHead></TableRow></TableHeader>
@@ -1997,7 +2856,12 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
                 </Table>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="py-12 text-center text-neutral-400">
+              <Search size={32} className="mx-auto mb-3 text-neutral-300" />
+              لا توجد أنشطة مطابقة لعبارة البحث
+            </div>
+          )}
         </div>
       )}
 
@@ -2005,6 +2869,9 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
         <div className="card p-5">
           <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Star size={18} className="text-primary-600" /> بونص الجودة</h2>
           <p className="text-sm text-neutral-500 mb-4">النقاط الإضافية (أو المخصومة) حسب مستوى جودة النشاط</p>
+          <div className="rounded-xl border border-blue-200 bg-blue-50 text-blue-800 p-3 text-xs leading-6 mb-5 flex gap-2">
+            <Info size={16} className="shrink-0 mt-0.5" /> يُضاف بونص الجودة إلى نقاط النشاط بعد المراجعة. القيم السالبة تخصم من الرصيد ولا تغيّر وزن النشاط الأصلي.
+          </div>
           <div className="space-y-3 max-w-md">
             {Object.entries(settings.qualityBonus as Record<string, number>).map(([key, val]) => (
               <div key={key} className="flex items-center gap-3">
@@ -2027,6 +2894,7 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
       {section === 'levels' && settings && (
         <div className="card p-5">
           <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><TrendingUp size={18} className="text-primary-600" /> المستويات</h2>
+          <p className="text-sm text-neutral-500 mb-5">تأكد من اتصال النطاقات وعدم تداخلها حتى يحصل كل عضو على مستوى واحد فقط.</p>
           <div className="space-y-3 max-w-lg">
             {(settings.levels as any[]).map((lv: any, i: number) => (
               <div key={i} className="flex items-center gap-3">
@@ -2054,6 +2922,7 @@ function SettingsTab({ actions: initialActions, fetchAll }: { actions: ImpactAct
       {section === 'tiers' && settings && (
         <div className="card p-5">
           <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Medal size={18} className="text-primary-600" /> شرائح المكافآت</h2>
+          <p className="text-sm text-neutral-500 mb-5">تحدد الشرائح وصف الاستحقاق بعد اجتياز بوابة الالتزام، ولا تمنح المكافأة تلقائيًا.</p>
           <div className="space-y-3 max-w-lg">
             {(settings.rewardTiers as any[]).map((tier: any, i: number) => (
               <div key={i} className="flex items-center gap-3">

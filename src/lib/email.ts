@@ -19,6 +19,15 @@ import { recordActivityLog } from '@/lib/activity-log'
 
 let transporter: Transporter | null = null
 
+export function emailDeliveryConfigured(): boolean {
+  return Boolean(
+    process.env.SMTP_HOST?.trim()
+    && process.env.SMTP_USER?.trim()
+    && process.env.SMTP_PASS?.trim()
+    && (process.env.EMAIL_FROM?.trim() || process.env.SMTP_USER?.trim())
+  )
+}
+
 function getTransporter(): Transporter {
   if (transporter) return transporter
 
@@ -27,16 +36,8 @@ function getTransporter(): Transporter {
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
 
-  // إن لم تكن الإعدادات موجودة، نستخدم إعدادات وهمية (للتطوير)
-  if (!host || !user) {
-    logger.warn('[email] SMTP غير مهيأ — سيتم تسجيل البريد بدل الإرسال')
-    // إنشاء transporter لا يفعل شيئاً (للتطوير)
-    transporter = nodemailer.createTransport({
-      host: 'localhost',
-      port: 1025,
-      ignoreTLS: true,
-    })
-    return transporter
+  if (!emailDeliveryConfigured() || !host || !user || !pass) {
+    throw new Error('SMTP غير مهيأ: اضبط SMTP_HOST وSMTP_USER وSMTP_PASS وEMAIL_FROM')
   }
 
   transporter = nodemailer.createTransport({
@@ -64,6 +65,7 @@ interface EmailOptions {
 
 export async function sendEmail(opts: EmailOptions): Promise<void> {
   const from = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@rowad-network.org'
+  let messageId = `${Date.now()}`
   try {
     const result = await getTransporter().sendMail({
       from: `شبكة رواد الإلكترونية <${from}>`,
@@ -71,9 +73,17 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
       subject: opts.subject,
       html: opts.html,
     })
+    messageId = result.messageId || messageId
+  } catch (error) {
+    logger.info('[email] Send fallback', { to: opts.to, subject: opts.subject })
+    logger.error('[email] Send error', error)
+    throw error
+  }
+
+  try {
     await recordActivityLog({
       entity: 'email',
-      entityId: result.messageId || `${Date.now()}`,
+      entityId: messageId,
       action: 'EMAIL_SENT',
       actor: opts.actor || 'SYSTEM',
       metadata: {
@@ -85,10 +95,8 @@ export async function sendEmail(opts: EmailOptions): Promise<void> {
       },
     })
   } catch (error) {
-    // في بيئة التطوير أو عند الفشل: نسجّل فقط
-    logger.info('[email] Send fallback', { to: opts.to, subject: opts.subject })
-    logger.error('[email] Send error', error)
-    throw error
+    // لا نعتبر البريد فاشلاً بعد أن قبله SMTP لمجرد تعذر تسجيل أثر التدقيق.
+    logger.error('[email] Audit log error after successful send', error)
   }
 }
 
@@ -100,7 +108,7 @@ function emailLayout(body: string): string {
   return `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head><meta charset="utf-8"><style>
-  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
+  body { font-family: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; margin:0; padding:20px; }
   .container { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
   .header { background: linear-gradient(135deg, #1e40af, #0d9488); color: #fff; padding: 24px; text-align: center; }
   .header h1 { margin: 0; font-size: 20px; }
@@ -162,6 +170,82 @@ export async function sendWelcomeEmail(params: {
     actor: managerName,
     platformId: params.platformId,
     category: 'WELCOME',
+  })
+}
+
+/** إعادة تعيين بيانات دخول العضو وإرسالها إلى البريد الحالي المحفوظ في ملفه. */
+export async function sendMemberCredentialsEmail(params: {
+  to: string
+  memberName: string
+  platformName: string
+  managerName?: string
+  platformId?: string | null
+  tempPassword: string
+  loginUrl: string
+}) {
+  const { to, memberName, platformName, managerName, tempPassword, loginUrl } = params
+  await sendEmail({
+    to,
+    subject: 'بيانات الدخول المحدثة إلى منصة رواد',
+    html: emailLayout(`
+      <h2>مرحباً ${escapeHtml(memberName)}</h2>
+      <p>تم إصدار كلمة مرور مؤقتة جديدة لحسابك في <b>${escapeHtml(platformName)}</b>.</p>
+      ${managerName ? `<p>تم تنفيذ الطلب بواسطة: <b>${escapeHtml(managerName)}</b>.</p>` : ''}
+      <p>استخدم البريد الحالي وكلمة المرور التالية:</p>
+      <div class="code">
+        البريد الإلكتروني: ${escapeHtml(to)}<br>
+        كلمة المرور المؤقتة: ${escapeHtml(tempPassword)}
+      </div>
+      <p style="color:#e53935;font-size:13px;">⚠️ كلمة المرور السابقة لم تعد صالحة. غيّر كلمة المرور فور تسجيل الدخول.</p>
+      <p style="margin-top:20px;text-align:center;">
+        <a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:10px 24px;background:#1e40af;color:#fff;border-radius:8px;text-decoration:none;font-weight:bold;">تسجيل الدخول</a>
+      </p>
+    `),
+    actor: managerName,
+    platformId: params.platformId,
+    category: 'MEMBER_CREDENTIALS',
+  })
+}
+
+/** تأكيد استلام نشاط العضو للمراجعة. */
+export async function sendActivitySubmittedEmail(params: {
+  to: string
+  memberName: string
+  activityName: string
+  evidenceUrl?: string | null
+  platformId?: string | null
+}) {
+  const { to, memberName, activityName, evidenceUrl } = params
+  await sendEmail({
+    to,
+    subject: 'تم استلام نشاطك وهو قيد المراجعة',
+    html: emailLayout(`
+      <h2>شكراً ${escapeHtml(memberName)}</h2>
+      <p>تم استلام نشاطك <b>"${escapeHtml(activityName)}"</b> وإرساله إلى مدير المنصة للمراجعة.</p>
+      ${evidenceUrl ? `<p>دليل النشاط: <a href="${escapeHtml(evidenceUrl)}">فتح الرابط المرفق</a></p>` : ''}
+      <p style="color:#666;">سنرسل لك رسالة أخرى عند اعتماد النشاط أو رفضه.</p>
+    `),
+    platformId: params.platformId,
+    category: 'ACTIVITY_SUBMITTED',
+  })
+}
+
+/** إشعار أمني بعد تغيير العضو لكلمة المرور بنفسه. */
+export async function sendPasswordChangedEmail(params: {
+  to: string
+  memberName: string
+  platformId?: string | null
+}) {
+  await sendEmail({
+    to: params.to,
+    subject: 'تم تغيير كلمة مرور حسابك',
+    html: emailLayout(`
+      <h2>مرحباً ${escapeHtml(params.memberName)}</h2>
+      <p>تم تغيير كلمة مرور حسابك في منصة رواد بنجاح.</p>
+      <p style="color:#b91c1c;">إذا لم تنفذ هذا التغيير، تواصل مع مدير المنصة فوراً لإعادة تأمين الحساب.</p>
+    `),
+    platformId: params.platformId,
+    category: 'PASSWORD_CHANGED',
   })
 }
 

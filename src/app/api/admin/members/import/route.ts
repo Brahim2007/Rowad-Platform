@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { sendWelcomeEmail } from '@/lib/email'
+import { generateMemberCode } from '@/lib/member-code'
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth()
@@ -45,7 +46,6 @@ export async function POST(request: NextRequest) {
         const firstName = String(row.firstName || row.FirstName || row['الاسم الأول'] || row['الاسم'] || '').trim()
         const lastName = String(row.lastName || row.LastName || row['اسم العائلة'] || '').trim()
         const email = String(row.email || row.Email || row['البريد'] || '').trim().toLowerCase()
-        const code = String(row.code || row.Code || row['الكود'] || '').trim()
         const networkRole = String(row.networkRole || row.NetworkRole || row['الصفة'] || '').trim()
         const joinDate = String(row.joinDate || row.JoinDate || row['تاريخ الانضمام'] || '').trim()
 
@@ -54,16 +54,14 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        const memberCode = code || `R-${Date.now().toString(36).toUpperCase()}`
-
-        // Check for duplicate
-        const existing = await prisma.beneficiary.findFirst({
-          where: email ? { OR: [{ email }, { code: memberCode }] } : { code: memberCode },
-        })
+        // الرقم موحد ويُنشأ من الخادم؛ عمود الكود في ملف الاستيراد لا يُستخدم.
+        const existing = email ? await prisma.beneficiary.findUnique({ where: { email } }) : null
         if (existing) {
-          results.push({ row: i + 2, status: 'error', name: `${firstName} ${lastName}`, message: 'الكود أو البريد مستخدم مسبقاً' })
+          results.push({ row: i + 2, status: 'error', name: `${firstName} ${lastName}`, message: 'البريد مستخدم مسبقاً' })
           continue
         }
+
+        const memberCode = await generateMemberCode()
 
         const tempPassword = email ? `${randomBytes(9).toString('base64url')}A1!` : null
         const passwordHash = tempPassword ? await bcrypt.hash(tempPassword, 12) : null

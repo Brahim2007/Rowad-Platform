@@ -16,8 +16,8 @@ import Image from 'next/image'
 import {
   FolderKanban, Blocks, Users, FileText, Shield,
   LogOut, Menu, TrendingUp, Activity, Star, BarChart3, Bot, CalendarDays, Search,
-  Library, ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
-  Medal, Settings, IdCard, UserCog, Archive, Bell,
+  ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
+  Medal, Settings, IdCard, UserCog, Archive, Bell, BrainCircuit, PanelRightClose, PanelRightOpen,
 } from 'lucide-react'
 import { ThemeCustomizer } from '@/components/admin/ThemeCustomizer'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,7 @@ const impactTabs = [
   { id: 'card',        href: '/admin/impact?tab=card',                label: 'بطاقة الرائد',    icon: IdCard },
   { id: 'rewards',     href: '/admin/impact?tab=rewards',             label: 'المكافآت',       icon: Medal },
   { id: 'reports',     href: '/admin/impact?tab=reports',             label: 'التقارير',       icon: ClipboardList },
+  { id: 'platformAlerts', href: '/admin/platforms-overview',          label: 'تنبيهات المنصات', icon: Bell },
   { id: 'settings',    href: '/admin/impact?tab=settings',            label: 'الإعدادات',       icon: Settings },
 ]
 
@@ -41,11 +42,9 @@ const sidebarSections = [
   {
     title: 'إدارة المحتوى',
     links: [
-      { href: '/admin/impact?tab=members', label: 'الأعضاء والمستفيدون', icon: Users },
       { href: '/admin/platforms',    label: 'المنصات والبرامج',  icon: Blocks },
       { href: '/admin/projects',     label: 'المشاريع',           icon: FolderKanban },
-      { href: '/admin/knowledge-library', label: 'المكتبة المعرفية', icon: Library },
-      { href: '/admin/documents',     label: 'الأرشيف والوثائق',  icon: Archive },
+      { href: '/admin/documents',     label: 'الأرشيف المؤسسي',  icon: Archive },
       { href: '/admin/content',      label: 'صفحات المحتوى',       icon: FileText },
     ],
   },
@@ -53,6 +52,7 @@ const sidebarSections = [
     title: 'المتابعة والتحليل',
     links: [
       { href: '/admin/platforms-overview',   label: 'مركز متابعة المنصات', icon: BarChart3 },
+      { href: '/admin/ai-governance',        label: 'التقييم والتقويم الذكي', icon: BrainCircuit },
       { href: '/admin/analytics',        label: 'التحليلات والمؤشرات', icon: TrendingUp },
       { href: '/admin/evaluations',      label: 'التقييم وضمان الجودة', icon: ClipboardCheck },
       { href: '/admin/coordination',     label: 'التنسيق المؤسسي',     icon: CalendarCheck },
@@ -134,6 +134,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarHidden, setSidebarHidden] = useState(false)
 
   const isLoginPage = pathname.includes('/admin/login')
   const isImpactPage = pathname.includes('/admin/impact')
@@ -152,6 +153,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       router.push('/ar/admin/login')
     }
   }, [status, router, isLoginPage])
+
+  useEffect(() => {
+    setSidebarHidden(window.localStorage.getItem('admin-sidebar-hidden') === 'true')
+  }, [])
+
+  const toggleDesktopSidebar = () => {
+    setSidebarHidden(current => {
+      const next = !current
+      window.localStorage.setItem('admin-sidebar-hidden', String(next))
+      return next
+    })
+  }
 
   if (isLoginPage) {
     return <>{children}</>
@@ -174,10 +187,19 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const userRole = (session?.user as any)?.role || 'EDITOR'
   const isSuperAdmin = userRole === 'SUPER_ADMIN'
+  const isSystemManager = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN'
   const isPlatformManager = userRole === 'PLATFORM_MANAGER'
+  const isEvaluator = userRole === 'EVALUATOR'
 
   /** القائمة الجانبية مع تصفية حسب الدور */
-  const visibleSections = isPlatformManager
+  const visibleSections = isEvaluator
+    ? [{
+        title: 'التقييم',
+        links: [
+          { href: '/admin/evaluations', label: 'تقييماتي المسندة', icon: ClipboardCheck },
+        ],
+      }]
+    : isPlatformManager
     ? [
         // مدير المنصة يرى فقط العناصر المرتبطة بمنصته
         {
@@ -186,13 +208,20 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             { href: '/admin/my-platform',                   label: 'لوحة المنصة',     icon: Shield },
             { href: '/admin/my-platform?tab=members',       label: 'الأعضاء',         icon: Users },
             { href: '/admin/my-platform?tab=activities',    label: 'الأنشطة',        icon: Activity },
+            { href: '/admin/analytics',                     label: 'تحليلات منصتي',  icon: TrendingUp },
+            { href: '/admin/evaluations',                   label: 'تقييمات منصتي',  icon: ClipboardCheck },
+            { href: '/admin/coordination',                  label: 'مهام منصتي',     icon: CalendarCheck },
+            { href: '/admin/calendar',                      label: 'تقويم منصتي',    icon: CalendarDays },
           ],
         },
       ]
     : sidebarSections.map(section => {
-        const links = isSuperAdmin
-          ? section.links
-          : section.links.filter(link => link.href !== '/admin/users')
+        const links = section.links.filter(link => {
+          if (link.href === '/admin/users') return isSuperAdmin
+          if (link.href === '/admin/ai-governance') return isSystemManager
+          if (userRole === 'EDITOR' && ['/admin/platforms-overview', '/admin/analytics', '/admin/evaluations', '/admin/coordination', '/admin/calendar', '/admin/activity-log'].includes(link.href)) return false
+          return true
+        })
         // إضافة رابط المساعد الذكي للإدارة العليا فقط
         if (section.title === 'أدوات' && isSuperAdmin) {
           return {
@@ -200,6 +229,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             links: [
               ...links,
               { href: '/admin/ai-assistant', label: 'المساعد الذكي', icon: Bot },
+              { href: '/admin/impact/ai-reports', label: 'أرشيف التقارير الذكية', icon: Archive },
             ],
           }
         }
@@ -207,7 +237,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
       })
 
   /** اكتشاف التبويب النشط */
-  const currentTab = isImpactPage ? (searchParams.get('tab') || 'dashboard') : null
+  const currentTab = isImpactPage ? (pathname.includes('/admin/impact/ai-reports') ? 'reports' : (searchParams.get('tab') || 'dashboard')) : null
 
   function tabActive(id: string) {
     if (id === 'dashboard') return currentTab === 'dashboard'
@@ -217,8 +247,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-neutral-100 flex text-neutral-900" dir="rtl" data-slot="admin-shell">
       {/* ─── Sidebar ─── */}
-      <aside className={`fixed inset-y-0 right-0 z-50 w-72 border-l border-neutral-200 bg-white/95 shadow-xl shadow-neutral-950/5 backdrop-blur transform transition-transform lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:relative lg:shadow-none`}>
-        <div className="h-full flex flex-col">
+      <aside className={`fixed inset-y-0 right-0 z-50 w-72 border-l border-neutral-200 bg-white/95 shadow-xl shadow-neutral-950/5 backdrop-blur transform transition-transform lg:relative lg:translate-x-0 lg:shadow-none lg:transition-[width,border-color] lg:duration-300 ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} ${sidebarHidden ? 'lg:w-0 lg:border-transparent lg:overflow-hidden' : 'lg:w-72'} overflow-y-auto`}>
+        <div className="h-full w-72 flex flex-col">
           {/* Brand */}
           <div className="p-5 border-b border-neutral-100 bg-gradient-to-l from-primary-50/80 to-white">
             <Link href="/admin/impact" prefetch={false} className="no-underline">
@@ -326,9 +356,24 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         {/* شريط البحث السريع — سطح المكتب */}
         <div className="hidden lg:block sticky top-0 z-30 border-b border-neutral-200 bg-white/90 px-5 py-3 backdrop-blur flex-shrink-0">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-neutral-950">مركز التحكم</p>
-              <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
+            <div className="flex min-w-0 items-center gap-3">
+              <Button
+                unstyled
+                type="button"
+                onClick={toggleDesktopSidebar}
+                variant="ghost"
+                size="icon"
+                className="size-9 shrink-0 border border-neutral-200 bg-white text-neutral-600 shadow-sm hover:bg-primary-50 hover:text-primary-700"
+                aria-label={sidebarHidden ? 'إظهار القائمة الجانبية' : 'إخفاء القائمة الجانبية'}
+                aria-expanded={!sidebarHidden}
+                title={sidebarHidden ? 'إظهار القائمة الجانبية' : 'إخفاء القائمة الجانبية'}
+              >
+                {sidebarHidden ? <PanelRightOpen size={19} /> : <PanelRightClose size={19} />}
+              </Button>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-neutral-950">مركز التحكم</p>
+                <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="min-w-[420px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
@@ -340,16 +385,18 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* ─── شريط تبويبات لوحة الأثر (للإدارة فقط) ─── */}
-        {!isPlatformManager && (
+        {!isPlatformManager && !isEvaluator && (
         <div className="border-b border-neutral-200 bg-white px-2 lg:px-5 flex-shrink-0 overflow-x-auto">
           <div className="flex gap-0.5 items-end max-w-7xl mx-auto">
-            {impactTabs.map(tab => (
+            {impactTabs
+              .filter(tab => tab.id !== 'platformAlerts' || userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
+              .map(tab => (
               <Link
                 key={tab.id}
                 href={tab.href}
                 prefetch={false}
                 onClick={(event: MouseEvent<HTMLAnchorElement>) => {
-                  if (!isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                  if (!tab.href.startsWith('/admin/impact') || !isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                   event.preventDefault()
                   const locale = pathname.split('/')[1] || 'ar'
                   window.history.pushState(null, '', `/${locale}${tab.href}`)

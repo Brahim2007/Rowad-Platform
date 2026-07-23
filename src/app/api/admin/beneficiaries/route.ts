@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { generateMemberCode } from '@/lib/member-code'
 
 async function requireBeneficiariesAccess() {
   const auth = await requireAuth()
@@ -111,11 +112,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, firstName, lastName, email, phone, gender, birthDate, educationLevel, nationality, country, city } = body
+    const { firstName, lastName, email, phone, gender, birthDate, educationLevel, nationality, country, city } = body
 
-    if (!code || !firstName || !lastName) {
-      return NextResponse.json({ success: false, message: 'الكود والاسم مطلوبان' }, { status: 400 })
+    if (!firstName || !lastName) {
+      return NextResponse.json({ success: false, message: 'الاسم مطلوب' }, { status: 400 })
     }
+
+    const code = await generateMemberCode()
 
     // Create the beneficiary
     const beneficiary = await prisma.beneficiary.create({
@@ -154,7 +157,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const e = error as { code?: string }
     if (e.code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'الكود أو البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
+      return NextResponse.json({ success: false, error: 'رقم العضو أو البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
     }
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
@@ -166,7 +169,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, code, firstName, lastName, email, phone, gender, birthDate, educationLevel, nationality, country, city, status } = body
+    const { id, firstName, lastName, email, phone, gender, birthDate, educationLevel, nationality, country, city, status } = body
 
     if (!id) return NextResponse.json({ success: false, message: 'المعرف مطلوب' }, { status: 400 })
     const current = await prisma.beneficiary.findUnique({ where: { id }, select: { platformId: true } })
@@ -178,7 +181,6 @@ export async function PUT(request: NextRequest) {
     const beneficiary = await prisma.beneficiary.update({
       where: { id },
       data: {
-        ...(code && { code }),
         ...(firstName && { firstName }),
         ...(lastName && { lastName }),
         email: email || null,
@@ -198,7 +200,7 @@ export async function PUT(request: NextRequest) {
   } catch (error: unknown) {
     const e = error as { code?: string }
     if (e.code === 'P2002') {
-      return NextResponse.json({ success: false, error: 'الكود أو البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
+      return NextResponse.json({ success: false, error: 'رقم العضو أو البريد الإلكتروني مستخدم مسبقاً' }, { status: 409 })
     }
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }

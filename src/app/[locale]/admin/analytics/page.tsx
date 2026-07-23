@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { NativeSelect } from '@/components/ui/native-select'
+import Link from 'next/link'
 
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
   Activity, Award, BarChart3, CheckCircle, Clock, Database,
   Pencil, Percent, Plus, Target, Trash2, TrendingUp, X,
+  Building2, ExternalLink, Users, AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -49,6 +51,33 @@ interface ProgramOption {
   id: string
   name: string
   platformId?: string
+}
+
+interface PlatformPerformance {
+  platformId: string
+  platformName: string
+  platformSlug: string
+  memberCount: number
+  activeRate: number
+  pendingCount: number
+  points: number
+  pointsTrend: number
+  healthScore: number
+  healthStatus: 'HEALTHY' | 'WATCH' | 'CRITICAL'
+  managedBy: string | null
+  evaluation: { score: number | null; count: number }
+}
+
+interface LiveOverview {
+  platforms: PlatformPerformance[]
+  totals: {
+    platforms: number
+    totalMembers: number
+    totalPending: number
+    totalPoints: number
+    mostAtRisk: number
+    withoutManager: number
+  }
 }
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -119,6 +148,7 @@ export default function AdminAnalyticsPage() {
   const [programIndicators, setProgramIndicators] = useState<Indicator[]>([])
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [platforms, setPlatforms] = useState<PlatformOption[]>([])
+  const [liveOverview, setLiveOverview] = useState<LiveOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [showIndicatorModal, setShowIndicatorModal] = useState(false)
   const [editingIndicator, setEditingIndicator] = useState<Indicator | null>(null)
@@ -132,16 +162,18 @@ export default function AdminAnalyticsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [piRes, prgiRes, snapRes, platformsRes] = await Promise.all([
+      const [piRes, prgiRes, snapRes, platformsRes, overviewRes] = await Promise.all([
         fetch('/api/admin/analytics/indicators?type=platform').then(r => r.json()),
         fetch('/api/admin/analytics/indicators?type=program').then(r => r.json()),
         fetch('/api/admin/analytics/snapshots').then(r => r.json()),
         fetch('/api/admin/platforms').then(r => r.json()),
+        fetch('/api/admin/platforms-overview').then(r => r.json()),
       ])
       if (piRes.success) setPlatformIndicators(piRes.data || [])
       if (prgiRes.success) setProgramIndicators(prgiRes.data || [])
       if (snapRes.success) setSnapshots(snapRes.data || [])
       if (platformsRes.success) setPlatforms(platformsRes.data?.platforms || [])
+      if (overviewRes.success) setLiveOverview(overviewRes.data)
     } catch {
       toast.error('فشل تحميل البيانات')
     } finally {
@@ -278,6 +310,7 @@ export default function AdminAnalyticsPage() {
   const totalProgramIndicators = programIndicators.length
   const totalSnapshots = snapshots.length
   const metTargetCount = platformIndicators.filter(indicator => indicator.target && indicator.value >= indicator.target).length
+  const rankedPlatforms = [...(liveOverview?.platforms || [])].sort((a, b) => b.healthScore - a.healthScore)
 
   const renderIndicatorCard = (indicator: Indicator, type: 'platform' | 'program') => {
     const pct = progressPct(indicator.value, indicator.target)
@@ -340,32 +373,89 @@ export default function AdminAnalyticsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4 border-b border-neutral-200 pb-5">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
-            <TrendingUp className="text-primary-600" size={28} />
-            التحليلات والمؤشرات
-          </h1>
-          <p className="text-neutral-500 max-w-2xl text-sm">
-            إدارة مؤشرات المنصات والبرامج وإنشاء لقطات تحليلية دورية قابلة للأرشفة والمراجعة.
-          </p>
+    <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+      <section className="mb-5 overflow-hidden rounded-3xl bg-gradient-to-l from-primary-800 to-primary-600 p-6 text-white shadow-lg">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
+              <TrendingUp size={15} /> التحليلات والمؤشرات
+            </div>
+            <h1 className="text-2xl font-black md:text-3xl">مركز التحليلات القيادية</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
+            قراءة موحدة لصحة كل منصة ونشاط أعضائها والتراكمات والتقييمات، مع مؤشرات مستهدفة ولقطات دورية.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button unstyled onClick={() => openCreateIndicator('platform')} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-white/10 px-4 text-sm font-bold text-white hover:bg-white/20">
+              <Plus size={15} /> مؤشر منصة
+            </Button>
+            <Button unstyled onClick={() => openCreateIndicator('program')} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-white/10 px-4 text-sm font-bold text-white hover:bg-white/20">
+              <Plus size={15} /> مؤشر برنامج
+            </Button>
+            <Button unstyled onClick={() => setShowSnapshotModal(true)} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-black text-primary-800 shadow-sm">
+              <Database size={15} /> لقطة تحليلية
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button unstyled onClick={() => openCreateIndicator('platform')} className="btn-ghost btn-sm flex items-center gap-1.5">
-            <Plus size={15} />
-            مؤشر منصة
-          </Button>
-          <Button unstyled onClick={() => openCreateIndicator('program')} className="btn-ghost btn-sm flex items-center gap-1.5">
-            <Plus size={15} />
-            مؤشر برنامج
-          </Button>
-          <Button unstyled onClick={() => setShowSnapshotModal(true)} className="btn-primary btn-sm flex items-center gap-1.5">
-            <Database size={15} />
-            لقطة تحليلية
-          </Button>
-        </div>
-      </div>
+      </section>
+
+      {liveOverview && (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
+            {[
+              { label: 'منصات تحت المتابعة', value: liveOverview.totals.platforms, icon: Building2, color: 'bg-primary-100 text-primary-700' },
+              { label: 'إجمالي الأعضاء', value: liveOverview.totals.totalMembers, icon: Users, color: 'bg-info-50 text-info-700' },
+              { label: 'سجلات تنتظر المراجعة', value: liveOverview.totals.totalPending, icon: Clock, color: 'bg-warning-50 text-warning-700' },
+              { label: 'منصات حرجة', value: liveOverview.totals.mostAtRisk, icon: AlertTriangle, color: 'bg-error-50 text-error-700' },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="card flex items-center gap-3 p-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}><Icon size={19} /></div>
+                <div><div className="text-xl font-black text-neutral-900">{value}</div><div className="text-xs text-neutral-500">{label}</div></div>
+              </div>
+            ))}
+          </div>
+
+          <section className="card mb-8 overflow-hidden p-0">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 p-5">
+              <div>
+                <h2 className="font-bold text-neutral-900">ترتيب صحة المنصات</h2>
+                <p className="mt-1 text-xs text-neutral-500">بيانات حية تجمع الإدارة والنشاط والتراكم والتقييم، وليست إدخالات يدوية.</p>
+              </div>
+              <Link href="/ar/admin/platforms-overview" className="btn-ghost btn-xs inline-flex items-center gap-1">
+                مركز متابعة المنصات <ExternalLink size={13} />
+              </Link>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-neutral-50 text-xs text-neutral-500">
+                  <tr>
+                    <th className="p-3 text-start">المنصة / المدير</th>
+                    <th className="p-3 text-start">الصحة</th>
+                    <th className="p-3 text-start">الأعضاء النشطون</th>
+                    <th className="p-3 text-start">نقاط الفترة</th>
+                    <th className="p-3 text-start">قيد المراجعة</th>
+                    <th className="p-3 text-start">التقييم</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-100">
+                  {rankedPlatforms.map(platform => (
+                    <tr key={platform.platformId} className="hover:bg-neutral-50/70">
+                      <td className="p-3"><div className="font-bold text-neutral-900">{platform.platformName}</div><div className="text-[11px] text-neutral-400">{platform.managedBy || 'لم يعيّن مدير'}</div></td>
+                      <td className="p-3"><Badge className={platform.healthStatus === 'HEALTHY' ? 'bg-success-50 text-success-700' : platform.healthStatus === 'WATCH' ? 'bg-warning-50 text-warning-700' : 'bg-error-50 text-error-700'}>{platform.healthScore}%</Badge></td>
+                      <td className="p-3 font-semibold">{platform.activeRate}% <span className="font-normal text-neutral-400">من {platform.memberCount}</span></td>
+                      <td className="p-3 font-semibold">{platform.points.toLocaleString('ar')} <span className={platform.pointsTrend >= 0 ? 'text-success-600' : 'text-error-600'}>{platform.pointsTrend >= 0 ? '+' : ''}{platform.pointsTrend}%</span></td>
+                      <td className="p-3">{platform.pendingCount}</td>
+                      <td className="p-3">{platform.evaluation.score === null ? '—' : `${platform.evaluation.score}%`}</td>
+                      <td className="p-3"><Link href={`/ar/admin/platforms-overview/${platform.platformSlug}`} className="text-primary-700 hover:underline">التفاصيل</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[

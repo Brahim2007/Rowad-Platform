@@ -1,4 +1,4 @@
-export type AdministrativeRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER'
+export type AdministrativeRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'PLATFORM_MANAGER' | 'EVALUATOR'
 export type ReportStatusValue = 'DRAFT' | 'SUBMITTED' | 'REVIEWED' | 'APPROVED' | 'REJECTED'
 
 const REPORT_STATUSES = new Set<ReportStatusValue>(['DRAFT', 'SUBMITTED', 'REVIEWED', 'APPROVED', 'REJECTED'])
@@ -15,5 +15,6 @@ export function canReviewReports(role: AdministrativeRole): boolean {
 }
 
 export function canSetReportStatus(role: AdministrativeRole, status: ReportStatusValue): boolean {
+  if (role === 'EVALUATOR') return false
   return !REVIEW_STATUSES.has(status) || canReviewReports(role)
 }

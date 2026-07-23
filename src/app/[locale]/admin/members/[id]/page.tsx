@@ -24,6 +24,7 @@ import {
   GraduationCap,
   Hash,
   Image as ImageIcon,
+  KeyRound,
   Linkedin,
   Mail,
   MapPin,
@@ -281,6 +282,12 @@ export default function AdminMemberDetailPage() {
   const [data, setData] = useState<MemberDetailData | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [sendingCredentials, setSendingCredentials] = useState(false)
+  const [credentialFallback, setCredentialFallback] = useState<{
+    email: string
+    temporaryPassword: string
+    loginUrl: string
+  } | null>(null)
 
   const refreshMember = useCallback(async ({
     sync = false,
@@ -336,6 +343,42 @@ export default function AdminMemberDetailPage() {
     refreshMember({ sync: true, quiet: true })
   }, [refreshMember])
 
+  const sendCredentials = async () => {
+    if (!id || !data?.member.email) {
+      toast.error('حدّث البريد الإلكتروني للعضو أولاً')
+      return
+    }
+
+    setSendingCredentials(true)
+    setCredentialFallback(null)
+    try {
+      const response = await fetch(`/api/admin/members/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send-credentials' }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        toast.error(result.message || 'تعذر إرسال بيانات الدخول')
+        return
+      }
+      if (result.data?.emailSent) {
+        toast.success(result.message || `تم الإرسال إلى ${data.member.email}`)
+      } else if (result.data?.temporaryPassword) {
+        setCredentialFallback({
+          email: result.data.email,
+          temporaryPassword: result.data.temporaryPassword,
+          loginUrl: result.data.loginUrl,
+        })
+        toast.warning('تعذر البريد؛ انسخ كلمة المرور المؤقتة وسلمها للعضو مرة واحدة')
+      }
+    } catch {
+      toast.error('فشل الاتصال بالخادم')
+    } finally {
+      setSendingCredentials(false)
+    }
+  }
+
   const currentStageIndex = useMemo(() => {
     if (!data?.member.currentStage) return -1
     return STAGE_ORDER.indexOf(data.member.currentStage)
@@ -389,6 +432,15 @@ export default function AdminMemberDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button unstyled
+            onClick={sendCredentials}
+            disabled={sendingCredentials || !member.email}
+            title={member.email ? `إرسال إلى ${member.email}` : 'حدّث البريد الإلكتروني أولاً'}
+            className="btn-ghost btn-sm flex items-center gap-1.5"
+          >
+            <KeyRound size={14} className={sendingCredentials ? 'animate-pulse' : ''} />
+            {sendingCredentials ? 'جارٍ الإرسال...' : 'إرسال بيانات الدخول'}
+          </Button>
+          <Button unstyled
             onClick={() => refreshMember({ sync: true, quiet: false, loadingState: false })}
             disabled={syncing}
             className="btn-primary btn-sm flex items-center gap-1.5"
@@ -402,6 +454,31 @@ export default function AdminMemberDetailPage() {
           </Link>
         </div>
       </div>
+
+      {credentialFallback && (
+        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-bold">تعذر إرسال البريد — بيانات مؤقتة للعرض مرة واحدة</p>
+          <p className="mt-1">البريد: <b dir="ltr">{credentialFallback.email}</b></p>
+          <p className="mt-1">كلمة المرور: <b className="font-mono" dir="ltr">{credentialFallback.temporaryPassword}</b></p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `البريد: ${credentialFallback.email}\nكلمة المرور المؤقتة: ${credentialFallback.temporaryPassword}\nرابط الدخول: ${credentialFallback.loginUrl}`,
+                )
+                toast.success('تم نسخ بيانات الدخول')
+              }}
+              className="btn-primary btn-sm"
+            >
+              نسخ بيانات الدخول
+            </Button>
+            <Button unstyled type="button" onClick={() => setCredentialFallback(null)} className="btn-ghost btn-sm">
+              إخفاء
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="card mb-6">
         <div className="flex flex-col lg:flex-row gap-5">

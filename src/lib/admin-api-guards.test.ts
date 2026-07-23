@@ -32,6 +32,8 @@ const globalOnlyRoutes = new Set([
   'users/route.ts',
   'visitors/route.ts',
   'ai/assistant/route.ts',
+  'ai/impact-report/route.ts',
+  'ai/impact-report/[id]/route.ts',
   'ai/report-analysis/route.ts',
   'ai/report-summary/route.ts',
 ])

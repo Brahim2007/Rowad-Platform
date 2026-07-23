@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { getJwtSecret } from '@/lib/jwt'
+import { prisma } from '@/lib/prisma'
 
 export interface MemberTokenPayload {
   id: string
@@ -43,4 +44,53 @@ export function requireMemberToken(request: NextRequest):
     }
   }
   return { ok: true, payload }
+}
+
+export async function requireActiveMember(request: NextRequest): Promise<
+  | {
+      ok: true
+      payload: MemberTokenPayload
+      member: {
+        id: string
+        email: string | null
+        firstName: string
+        lastName: string
+        platformId: string | null
+      }
+    }
+  | { ok: false; error: NextResponse }
+> {
+  const auth = requireMemberToken(request)
+  if (!auth.ok) return auth
+
+  const member = await prisma.beneficiary.findUnique({
+    where: { id: auth.payload.id },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      platformId: true,
+      status: true,
+    },
+  })
+
+  if (!member || member.status !== 'ACTIVE') {
+    return {
+      ok: false,
+      error: NextResponse.json({ success: false, message: 'الحساب غير نشط' }, { status: 403 }),
+    }
+  }
+
+  return {
+    ok: true,
+    payload: auth.payload,
+    member: {
+      id: member.id,
+      email: member.email,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      platformId: member.platformId,
+    },
+  }
 }

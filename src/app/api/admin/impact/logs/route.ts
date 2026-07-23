@@ -12,7 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { recordActivityLog } from '@/lib/activity-log'
 import { sendActivityApprovedEmail, sendActivityRejectedEmail } from '@/lib/email'
 import { notifyNewSubmission, notifyActivityApproved, notifyActivityRejected } from '@/lib/notifications'
-import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
+import { getPlatformScope, requireAuth, verifyPlatformOwnership, type SessionUser } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 
 async function requireImpactAccess() {
@@ -45,7 +45,16 @@ async function resolveScopedPlatformId(user: SessionUser, beneficiaryId: string,
   if (user.role === 'PLATFORM_MANAGER') {
     return { ok: true as const, platformId: user.platformId }
   }
-  return { ok: true as const, platformId: requestedPlatformId || beneficiary.platformId || null }
+  if (requestedPlatformId && beneficiary.platformId && requestedPlatformId !== beneficiary.platformId) {
+    return {
+      ok: false as const,
+      error: NextResponse.json({
+        success: false,
+        message: 'منصة النشاط يجب أن تطابق منصة العضو',
+      }, { status: 400 }),
+    }
+  }
+  return { ok: true as const, platformId: beneficiary.platformId || requestedPlatformId || null }
 }
 
 function enumValue<T extends Record<string, string>>(enumObject: T, value: unknown): T[keyof T] | undefined {
@@ -73,6 +82,7 @@ export async function GET(request: NextRequest) {
     const scope = getPlatformScope(auth.user)
     const { searchParams } = new URL(request.url)
     const beneficiaryId = searchParams.get('beneficiaryId') || ''
+    const requestedPlatformId = searchParams.get('platformId') || ''
     const status = enumValue(ImpactApprovalStatus, searchParams.get('status'))
     const category = enumValue(ImpactCategory, searchParams.get('category'))
     const page = Math.max(1, Number(searchParams.get('page')) || 1)
@@ -82,8 +92,12 @@ export async function GET(request: NextRequest) {
     const compact = searchParams.get('compact') === '1'
     const skip = (page - 1) * pageSize
 
+    if (requestedPlatformId && !(await verifyPlatformOwnership(auth.user, requestedPlatformId))) {
+      return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
+    }
+    const effectivePlatformId = scope.filterId || requestedPlatformId || null
     const where: Prisma.ImpactLogWhereInput = {
-      ...platformWhere(scope),
+      ...(effectivePlatformId ? { platformId: effectivePlatformId } : {}),
       ...(beneficiaryId && { beneficiaryId }),
       ...(status && { status }),
       ...(category && { action: { category } }),
@@ -91,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     if (compact) {
       const clauses = [
-        scope.filterId ? Prisma.sql`l."platformId" = ${scope.filterId}` : null,
+        effectivePlatformId ? Prisma.sql`l."platformId" = ${effectivePlatformId}` : null,
         beneficiaryId ? Prisma.sql`l."beneficiaryId" = ${beneficiaryId}` : null,
         status ? Prisma.sql`l.status = ${status}::"ImpactApprovalStatus"` : null,
         category ? Prisma.sql`a.category = ${category}::"ImpactCategory"` : null,
@@ -369,7 +383,10 @@ export async function PUT(request: NextRequest) {
 
     const actor = auth.user.email || auth.user.name || null
     const targetBeneficiaryId = body.beneficiaryId ? String(body.beneficiaryId).trim() : previous.beneficiaryId
-    const scopedPlatform = await resolveScopedPlatformId(auth.user, targetBeneficiaryId, body.platformId !== undefined ? body.platformId || null : previous.platformId)
+    const beneficiaryChanged = targetBeneficiaryId !== previous.beneficiaryId
+    const scopedPlatform = beneficiaryChanged
+      ? await resolveScopedPlatformId(auth.user, targetBeneficiaryId, null)
+      : { ok: true as const, platformId: previous.platformId }
     if (!scopedPlatform.ok) return scopedPlatform.error
 
     // منطق الاعتماد: إذا تغيّرت الحالة إلى APPROVED، سجّل المعتمد والوقت
@@ -404,7 +421,7 @@ export async function PUT(request: NextRequest) {
         rejectionReason: newStatus === 'REJECTED'
           ? (body.rejectionReason?.trim() || null)
           : (isResetting || newStatus === 'APPROVED' ? null : undefined),
-        platformId: body.platformId !== undefined || auth.user.role === 'PLATFORM_MANAGER' ? scopedPlatform.platformId : undefined,
+        platformId: beneficiaryChanged ? scopedPlatform.platformId : undefined,
         programId: body.programId !== undefined ? body.programId || null : undefined,
         activityId: body.activityId !== undefined ? body.activityId || null : undefined,
         enrollmentId: body.enrollmentId !== undefined ? body.enrollmentId || null : undefined,

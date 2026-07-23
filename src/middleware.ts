@@ -36,6 +36,9 @@ export default auth(async function middleware(req) {
   const isAdminPage = pathname.match(/^\/(ar|en)\/admin\//) && !pathname.includes('/admin/login')
   const isAdminApi = pathname.startsWith('/api/admin/')
   const isPlatformManagerPage = pathname.match(/^\/(ar|en)\/admin\/my-platform/)
+  const isPlatformManagerOperationalPage = pathname.match(/^\/(ar|en)\/admin\/(analytics|evaluations|coordination|calendar)(\/|$)/)
+  const isEvaluatorPage = pathname.match(/^\/(ar|en)\/admin\/evaluations(\/|$)/)
+  const isRestrictedOperationalPage = pathname.match(/^\/(ar|en)\/admin\/(platforms-overview|analytics|evaluations|coordination|calendar|activity-log)(\/|$)/)
   const isMemberPage = pathname.match(/^\/(ar|en)\/member\//) && !pathname.includes('/member/login')
   const hasAdminSession = Boolean(req.auth)
 
@@ -73,10 +76,20 @@ export default auth(async function middleware(req) {
   }
 
   // توجيه مدراء المنصات — لا يدخلون /admin/* العامة
-  if (hasAdminSession && isAdminPage && !isPlatformManagerPage) {
+  if (hasAdminSession && isAdminPage) {
     const role = (req.auth?.user as { role?: string } | undefined)?.role
-    if (role === 'PLATFORM_MANAGER') {
+    if (role === 'PLATFORM_MANAGER' && !isPlatformManagerPage && !isPlatformManagerOperationalPage) {
       const response = NextResponse.redirect(new URL(`/${locale}/admin/my-platform`, req.url))
+      response.headers.set('Content-Security-Policy', csp)
+      return response
+    }
+    if (role === 'EVALUATOR' && !isEvaluatorPage) {
+      const response = NextResponse.redirect(new URL(`/${locale}/admin/evaluations`, req.url))
+      response.headers.set('Content-Security-Policy', csp)
+      return response
+    }
+    if (role === 'EDITOR' && isRestrictedOperationalPage) {
+      const response = NextResponse.redirect(new URL(`/${locale}/admin/content`, req.url))
       response.headers.set('Content-Security-Policy', csp)
       return response
     }

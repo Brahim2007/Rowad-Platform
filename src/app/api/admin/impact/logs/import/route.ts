@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         const note = String(row.note || row['ملاحظات'] || '').trim()
 
         if (!beneficiaryCode || !actionName) {
-          results.push({ row: i + 2, status: 'error', message: 'كود العضو والنشاط مطلوبان' })
+          results.push({ row: i + 2, status: 'error', message: 'رقم العضو والنشاط مطلوبان' })
           continue
         }
 

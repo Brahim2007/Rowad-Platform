@@ -4,6 +4,7 @@ import { recordActivityLog } from '@/lib/activity-log'
 import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 import { canReviewReports, canSetReportStatus, parseReportStatus, type ReportStatusValue } from '@/lib/report-policy'
+import { archiveSubmittedReport } from '@/lib/institutional-archive'
 
 async function reportTargetsAreValid(platformId: string | null, programId?: string | null, projectId?: string | null) {
   const [program, project] = await Promise.all([
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
       actor: auth.user.email || auth.user.name,
       changes: report,
     })
+    await archiveSubmittedReport(report, auth.user)
 
     return NextResponse.json({ success: true, data: report }, { status: 201 })
   } catch (error) {
@@ -197,6 +199,7 @@ export async function PUT(request: NextRequest) {
       actor: auth.user.email || auth.user.name,
       changes: body,
     })
+    await archiveSubmittedReport(report, auth.user)
 
     return NextResponse.json({ success: true, data: report })
   } catch (error) {

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getPlatformScope, platformWhere, requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
+import { getPlatformScope, platformWhere, requireOperationalAccess, verifyPlatformOwnership } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
+import { recordActivityLog } from '@/lib/activity-log'
 
 export async function GET() {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -13,8 +14,8 @@ export async function GET() {
       where: platformWhere(scope),
       orderBy: { createdAt: 'desc' },
       include: {
-        platform: { select: { name: true, slug: true } },
-        program: { select: { name: true, slug: true } },
+        platform: { select: { id: true, name: true, slug: true } },
+        program: { select: { id: true, name: true, slug: true } },
       },
     })
     return NextResponse.json({ success: true, data: tasks })
@@ -24,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -68,6 +69,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    await recordActivityLog({
+      entity: 'coordination_task',
+      entityId: task.id,
+      action: 'CREATE',
+      actor: auth.user.email || auth.user.name,
+      changes: task,
+    })
+
     return NextResponse.json({ success: true, data: task }, { status: 201 })
   } catch (error) {
     logger.error('Coordination task POST error', error)
@@ -76,7 +85,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -115,6 +124,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const task = await prisma.coordinationTask.update({ where: { id }, data })
+    await recordActivityLog({
+      entity: 'coordination_task',
+      entityId: task.id,
+      action: status === 'COMPLETED' ? 'COMPLETE' : 'UPDATE',
+      actor: auth.user.email || auth.user.name,
+      changes: data,
+    })
     return NextResponse.json({ success: true, data: task })
   } catch (error) {
     logger.error('Coordination task PUT error', error)
@@ -123,7 +139,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth()
+  const auth = await requireOperationalAccess()
   if (!auth.ok) return auth.error
 
   try {
@@ -136,6 +152,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'غير مصرح — خارج نطاق المنصة' }, { status: 403 })
     }
     await prisma.coordinationTask.delete({ where: { id } })
+    await recordActivityLog({
+      entity: 'coordination_task',
+      entityId: id,
+      action: 'DELETE',
+      actor: auth.user.email || auth.user.name,
+      changes: task,
+    })
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Coordination task DELETE error', error)

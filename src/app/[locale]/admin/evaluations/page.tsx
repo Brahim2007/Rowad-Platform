@@ -10,6 +10,7 @@ import type { FormEvent, ReactNode } from 'react'
 import {
   Activity, BadgeCheck, Blocks, CheckCircle, ClipboardCheck,
   FolderKanban, Pencil, Plus, Star, Target, Trash2, UserCheck, X,
+  AlertTriangle, ListChecks, Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -25,6 +26,14 @@ interface Evaluation {
   recommendations: string | null
   status: string
   evaluatedAt: string
+  submittedAt?: string | null
+  approvedAt?: string | null
+  rejectionReason?: string | null
+  evaluatorUserId?: string | null
+  createdBy?: { id: string; fullName: string; email: string } | null
+  evaluatorUser?: { id: string; fullName: string; email: string; role: string } | null
+  approvedBy?: { id: string; fullName: string; email: string } | null
+  permissions: { canEdit: boolean; canDelete: boolean; canSubmit: boolean; canReview: boolean }
   platform?: { id: string; name: string; slug: string } | null
   program?: { id: string; name: string; slug: string } | null
   activity?: { id: string; name: string; slug: string } | null
@@ -53,6 +62,20 @@ interface ProjectOption {
   title: string
 }
 
+interface EvaluatorOption {
+  id: string
+  fullName: string
+  email: string
+  role: string
+}
+
+interface EvaluationMeta {
+  role: string
+  canCreate: boolean
+  canAssign: boolean
+  evaluators: EvaluatorOption[]
+}
+
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   PLATFORM: { label: 'منصة', icon: Blocks, color: 'bg-primary-100 text-primary-700' },
   PROGRAM: { label: 'برنامج', icon: Target, color: 'bg-secondary-100 text-secondary-700' },
@@ -64,20 +87,21 @@ const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; colo
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   DRAFT: { label: 'مسودة', color: 'bg-neutral-100 text-neutral-600' },
-  FINAL: { label: 'نهائي', color: 'bg-info-50 text-info-700' },
+  FINAL: { label: 'مرسل للمراجعة', color: 'bg-info-50 text-info-700' },
+  SUBMITTED: { label: 'مرسل للمراجعة', color: 'bg-info-50 text-info-700' },
   APPROVED: { label: 'معتمد', color: 'bg-success-50 text-success-700' },
+  REJECTED: { label: 'مرفوض للتعديل', color: 'bg-error-50 text-error-700' },
 }
 
 const emptyForm = {
   title: '',
-  evaluator: '',
+  evaluatorUserId: '',
   evaluatorRole: 'INTERNAL',
   type: 'PROGRAM',
   score: '',
   maxScore: '100',
   feedback: '',
   recommendations: '',
-  status: 'DRAFT',
   evaluatedAt: new Date().toISOString().slice(0, 10),
   platformId: '',
   programId: '',
@@ -111,6 +135,13 @@ export default function AdminEvaluationsPage() {
   const [editing, setEditing] = useState<Evaluation | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [platformFilter, setPlatformFilter] = useState('')
+  const [creatingTaskId, setCreatingTaskId] = useState<string | null>(null)
+  const [actingId, setActingId] = useState<string | null>(null)
+  const [meta, setMeta] = useState<EvaluationMeta>({ role: '', canCreate: false, canAssign: false, evaluators: [] })
 
   const programs = useMemo(
     () => platforms.flatMap(platform => (platform.programs || []).map(program => ({ ...program, platformId: platform.id }))),
@@ -125,14 +156,18 @@ export default function AdminEvaluationsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [evalRes, platformsRes, projectsRes] = await Promise.all([
-        fetch('/api/admin/evaluations').then(r => r.json()),
-        fetch('/api/admin/platforms').then(r => r.json()),
-        fetch('/api/admin/projects?limit=100').then(r => r.json()),
-      ])
-      if (evalRes.success) setEvaluations(evalRes.data || [])
-      if (platformsRes.success) setPlatforms(platformsRes.data?.platforms || [])
-      if (projectsRes.success) setProjects(projectsRes.data?.projects || [])
+      const evalRes = await fetch('/api/admin/evaluations').then(r => r.json())
+      if (!evalRes.success) throw new Error(evalRes.message || 'فشل تحميل التقييمات')
+      setEvaluations(evalRes.data || [])
+      setMeta(evalRes.meta || { role: '', canCreate: false, canAssign: false, evaluators: [] })
+      if (evalRes.meta?.canAssign) {
+        const [platformsRes, projectsRes] = await Promise.all([
+          fetch('/api/admin/platforms').then(r => r.json()),
+          fetch('/api/admin/projects?limit=100').then(r => r.json()),
+        ])
+        if (platformsRes.success) setPlatforms(platformsRes.data?.platforms || [])
+        if (projectsRes.success) setProjects(projectsRes.data?.projects || [])
+      }
     } catch {
       toast.error('فشل تحميل التقييمات')
     } finally {
@@ -146,7 +181,11 @@ export default function AdminEvaluationsPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm(emptyForm)
+    setForm({
+      ...emptyForm,
+      type: meta.role === 'PLATFORM_MANAGER' ? 'SELF' : 'PROGRAM',
+      evaluatorUserId: meta.canAssign ? meta.evaluators[0]?.id || '' : '',
+    })
     setShowModal(true)
   }
 
@@ -154,14 +193,13 @@ export default function AdminEvaluationsPage() {
     setEditing(evaluation)
     setForm({
       title: evaluation.title,
-      evaluator: evaluation.evaluator,
+      evaluatorUserId: evaluation.evaluatorUserId || '',
       evaluatorRole: evaluation.evaluatorRole || 'INTERNAL',
       type: evaluation.type,
       score: evaluation.score === null ? '' : String(evaluation.score),
       maxScore: String(evaluation.maxScore),
       feedback: evaluation.feedback || '',
       recommendations: evaluation.recommendations || '',
-      status: evaluation.status,
       evaluatedAt: new Date(evaluation.evaluatedAt).toISOString().slice(0, 10),
       platformId: evaluation.platform?.id || '',
       programId: evaluation.program?.id || '',
@@ -180,7 +218,8 @@ export default function AdminEvaluationsPage() {
         ...form,
         score: form.score,
         maxScore: form.maxScore,
-        platformId: form.type === 'PLATFORM' ? form.platformId : '',
+        action: 'save',
+        platformId: ['PLATFORM', 'SELF', 'PEER'].includes(form.type) ? form.platformId : '',
         programId: form.type === 'PROGRAM' ? form.programId : '',
         activityId: form.type === 'ACTIVITY' ? form.activityId : '',
         projectId: form.type === 'PROJECT' ? form.projectId : '',
@@ -202,6 +241,38 @@ export default function AdminEvaluationsPage() {
       toast.error('فشل الحفظ')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const performAction = async (evaluation: Evaluation, action: 'submit' | 'approve' | 'reject') => {
+    let rejectionReason = ''
+    if (action === 'reject') {
+      rejectionReason = prompt('اكتب سبب الرفض المطلوب من المقيم معالجته:')?.trim() || ''
+      if (!rejectionReason) return
+    }
+    setActingId(evaluation.id)
+    try {
+      const res = await fetch('/api/admin/evaluations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: evaluation.id,
+          action,
+          score: evaluation.score,
+          maxScore: evaluation.maxScore,
+          feedback: evaluation.feedback,
+          recommendations: evaluation.recommendations,
+          rejectionReason,
+        }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message)
+      toast.success(action === 'submit' ? 'تم إرسال التقييم للمراجعة' : action === 'approve' ? 'تم اعتماد التقييم' : 'تم رفض التقييم وإعادته للتعديل')
+      await fetchData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ الإجراء')
+    } finally {
+      setActingId(null)
     }
   }
 
@@ -227,6 +298,49 @@ export default function AdminEvaluationsPage() {
         Math.max(evaluations.filter(item => item.score !== null).length, 1)
       )
     : 0
+  const weakCount = evaluations.filter(item => {
+    const pct = scorePct(item.score, item.maxScore)
+    return pct !== null && pct < 70
+  }).length
+  const coveredPlatforms = new Set(evaluations.map(item => item.platform?.id).filter(Boolean)).size
+  const filteredEvaluations = evaluations.filter(item => {
+    const query = search.trim().toLowerCase()
+    const target = item.platform?.name || item.program?.name || item.activity?.name || item.project?.title || ''
+    return (!query || [item.title, item.evaluator, target, item.feedback, item.recommendations].some(value => value?.toLowerCase().includes(query)))
+      && (!typeFilter || item.type === typeFilter)
+      && (!statusFilter || item.status === statusFilter)
+      && (!platformFilter || item.platform?.id === platformFilter)
+  })
+
+  const createFollowUpTask = async (evaluation: Evaluation) => {
+    if (!evaluation.recommendations) return
+    setCreatingTaskId(evaluation.id)
+    const pct = scorePct(evaluation.score, evaluation.maxScore) || 0
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 14)
+    try {
+      const response = await fetch('/api/admin/coordination/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `متابعة توصية: ${evaluation.title}`,
+          description: evaluation.recommendations,
+          platformId: evaluation.platform?.id || null,
+          assigneeRole: 'مدير المنصة',
+          priority: pct < 50 ? 'URGENT' : pct < 70 ? 'HIGH' : 'MEDIUM',
+          dueDate: dueDate.toISOString().slice(0, 10),
+          notes: `مهمة منشأة من التقييم ${evaluation.id}`,
+        }),
+      })
+      const result = await response.json()
+      if (!result.success) throw new Error(result.message)
+      toast.success('تم تحويل التوصية إلى مهمة متابعة')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر إنشاء مهمة المتابعة')
+    } finally {
+      setCreatingTaskId(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -240,29 +354,32 @@ export default function AdminEvaluationsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4 border-b border-neutral-200 pb-5">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
-            <ClipboardCheck className="text-primary-600" size={28} />
-            التقييم وضمان الجودة
-          </h1>
-          <p className="text-neutral-500 max-w-2xl text-sm">
-            تقييم مستقل للمنصات والبرامج والأنشطة والمشاريع لدعم تحسين الجودة واتخاذ القرار.
-          </p>
+    <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+      <section className="mb-5 overflow-hidden rounded-3xl bg-gradient-to-l from-primary-800 to-primary-600 p-6 text-white shadow-lg">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
+              <ClipboardCheck size={15} /> التقييم وضمان الجودة
+            </div>
+            <h1 className="text-2xl font-black md:text-3xl">مركز ضمان الجودة والتحسين</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
+            قياس جودة المنصات والبرامج، توثيق التوصيات، وتحويل جوانب القصور إلى مهام قابلة للمتابعة.
+            </p>
+          </div>
+          {meta.canCreate && (
+            <Button unstyled onClick={openCreate} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-white px-4 text-sm font-black text-primary-800 shadow-sm">
+              <Plus size={15} /> {meta.role === 'PLATFORM_MANAGER' ? 'تقييم ذاتي جديد' : 'تكليف تقييم جديد'}
+            </Button>
+          )}
         </div>
-        <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-1.5">
-          <Plus size={15} />
-          تقييم جديد
-        </Button>
-      </div>
+      </section>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'إجمالي التقييمات', value: evaluations.length, icon: ClipboardCheck, color: 'bg-primary-100 text-primary-600' },
           { label: 'المعتمدة', value: evaluations.filter(item => item.status === 'APPROVED').length, icon: CheckCircle, color: 'bg-success-50 text-success-600' },
           { label: 'متوسط الجودة', value: `${averageScore}%`, icon: Star, color: 'bg-secondary-100 text-secondary-700' },
-          { label: 'طرف ثالث/خارجي', value: evaluations.filter(item => item.evaluatorRole === 'EXTERNAL').length, icon: UserCheck, color: 'bg-info-50 text-info-700' },
+          { label: 'تحتاج تحسينًا', value: weakCount, icon: AlertTriangle, color: 'bg-warning-50 text-warning-700' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="card flex items-center gap-3 p-4">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}><Icon size={18} /></div>
@@ -271,15 +388,37 @@ export default function AdminEvaluationsPage() {
         ))}
       </div>
 
-      {evaluations.length === 0 ? (
+      <div className="card mb-6 grid gap-3 p-4 md:grid-cols-4">
+        <div className="relative md:col-span-2">
+          <Search size={16} className="absolute end-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Input value={search} onChange={event => setSearch(event.target.value)} className="input-field pe-10" placeholder="ابحث في التقييم أو الجهة أو التوصيات..." />
+        </div>
+        <NativeSelect value={typeFilter} onChange={event => setTypeFilter(event.target.value)} className="input-field">
+          <option value="">كل أنواع التقييم</option>
+          {Object.entries(TYPE_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+        </NativeSelect>
+        <NativeSelect value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="input-field">
+          <option value="">كل الحالات</option>
+          {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+        </NativeSelect>
+        <NativeSelect value={platformFilter} onChange={event => setPlatformFilter(event.target.value)} className="input-field md:col-span-2">
+          <option value="">كل المنصات ({coveredPlatforms} مغطاة)</option>
+          {platforms.map(platform => <option key={platform.id} value={platform.id}>{platform.name}</option>)}
+        </NativeSelect>
+        <div className="rounded-xl bg-primary-50 px-4 py-2 text-xs text-primary-800 md:col-span-2">
+          التوصية لا تبقى نصًا فقط: حوّلها إلى مهمة لمسؤول وموعد نهائي من بطاقة التقييم.
+        </div>
+      </div>
+
+      {filteredEvaluations.length === 0 ? (
         <div className="card text-center py-12 text-neutral-400">
           <ClipboardCheck size={36} className="mx-auto mb-3 text-neutral-300" />
-          <p>لا توجد تقييمات بعد</p>
-          <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-4">إضافة تقييم</Button>
+          <p>{evaluations.length ? 'لا توجد نتائج مطابقة لعوامل التصفية' : 'لا توجد تقييمات بعد'}</p>
+          {meta.canCreate && <Button unstyled onClick={openCreate} className="btn-primary btn-sm mt-4">إضافة تقييم</Button>}
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-4">
-          {evaluations.map(evaluation => {
+          {filteredEvaluations.map(evaluation => {
             const typeCfg = TYPE_CONFIG[evaluation.type] || TYPE_CONFIG.PROGRAM
             const statusCfg = STATUS_CONFIG[evaluation.status] || STATUS_CONFIG.DRAFT
             const TypeIcon = typeCfg.icon
@@ -298,19 +437,20 @@ export default function AdminEvaluationsPage() {
                     <p className="text-xs text-neutral-500 mt-1">{targetName}</p>
                   </div>
                   <div className="flex gap-1">
-                    <Button unstyled onClick={() => openEdit(evaluation)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                    {evaluation.permissions.canEdit && <Button unstyled onClick={() => openEdit(evaluation)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
                       <Pencil size={14} />
-                    </Button>
-                    <Button unstyled onClick={() => deleteEvaluation(evaluation.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                    </Button>}
+                    {evaluation.permissions.canDelete && <Button unstyled onClick={() => deleteEvaluation(evaluation.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
                       <Trash2 size={14} />
-                    </Button>
+                    </Button>}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
                     <p className="text-[11px] text-neutral-400">المقيم</p>
-                    <p className="text-sm font-semibold text-neutral-800">{evaluation.evaluator}</p>
+                    <p className="text-sm font-semibold text-neutral-800">{evaluation.evaluatorUser?.fullName || evaluation.evaluator}</p>
+                    {evaluation.evaluatorUser?.email && <p className="text-[10px] text-neutral-400">{evaluation.evaluatorUser.email}</p>}
                     {evaluation.evaluatorRole && <p className="text-[10px] text-neutral-400">{evaluation.evaluatorRole}</p>}
                   </div>
                   <div className="text-left">
@@ -332,11 +472,40 @@ export default function AdminEvaluationsPage() {
                 )}
 
                 {evaluation.feedback && <p className="text-xs text-neutral-600 leading-relaxed mb-3">{evaluation.feedback}</p>}
-                {evaluation.recommendations && (
-                  <div className="rounded-xl bg-secondary-50 border border-secondary-100 p-3 text-xs text-secondary-900">
-                    <span className="font-bold">توصيات:</span> {evaluation.recommendations}
+                {evaluation.rejectionReason && (
+                  <div className="mb-3 rounded-xl border border-error-100 bg-error-50 p-3 text-xs text-error-800">
+                    <span className="font-bold">سبب الإعادة للتعديل:</span> {evaluation.rejectionReason}
                   </div>
                 )}
+                {evaluation.recommendations && (
+                  <div className="rounded-xl bg-secondary-50 border border-secondary-100 p-3 text-xs text-secondary-900">
+                    <div><span className="font-bold">توصيات:</span> {evaluation.recommendations}</div>
+                    {evaluation.status === 'APPROVED' && <Button
+                      unstyled
+                      onClick={() => createFollowUpTask(evaluation)}
+                      disabled={creatingTaskId === evaluation.id}
+                      className="btn-ghost btn-xs mt-3 inline-flex items-center gap-1"
+                    >
+                      <ListChecks size={13} />
+                      {creatingTaskId === evaluation.id ? 'جارٍ إنشاء المهمة...' : 'تحويل إلى مهمة متابعة'}
+                    </Button>}
+                  </div>
+                )}
+                <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
+                  {evaluation.permissions.canSubmit && (
+                    <Button unstyled onClick={() => performAction(evaluation, 'submit')} disabled={actingId === evaluation.id} className="btn-primary btn-xs">
+                      إرسال للمراجعة
+                    </Button>
+                  )}
+                  {evaluation.permissions.canReview && (
+                    <>
+                      <Button unstyled onClick={() => performAction(evaluation, 'approve')} disabled={actingId === evaluation.id} className="btn-primary btn-xs">اعتماد</Button>
+                      <Button unstyled onClick={() => performAction(evaluation, 'reject')} disabled={actingId === evaluation.id} className="btn-ghost btn-xs text-error-700">رفض وإعادة</Button>
+                    </>
+                  )}
+                  {evaluation.createdBy && <span className="text-[10px] text-neutral-400">أنشأه: {evaluation.createdBy.fullName}</span>}
+                  {evaluation.approvedBy && <span className="text-[10px] text-success-700">اعتمده: {evaluation.approvedBy.fullName}</span>}
+                </div>
                 <p className="text-[10px] text-neutral-400 mt-3">تاريخ التقييم: {dateLabel(evaluation.evaluatedAt)}</p>
               </div>
             )
@@ -356,19 +525,13 @@ export default function AdminEvaluationsPage() {
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">عنوان التقييم</label>
-                <Input required value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
+                <Input required disabled={meta.role === 'EVALUATOR'} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
               </div>
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النوع</label>
-                  <NativeSelect value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
+                  <NativeSelect disabled={!meta.canAssign} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input-field">
                     {Object.entries(TYPE_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
-                  </NativeSelect>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
-                  <NativeSelect value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
-                    {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
                   </NativeSelect>
                 </div>
                 <div>
@@ -376,7 +539,7 @@ export default function AdminEvaluationsPage() {
                   <Input type="date" value={form.evaluatedAt} onChange={e => setForm({ ...form, evaluatedAt: e.target.value })} className="input-field" />
                 </div>
               </div>
-              <div>
+              {meta.canAssign ? <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">العنصر المرتبط</label>
                 {form.type === 'PLATFORM' && (
                   <NativeSelect value={form.platformId} onChange={e => setForm({ ...form, platformId: e.target.value })} className="input-field">
@@ -403,13 +566,23 @@ export default function AdminEvaluationsPage() {
                   </NativeSelect>
                 )}
                 {(form.type === 'SELF' || form.type === 'PEER') && (
-                  <p className="rounded-xl bg-neutral-50 border border-neutral-100 p-3 text-xs text-neutral-500">هذا النوع لا يحتاج ربطه بعنصر محدد.</p>
+                  <NativeSelect value={form.platformId} onChange={e => setForm({ ...form, platformId: e.target.value })} className="input-field">
+                    <option value="">اختر منصة...</option>
+                    {platforms.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </NativeSelect>
                 )}
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              </div> : (
+                <div className="rounded-xl border border-primary-100 bg-primary-50 p-3 text-xs text-primary-800">
+                  {meta.role === 'PLATFORM_MANAGER' ? 'سيُربط التقييم ذاتيًا بمنصتك تلقائيًا.' : 'يمكنك تعبئة نتيجة التقييم المسند إليك فقط؛ الجهة والمقيم محددان من الإدارة.'}
+                </div>
+              )}
+              {meta.canAssign && <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المقيم</label>
-                  <Input required value={form.evaluator} onChange={e => setForm({ ...form, evaluator: e.target.value })} className="input-field" />
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">حساب المقيم الموثق</label>
+                  <NativeSelect required value={form.evaluatorUserId} onChange={e => setForm({ ...form, evaluatorUserId: e.target.value })} className="input-field">
+                    <option value="">اختر المقيم...</option>
+                    {meta.evaluators.map(item => <option key={item.id} value={item.id}>{item.fullName} — {item.email}</option>)}
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">دور المقيم</label>
@@ -419,7 +592,7 @@ export default function AdminEvaluationsPage() {
                     <option value="PEER">أقران</option>
                   </NativeSelect>
                 </div>
-              </div>
+              </div>}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">النتيجة</label>

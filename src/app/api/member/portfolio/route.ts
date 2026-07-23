@@ -1,6 +1,6 @@
 /**
  * API بطاقة الرائد العامة — لا تحتاج تسجيل دخول
- * GET /api/member/portfolio?code=R-001
+ * GET /api/member/portfolio?code=000001
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
     if (!code) {
-      return NextResponse.json({ success: false, message: 'رمز العضو مطلوب' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'رقم العضو مطلوب' }, { status: 400 })
     }
 
     const member = await prisma.beneficiary.findUnique({

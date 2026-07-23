@@ -1,169 +1,194 @@
 'use client'
 
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import {
+  AlertTriangle, ArrowLeft, BarChart3, Blocks, CheckCircle, Clock, Gauge,
+  Search, Star, UserCheck, Users,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
-import { useEffect, useState } from 'react'
-import { TrendingUp, TrendingDown, Blocks, Users, Clock, AlertTriangle, CheckCircle, Star, BarChart3 } from 'lucide-react'
-import Link from 'next/link'
+const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 interface PlatformRow {
-  platformId: string; platformName: string; platformSlug: string
-  memberCount: number; activeMembers: number
-  pendingCount: number; stalePending: number
-  totalApproved: number; thisMonthApproved: number
+  platformId: string
+  platformName: string
+  platformSlug: string
+  color: string | null
+  memberCount: number
+  activeMembers: number
+  activeRate: number
+  pendingCount: number
+  stalePending: number
+  totalApproved: number
+  thisMonthApproved: number
   trend: number
-  managedBy: string | null; managedByEmail: string | null
+  points: number
+  pointsTrend: number
+  healthScore: number
+  healthStatus: 'HEALTHY' | 'WATCH' | 'CRITICAL'
+  managedBy: string | null
+  managedByEmail: string | null
+  managerLastLoginAt: string | null
+  managerStartedAt: string | null
+  reports: { total: number; approved: number; pending: number }
+  evaluation: { score: number | null; count: number }
+  content: { programs: number; projects: number; documents: number }
 }
 
 interface OverviewData {
   platforms: PlatformRow[]
   totals: {
-    platforms: number; totalMembers: number; totalPending: number
-    totalApproved: number; mostActive: string; mostAtRisk: number
+    platforms: number; totalMembers: number; totalPending: number; totalApproved: number
+    totalPoints: number; mostActive: string; mostAtRisk: number; withoutManager: number
+    unassignedMembers: number; unscopedLogs: number
   }
+  period: { year: number; month: number; previousYear: number; previousMonth: number }
 }
 
-function Badge({ children, className }: { children: React.ReactNode; className: string }) {
-  return <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>
+function HealthBadge({ status, score }: { status: PlatformRow['healthStatus']; score: number }) {
+  const style = status === 'HEALTHY'
+    ? 'bg-green-50 text-green-700 border-green-200'
+    : status === 'WATCH'
+      ? 'bg-amber-50 text-amber-700 border-amber-200'
+      : 'bg-red-50 text-red-700 border-red-200'
+  const label = status === 'HEALTHY' ? 'مستقرة' : status === 'WATCH' ? 'تحت المتابعة' : 'حرجة'
+  return <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold ${style}`}>{label} · {score}</span>
 }
 
 export default function PlatformsOverviewPage() {
+  const params = useParams<{ locale: string }>()
+  const now = new Date()
   const [data, setData] = useState<OverviewData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [year, setYear] = useState(now.getFullYear())
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [search, setSearch] = useState('')
+  const [healthFilter, setHealthFilter] = useState('')
 
-  useEffect(() => {
-    fetch('/api/admin/platforms-overview').then(r => r.json()).then(json => {
-      if (json.success) setData(json.data)
-    }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/platforms-overview?year=${year}&month=${month}`, { cache: 'no-store' })
+      const result = await response.json()
+      if (result.success) setData(result.data)
+    } finally {
+      setLoading(false)
+    }
+  }, [year, month])
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
-  }
+  useEffect(() => { load() }, [load])
 
-  if (!data) {
-    return <div className="p-8 text-center text-neutral-400">لا توجد بيانات</div>
-  }
+  const visiblePlatforms = useMemo(() => {
+    if (!data) return []
+    const query = search.trim().toLocaleLowerCase('ar')
+    return data.platforms.filter(platform => {
+      const matchesSearch = !query || [platform.platformName, platform.managedBy, platform.managedByEmail].some(value => String(value || '').toLocaleLowerCase('ar').includes(query))
+      const matchesHealth = !healthFilter || platform.healthStatus === healthFilter || (healthFilter === 'NO_MANAGER' && !platform.managedBy)
+      return matchesSearch && matchesHealth
+    })
+  }, [data, healthFilter, search])
 
-  const { platforms, totals } = data
+  if (loading && !data) return <div className="flex items-center justify-center py-24"><div className="w-9 h-9 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin" /></div>
+  if (!data) return <div className="p-8 text-center text-neutral-400">لا توجد بيانات</div>
+
+  const { totals } = data
+  const locale = params.locale || 'ar'
+  const summaryCards: Array<{ icon: LucideIcon; label: string; value: number; color: string }> = [
+    { icon: Blocks, label: 'المنصات', value: totals.platforms, color: 'bg-primary-50 text-primary-700' },
+    { icon: Users, label: 'الأعضاء', value: totals.totalMembers, color: 'bg-teal-50 text-teal-700' },
+    { icon: Star, label: 'نقاط الفترة', value: totals.totalPoints, color: 'bg-amber-50 text-amber-700' },
+    { icon: Clock, label: 'بانتظار الاعتماد', value: totals.totalPending, color: 'bg-orange-50 text-orange-700' },
+    { icon: CheckCircle, label: 'إجمالي المعتمدة', value: totals.totalApproved, color: 'bg-green-50 text-green-700' },
+    { icon: AlertTriangle, label: 'منصات حرجة', value: totals.mostAtRisk, color: 'bg-red-50 text-red-700' },
+    { icon: UserCheck, label: 'دون مدير', value: totals.withoutManager, color: 'bg-purple-50 text-purple-700' },
+  ]
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <BarChart3 className="text-primary-600" size={28} />
-        <div>
-          <h1 className="text-xl font-bold text-neutral-900">مركز متابعة المنصات</h1>
-          <p className="text-sm text-neutral-500">نظرة شاملة على أداء كل المنصات</p>
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <section className="rounded-3xl bg-gradient-to-l from-primary-900 via-primary-700 to-indigo-700 text-white p-5 md:p-7">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs mb-3"><BarChart3 size={14} /> مركز الرقابة والتشغيل</div>
+            <h1 className="text-2xl md:text-3xl font-black">متابعة المنصات</h1>
+            <p className="text-sm text-white/70 mt-2 max-w-2xl">قارن صحة المنصات، أداء مدرائها، نشاط أعضائها، التزام التقارير وجودة التنفيذ من نقطة واحدة.</p>
+          </div>
+          <div className="rounded-2xl bg-white/10 border border-white/15 px-5 py-4 min-w-[230px]">
+            <div className="text-xs text-white/60">المنصة الأعلى أثرًا</div>
+            <div className="font-bold mt-1">{totals.mostActive}</div>
+          </div>
         </div>
+      </section>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+        {summaryCards.map(item => (
+          <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.color}`}><item.icon size={17} /></div>
+            <div className="text-xl font-black text-neutral-900 mt-3">{item.value.toLocaleString('ar-SA')}</div>
+            <div className="text-xs text-neutral-500">{item.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* KPIs الإجمالية */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-        <KpiCard icon={Blocks} label="المنصات" value={totals.platforms} color="bg-primary-100 text-primary-600" />
-        <KpiCard icon={Users} label="الأعضاء" value={totals.totalMembers} color="bg-teal-100 text-teal-600" />
-        <KpiCard icon={Clock} label="بانتظار الاعتماد" value={totals.totalPending} color="bg-amber-100 text-amber-600" />
-        <KpiCard icon={CheckCircle} label="إجمالي المعتمدة" value={totals.totalApproved} color="bg-green-100 text-green-600" />
-        <KpiCard icon={Star} label="المنصة الأنشط" value={totals.mostActive} color="bg-purple-100 text-purple-600" isText />
-        <KpiCard icon={AlertTriangle} label="منصات متأخرة" value={totals.mostAtRisk} color={totals.mostAtRisk > 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} />
-      </div>
+      {(totals.unassignedMembers > 0 || totals.unscopedLogs > 0) && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+            <div>
+              <p className="font-bold">توجد بيانات تحتاج إلى ربط بمنصة</p>
+              <p className="mt-1 text-xs text-amber-700">
+                أعضاء نشطون دون منصة: {totals.unassignedMembers} — سجلات أثر دون منصة: {totals.unscopedLogs}.
+                لا تُنسب هذه البيانات تلقائيًا حتى لا تختلط نتائج المنصات.
+              </p>
+            </div>
+          </div>
+          <Link href={`/${locale}/admin/members`} className="shrink-0 font-bold text-amber-900 underline underline-offset-4">
+            مراجعة الأعضاء
+          </Link>
+        </div>
+      )}
 
-      {/* جدول المنصات */}
-      <div className="card">
-        <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Blocks size={18} className="text-primary-600" /> أداء المنصات — شهرياً</h2>
+      <section className="rounded-2xl border border-neutral-200 bg-white p-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-[minmax(260px,1fr)_150px_100px_140px_auto] gap-3 items-end">
+          <label className="space-y-1.5"><span className="text-xs font-semibold text-neutral-600">البحث</span><div className="relative"><Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" /><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="اسم المنصة أو المدير" className="pe-9" /></div></label>
+          <label className="space-y-1.5"><span className="text-xs font-semibold text-neutral-600">الحالة</span><NativeSelect value={healthFilter} onChange={event => setHealthFilter(event.target.value)} wrapperClassName="w-full"><option value="">كل الحالات</option><option value="HEALTHY">مستقرة</option><option value="WATCH">تحت المتابعة</option><option value="CRITICAL">حرجة</option><option value="NO_MANAGER">دون مدير</option></NativeSelect></label>
+          <label className="space-y-1.5"><span className="text-xs font-semibold text-neutral-600">السنة</span><Input type="number" value={year} onChange={event => setYear(Number(event.target.value))} /></label>
+          <label className="space-y-1.5"><span className="text-xs font-semibold text-neutral-600">الشهر</span><NativeSelect value={month} onChange={event => setMonth(Number(event.target.value))} wrapperClassName="w-full">{MONTHS.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</NativeSelect></label>
+          <Button unstyled onClick={load} className="btn-primary h-10 px-4">تحديث</Button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between gap-3">
+          <div><h2 className="font-bold text-neutral-900 flex items-center gap-2"><Gauge size={17} className="text-primary-600" /> أداء المنصات</h2><p className="text-xs text-neutral-500 mt-1">{visiblePlatforms.length} منصات ضمن المرشحات</p></div>
+          {loading && <div className="w-5 h-5 border-2 border-primary-100 border-t-primary-600 rounded-full animate-spin" />}
+        </div>
         <div className="overflow-x-auto">
-          <Table className="w-full text-sm">
-            <TableHeader>
-              <TableRow className="border-b border-neutral-200">
-                <TableHead className="text-right p-3 text-neutral-500">المنصة</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">المدير</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">الأعضاء</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">النشطون</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">معلق</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">متأخر +7</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">المعتمدة (الشهر)</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">الاتجاه</TableHead>
-                <TableHead className="text-center p-3 text-neutral-500">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
+          <Table>
+            <TableHeader><TableRow><TableHead className="text-right">المنصة</TableHead><TableHead className="text-right">المدير</TableHead><TableHead className="text-center">الصحة</TableHead><TableHead className="text-center">الأعضاء</TableHead><TableHead className="text-center">المشاركة</TableHead><TableHead className="text-center">النقاط</TableHead><TableHead className="text-center">الأنشطة</TableHead><TableHead className="text-center">المعلق</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
-              {platforms.map(p => (
-                <TableRow key={p.platformId} className={`border-b border-neutral-100 hover:bg-neutral-50 ${p.stalePending > 0 ? 'bg-red-50/30' : ''}`}>
-                  <TableCell className="p-3 font-semibold">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }} />
-                      {p.platformName}
-                    </div>
-                  </TableCell>
-                  <TableCell className="p-3 text-center text-xs">
-                    {p.managedBy ? (
-                      <span className="text-neutral-600">{p.managedBy}</span>
-                    ) : (
-                      <Badge className="bg-red-50 text-red-600">غير معيّن</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="p-3 text-center font-mono">{p.memberCount}</TableCell>
-                  <TableCell className="p-3 text-center font-mono">{p.activeMembers}</TableCell>
-                  <TableCell className="p-3 text-center">
-                    <span className={`font-mono font-bold ${p.pendingCount > 0 ? 'text-amber-600' : 'text-neutral-400'}`}>{p.pendingCount}</span>
-                  </TableCell>
-                  <TableCell className="p-3 text-center">
-                    {p.stalePending > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-red-600 font-bold">
-                        <AlertTriangle size={12} /> {p.stalePending}
-                      </span>
-                    ) : (
-                      <span className="text-neutral-300">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="p-3 text-center font-mono font-bold text-primary-700">{p.thisMonthApproved}</TableCell>
-                  <TableCell className="p-3 text-center">
-                    {p.trend > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-green-600 font-semibold"><TrendingUp size={12} /> +{p.trend}%</span>
-                    ) : p.trend < 0 ? (
-                      <span className="inline-flex items-center gap-1 text-red-600 font-semibold"><TrendingDown size={12} /> {p.trend}%</span>
-                    ) : (
-                      <span className="text-neutral-400">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="p-3 text-center">
-                    <Link href={`/admin/impact?tab=activities`} className="text-xs text-primary-600 hover:underline">تفاصيل</Link>
-                  </TableCell>
+              {visiblePlatforms.map(platform => (
+                <TableRow key={platform.platformId} className={platform.healthStatus === 'CRITICAL' ? 'bg-red-50/30' : ''}>
+                  <TableCell><div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full" style={{ backgroundColor: platform.color || '#527F47' }} /><div><div className="font-bold">{platform.platformName}</div><div className="text-[10px] text-neutral-400">{platform.content.programs} برامج · {platform.content.documents} وثائق</div></div></div></TableCell>
+                  <TableCell>{platform.managedBy ? <div><div className="text-sm font-semibold">{platform.managedBy}</div><div className="text-[10px] text-neutral-400">{platform.managerLastLoginAt ? `آخر دخول ${new Date(platform.managerLastLoginAt).toLocaleDateString('ar-SA')}` : 'لم يسجل الدخول'}</div></div> : <span className="text-xs text-red-600 font-semibold">غير معيّن</span>}</TableCell>
+                  <TableCell className="text-center"><HealthBadge status={platform.healthStatus} score={platform.healthScore} /></TableCell>
+                  <TableCell className="text-center">{platform.memberCount}</TableCell>
+                  <TableCell className="text-center"><div className="font-bold">{platform.activeRate}%</div><div className="text-[10px] text-neutral-400">{platform.activeMembers} نشط</div></TableCell>
+                  <TableCell className="text-center"><div className="font-bold text-primary-700">{platform.points.toLocaleString('ar-SA')}</div><div className={`text-[10px] ${platform.pointsTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{platform.pointsTrend > 0 ? '+' : ''}{platform.pointsTrend}%</div></TableCell>
+                  <TableCell className="text-center"><div className="font-bold">{platform.thisMonthApproved}</div><div className={`text-[10px] ${platform.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{platform.trend > 0 ? '+' : ''}{platform.trend}%</div></TableCell>
+                  <TableCell className="text-center"><div className={platform.pendingCount ? 'text-amber-700 font-bold' : 'text-neutral-400'}>{platform.pendingCount}</div>{platform.stalePending > 0 && <div className="text-[10px] text-red-600">{platform.stalePending} متأخر</div>}</TableCell>
+                  <TableCell><Link href={`/${locale}/admin/platforms-overview/${platform.platformSlug}`} className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 no-underline">غرفة المتابعة <ArrowLeft size={12} /></Link></TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
-      </div>
-
-      {/* تنبيه المنصات المتأخرة */}
-      {platforms.some(p => p.stalePending > 0) && (
-        <div className="card mt-4 p-5 border-2 border-red-200 bg-red-50/50">
-          <h2 className="font-bold text-red-800 mb-3 flex items-center gap-2"><AlertTriangle size={18} /> منصات تحتاج انتباهاً</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {platforms.filter(p => p.stalePending > 0).map(p => (
-              <div key={p.platformId} className="bg-white border border-red-200 rounded-lg p-3">
-                <div className="font-semibold text-sm text-neutral-800">{p.platformName}</div>
-                <div className="text-xs text-red-600 mt-1">
-                  {p.stalePending} أنشطة معلقة منذ أكثر من 7 أيام
-                  {p.managedBy && <span className="text-neutral-500"> · المدير: {p.managedBy}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function KpiCard({ icon: Icon, label, value, color, isText }: { icon: any; label: string; value: string | number; color: string; isText?: boolean }) {
-  return (
-    <div className="card p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}><Icon size={18} /></div>
-      <div>
-        <div className={`${isText ? 'text-sm' : 'text-lg'} font-bold text-neutral-900`}>{value}</div>
-        <div className="text-xs text-neutral-500">{label}</div>
-      </div>
+      </section>
     </div>
   )
 }

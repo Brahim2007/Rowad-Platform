@@ -116,6 +116,36 @@ export async function GET(request: NextRequest) {
       prisma.impactLog.count({ where: { platformId: null } }),
     ])
 
+    const platformAiReports = await prisma.aiGeneratedReport.findMany({
+      where: {
+        platformId: { in: platforms.map(platform => platform.id) },
+        periodType: 'monthly',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        platformId: true,
+        periodYear: true,
+        periodMonth: true,
+        createdAt: true,
+      },
+    })
+    const latestAiReport = new Map<string, typeof platformAiReports[number]>()
+    const selectedPeriodAiReport = new Map<string, typeof platformAiReports[number]>()
+    for (const report of platformAiReports) {
+      if (!report.platformId) continue
+      if (!latestAiReport.has(report.platformId)) {
+        latestAiReport.set(report.platformId, report)
+      }
+      if (
+        report.periodYear === year &&
+        report.periodMonth === month &&
+        !selectedPeriodAiReport.has(report.platformId)
+      ) {
+        selectedPeriodAiReport.set(report.platformId, report)
+      }
+    }
+
     const memberIdsByPlatform = new Map<string, Set<string>>()
     for (const member of members) {
       if (!member.platformId) continue
@@ -199,6 +229,8 @@ export async function GET(request: NextRequest) {
       const stale = stalePending.get(platform.id) || 0
       const reportStats = reports.get(platform.id) || { total: 0, approved: 0, pending: 0 }
       const evaluation = evaluations.get(platform.id) || { score: null, count: 0 }
+      const selectedSmartReport = selectedPeriodAiReport.get(platform.id) || null
+      const latestSmartReport = latestAiReport.get(platform.id) || null
 
       const health = calculatePlatformHealth({
         hasManager: Boolean(manager),
@@ -235,6 +267,19 @@ export async function GET(request: NextRequest) {
         reports: reportStats,
         evaluation,
         content: platform._count,
+        smartReport: {
+          isDue: !selectedSmartReport,
+          current: selectedSmartReport ? {
+            id: selectedSmartReport.id,
+            generatedAt: selectedSmartReport.createdAt,
+          } : null,
+          latest: latestSmartReport ? {
+            id: latestSmartReport.id,
+            year: latestSmartReport.periodYear,
+            month: latestSmartReport.periodMonth,
+            generatedAt: latestSmartReport.createdAt,
+          } : null,
+        },
       }
     })
 
@@ -248,6 +293,7 @@ export async function GET(request: NextRequest) {
       mostActive: ranked[0]?.platformName || '—',
       mostAtRisk: data.filter(row => row.healthStatus === 'CRITICAL').length,
       withoutManager: data.filter(row => !row.managedBy).length,
+      dueSmartReports: data.filter(row => row.smartReport.isDue).length,
       unassignedMembers,
       unscopedLogs,
     }

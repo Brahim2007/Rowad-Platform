@@ -12,12 +12,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 import { useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import {
   Shield, Users, Activity, TrendingUp, Clock, CheckCircle,
   Search, UserCheck, Plus,
-  Hourglass, Eye, Copy, KeyRound
+  Hourglass, Eye, Copy, KeyRound, CalendarDays, FileText, Sparkles
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════
@@ -70,6 +71,14 @@ interface ActivityItem {
   rejectionReason: string | null
 }
 
+interface SmartReportItem {
+  id: string
+  title: string
+  periodYear: number
+  periodMonth: number | null
+  createdAt: string
+}
+
 interface SessionUserWithPlatform {
   platformName?: string | null
   platformId?: string | null
@@ -85,6 +94,7 @@ interface CreatedCredentials {
 const QUALITY_LABELS: Record<string, string> = { WEAK: 'ضعيف', ACCEPTABLE: 'مقبول', GOOD: 'جيد', EXCELLENT: 'ممتاز', EXCEPTIONAL: 'استثنائي' }
 const STATUS_LABELS: Record<string, string> = { APPROVED: 'معتمد', PENDING_REVIEW: 'قيد المراجعة', REJECTED: 'مرفوض' }
 const NETWORK_ROLES = ['باحث ومفكر', 'مؤثر رقمي', 'متطوع', 'مشرف', 'رئيس منصة']
+const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
 function Badge({ children, className }: { children: React.ReactNode; className: string }) {
   return <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${className}`}>{children}</span>
@@ -106,6 +116,7 @@ export default function MyPlatformDashboard() {
   const [pendingActivities, setPendingActivities] = useState<PendingActivity[]>([])
   const [members, setMembers] = useState<MemberItem[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
+  const [smartReports, setSmartReports] = useState<SmartReportItem[]>([])
 
   // Members form state
   const [memberSearch, setMemberSearch] = useState('')
@@ -139,6 +150,8 @@ export default function MyPlatformDashboard() {
             setMembers(json.data || [])
           } else if (tab === 'activities') {
             setActivities(json.data || [])
+          } else if (tab === 'reports') {
+            setSmartReports(json.data || [])
           }
         }
       }
@@ -227,6 +240,9 @@ export default function MyPlatformDashboard() {
           </Button>
           <Button unstyled onClick={() => switchTab('activities')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'activities' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
             الأنشطة
+          </Button>
+          <Button unstyled onClick={() => switchTab('reports')} className={`px-4 py-2 rounded-lg font-semibold transition-colors ${tab === 'reports' ? 'bg-primary-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>
+            التقارير الذكية
           </Button>
         </div>
       </div>
@@ -418,6 +434,48 @@ export default function MyPlatformDashboard() {
             </div>
           ) : (
             <p className="text-center py-8 text-neutral-400">لا توجد أنشطة مسجلة</p>
+          )}
+        </div>
+      )}
+
+      {tab === 'reports' && (
+        <div className="card">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 font-bold text-neutral-900">
+                <Sparkles size={18} className="text-violet-600" /> تقارير المنصة الذكية
+              </h2>
+              <p className="mt-1 text-xs text-neutral-500">تقارير شهرية يصدرها مدير النظام، متاحة للعرض والتنزيل والمشاركة.</p>
+            </div>
+            <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">{smartReports.length} تقرير</span>
+          </div>
+
+          {smartReports.length ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {smartReports.map(report => (
+                <div key={report.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700"><FileText size={19} /></span>
+                    <span className="rounded-full border border-neutral-200 px-2.5 py-1 text-[10px] font-bold text-neutral-600">
+                      {report.periodMonth ? MONTHS[report.periodMonth - 1] : '—'} {report.periodYear}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 line-clamp-2 min-h-12 text-sm font-bold leading-6 text-neutral-900">{report.title}</h3>
+                  <p className="mt-2 flex items-center gap-1.5 text-[11px] text-neutral-500">
+                    <CalendarDays size={13} /> صدر {new Date(report.createdAt).toLocaleDateString('ar-SA')}
+                  </p>
+                  <Link href={`/ar/reports/ai/${report.id}`} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-xs font-bold text-white no-underline transition-colors hover:bg-violet-700">
+                    <Eye size={15} /> عرض التقرير
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 py-14 text-center">
+              <FileText className="mx-auto text-neutral-300" size={38} />
+              <h3 className="mt-3 font-bold text-neutral-700">لم يصدر تقرير ذكي بعد</h3>
+              <p className="mt-1 text-xs text-neutral-500">سيظهر التقرير هنا تلقائيًا بعد أن ينشئه مدير النظام.</p>
+            </div>
           )}
         </div>
       )}

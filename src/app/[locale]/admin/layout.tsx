@@ -18,6 +18,7 @@ import {
   LogOut, Menu, TrendingUp, Activity, Star, BarChart3, Bot, CalendarDays, Search,
   ClipboardList, CalendarCheck, ClipboardCheck, BookOpen,
   Medal, Settings, IdCard, UserCog, Archive, Bell, BrainCircuit, PanelRightClose, PanelRightOpen,
+  BriefcaseBusiness, Images, ContactRound,
 } from 'lucide-react'
 import { ThemeCustomizer } from '@/components/admin/ThemeCustomizer'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,9 @@ const sidebarSections = [
       { href: '/admin/platforms',    label: 'المنصات والبرامج',  icon: Blocks },
       { href: '/admin/projects',     label: 'المشاريع',           icon: FolderKanban },
       { href: '/admin/documents',     label: 'الأرشيف المؤسسي',  icon: Archive },
+      { href: '/admin/job-descriptions', label: 'التوصيفات الوظيفية', icon: BriefcaseBusiness },
+      { href: '/admin/media-archive', label: 'أرشيف الصور والفيديو', icon: Images },
+      { href: '/admin/experts', label: 'بيانات الخبراء والشخصيات', icon: ContactRound },
       { href: '/admin/content',      label: 'صفحات المحتوى',       icon: FileText },
     ],
   },
@@ -125,6 +129,93 @@ function SearchGlobal() {
       />
       <Button unstyled type="submit" variant="ghost" size="sm" className="h-7 px-2 text-primary-700">بحث</Button>
     </form>
+  )
+}
+
+type AiUsageSummary = {
+  budget: number
+  consumed: number
+  remaining: number
+  usagePercent: number
+  totalTokens: number
+  requests: number
+}
+
+function formatAiCost(value: number) {
+  const decimals = value > 0 && value < 0.01 ? 4 : 2
+  return `$${value.toFixed(decimals)}`
+}
+
+function AiUsageBalance() {
+  const [summary, setSummary] = useState<AiUsageSummary | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const loadUsage = async () => {
+      try {
+        const response = await fetch('/api/admin/ai/usage', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        if (!response.ok) return
+
+        const result = await response.json()
+        if (result.success) setSummary(result.data)
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to load AI usage balance:', error)
+        }
+      }
+    }
+
+    void loadUsage()
+    const refreshInterval = window.setInterval(loadUsage, 60_000)
+
+    return () => {
+      controller.abort()
+      window.clearInterval(refreshInterval)
+    }
+  }, [])
+
+  if (!summary) return null
+
+  return (
+    <div
+      className="my-1.5 ms-2 flex min-w-[245px] self-center items-center gap-3 rounded-xl border border-violet-200 bg-violet-50/80 px-3 py-2 text-xs text-neutral-700"
+      aria-label={`رصيد الذكاء الاصطناعي: المستهلك ${formatAiCost(summary.consumed)} والمتبقي ${formatAiCost(summary.remaining)}`}
+      title={`ميزانية شهرية داخلية تقديرية: ${formatAiCost(summary.budget)} · ${summary.totalTokens.toLocaleString('ar-SA')} رمز · ${summary.requests.toLocaleString('ar-SA')} طلب`}
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
+        <BrainCircuit className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center justify-between gap-3 font-semibold">
+          <span>رصيد الذكاء الاصطناعي</span>
+          <span className="text-[10px] font-medium text-neutral-500">شهري</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 text-[11px]">
+          <span>
+            المستهلك{' '}
+            <strong className="text-violet-700">
+              {formatAiCost(summary.consumed)}
+            </strong>
+          </span>
+          <span>
+            المتبقي{' '}
+            <strong className="text-emerald-700">
+              {formatAiCost(summary.remaining)}
+            </strong>
+          </span>
+        </div>
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-violet-100">
+          <div
+            className="h-full rounded-full bg-violet-600 transition-[width]"
+            style={{ width: `${summary.usagePercent}%` }}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -414,30 +505,33 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         {/* ─── شريط تبويبات لوحة الأثر (للإدارة فقط) ─── */}
         {!isPlatformManager && !isEvaluator && (
         <div className="border-b border-neutral-200 bg-white px-2 lg:px-5 flex-shrink-0 overflow-x-auto">
-          <div className="flex gap-0.5 items-end max-w-7xl mx-auto">
-            {impactTabs
-              .filter(tab => tab.id !== 'platformAlerts' || userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
-              .map(tab => (
-              <Link
-                key={tab.id}
-                href={tab.href}
-                prefetch={false}
-                onClick={(event: MouseEvent<HTMLAnchorElement>) => {
-                  if (!tab.href.startsWith('/admin/impact') || !isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-                  event.preventDefault()
-                  const locale = pathname.split('/')[1] || 'ar'
-                  window.history.pushState(null, '', `/${locale}${tab.href}`)
-                }}
-                className={`cursor-pointer flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap no-underline ${
-                  tabActive(tab.id)
-                    ? 'border-primary-700 text-primary-800 bg-primary-50'
-                    : 'border-transparent text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
-                }`}
-              >
-                <tab.icon size={16} />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </Link>
-            ))}
+          <div className="mx-auto flex min-w-max max-w-7xl items-end gap-2">
+            <div className="flex items-end gap-0.5">
+              {impactTabs
+                .filter(tab => tab.id !== 'platformAlerts' || userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
+                .map(tab => (
+                <Link
+                  key={tab.id}
+                  href={tab.href}
+                  prefetch={false}
+                  onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+                    if (!tab.href.startsWith('/admin/impact') || !isImpactPage || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                    event.preventDefault()
+                    const locale = pathname.split('/')[1] || 'ar'
+                    window.history.pushState(null, '', `/${locale}${tab.href}`)
+                  }}
+                  className={`cursor-pointer flex items-center gap-1.5 px-3 lg:px-4 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap no-underline ${
+                    tabActive(tab.id)
+                      ? 'border-primary-700 text-primary-800 bg-primary-50'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50'
+                  }`}
+                >
+                  <tab.icon size={16} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </Link>
+              ))}
+            </div>
+            {isSystemManager && <AiUsageBalance />}
           </div>
         </div>
         )}

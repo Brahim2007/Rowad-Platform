@@ -209,21 +209,30 @@ export default function AdminProjectsPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* ─── Header ─── */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-6 gap-4 border-b border-neutral-200 pb-5">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
-            <FolderKanban className="text-primary-600" size={28} />
-            إدارة المشاريع
-          </h1>
-          <p className="text-neutral-500 max-w-2xl text-sm">
-            إدارة المشاريع، تصنيفها، وربطها بالمنصات والبرامج.
-          </p>
+      <section className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-l from-neutral-950 via-primary-900 to-primary-700 p-6 text-white shadow-lg md:p-8">
+        <div className="absolute -start-20 -top-24 size-56 rounded-full bg-white/10" />
+        <div className="absolute -bottom-20 end-1/3 size-40 rounded-full bg-secondary-400/10 blur-2xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
+              <FolderKanban size={15} />
+              محفظة مشاريع شبكة الرواد
+            </div>
+            <h1 className="text-2xl font-black md:text-3xl">إدارة المشاريع</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
+              إدارة المشاريع، تصنيفها، وربطها بالمنصات والبرامج ضمن مساحة موحّدة تبيّن الحالة والمخرجات والعلاقات المؤسسية.
+            </p>
+          </div>
+          <Button
+            unstyled
+            onClick={openCreate}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-primary-800 shadow-sm transition hover:bg-primary-50"
+          >
+            <Plus size={17} />
+            مشروع جديد
+          </Button>
         </div>
-        <Button unstyled onClick={openCreate} className="btn-primary btn-sm flex items-center gap-2">
-          <Plus size={18} />
-          مشروع جديد
-        </Button>
-      </div>
+      </section>
 
       {/* ─── Stats Cards ─── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -233,9 +242,10 @@ export default function AdminProjectsPage() {
           { label: 'مكتملة', value: completedCount, icon: CheckCircle, color: 'bg-info-50 text-info-500' },
           { label: 'مميزة', value: featuredCount, icon: Star, color: 'bg-secondary-100 text-secondary-600' },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card flex items-center gap-3 p-4">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${color}`}><Icon size={18} /></div>
-            <div><div className="text-lg font-bold text-neutral-900">{value}</div><div className="text-xs text-neutral-500">{label}</div></div>
+          <div key={label} className="card p-4">
+            <div className={`mb-3 flex size-9 items-center justify-center rounded-xl ${color}`}><Icon size={18} /></div>
+            <div className="text-xl font-black text-neutral-900">{value}</div>
+            <div className="mt-1 text-xs text-neutral-500">{label}</div>
           </div>
         ))}
       </div>

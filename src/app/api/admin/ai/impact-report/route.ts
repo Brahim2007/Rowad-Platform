@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireSuperAdmin } from '@/lib/auth-helpers'
+import { requireAuth } from '@/lib/auth-helpers'
 import { ai } from '@/lib/ai/deepseek'
 import { buildImpactReportMetrics, getImpactReportPeriod, impactReportRequestSchema } from '@/lib/ai/impact-report'
 import { logger } from '@/lib/logger'
 import { archiveAiReport } from '@/lib/institutional-archive'
+import { createNotification } from '@/lib/notifications'
 
 const DEFAULT_QUALITY_BONUS: Record<string, number> = {
   WEAK: -3,
@@ -15,8 +17,11 @@ const DEFAULT_QUALITY_BONUS: Record<string, number> = {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireSuperAdmin()
+  const auth = await requireAuth()
   if (!auth.ok) return auth.error
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN') {
+    return NextResponse.json({ success: false, message: 'إدارة النظام فقط' }, { status: 403 })
+  }
 
   try {
     const { searchParams } = new URL(request.url)
@@ -55,8 +60,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireSuperAdmin()
+  const auth = await requireAuth()
   if (!auth.ok) return auth.error
+  if (auth.user.role !== 'SUPER_ADMIN' && auth.user.role !== 'ADMIN') {
+    return NextResponse.json({ success: false, message: 'إدارة النظام فقط' }, { status: 403 })
+  }
 
   try {
     const parsed = impactReportRequestSchema.safeParse(await request.json())
@@ -73,6 +81,44 @@ export async function POST(request: NextRequest) {
     }
 
     const input = parsed.data
+    const monthlyPlatformKey =
+      input.periodType === 'monthly' && input.platformId && input.month
+        ? `${input.platformId}:${input.year}-${String(input.month).padStart(2, '0')}`
+        : null
+
+    let reportPlatform: { id: string; name: string; slug: string } | null = null
+    if (input.platformId) {
+      reportPlatform = await prisma.platform.findFirst({
+        where: { id: input.platformId, isActive: true },
+        select: { id: true, name: true, slug: true },
+      })
+      if (!reportPlatform) {
+        return NextResponse.json({ success: false, message: 'المنصة غير موجودة أو غير نشطة' }, { status: 404 })
+      }
+    }
+
+    if (monthlyPlatformKey) {
+      const existing = await prisma.aiGeneratedReport.findFirst({
+        where: {
+          platformId: input.platformId,
+          periodType: 'monthly',
+          periodYear: input.year,
+          periodMonth: input.month,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, createdAt: true },
+      })
+      if (existing) {
+        return NextResponse.json({
+          success: false,
+          message: 'تسمح السياسة بتقرير ذكي واحد فقط لكل منصة خلال الشهر المحدد',
+          code: 'MONTHLY_PLATFORM_REPORT_EXISTS',
+          existingReportId: existing.id,
+          generatedAt: existing.createdAt.toISOString(),
+        }, { status: 409 })
+      }
+    }
+
     const period = getImpactReportPeriod(input)
     const memberWhere = {
       ...(input.platformId && { platformId: input.platformId }),
@@ -132,6 +178,7 @@ export async function POST(request: NextRequest) {
         periodYear: input.year,
         periodMonth: input.periodType === 'monthly' ? input.month : null,
         platformId: input.platformId || null,
+        monthlyPlatformKey,
         networkRole: input.networkRole || null,
         reportJson: JSON.stringify(report),
         metricsJson: JSON.stringify(metrics),
@@ -148,6 +195,39 @@ export async function POST(request: NextRequest) {
       platformId: input.platformId || null,
     }, auth.user)
 
+    if (reportPlatform && input.periodType === 'monthly') {
+      const managers = await prisma.platformManagerAssignment.findMany({
+        where: {
+          platformId: reportPlatform.id,
+          endedAt: null,
+          adminUser: { isActive: true },
+        },
+        select: { adminUserId: true },
+      })
+      for (const manager of managers) {
+        await createNotification({
+          recipientId: manager.adminUserId,
+          recipientType: 'PLATFORM_MANAGER',
+          type: 'SYSTEM_ALERT',
+          title: `صدر التقرير الذكي لمنصة ${reportPlatform.name}`,
+          body: `أصبح تقرير ${period.label} متاحًا للعرض في لوحة المنصة.`,
+          link: '/admin/my-platform?tab=reports',
+          senderId: auth.user.id,
+          senderName: auth.user.name,
+        })
+      }
+
+      await prisma.notification.updateMany({
+        where: {
+          recipientType: 'ADMIN',
+          type: 'SYSTEM_ALERT',
+          title: `تقرير ${reportPlatform.name} الذكي مستحق`,
+          isRead: false,
+        },
+        data: { isRead: true, readAt: new Date() },
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -159,6 +239,13 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({
+        success: false,
+        message: 'تم إنشاء تقرير هذه المنصة لهذا الشهر بالفعل؛ لا يمكن إنشاء تقرير ثانٍ وفق السياسة',
+        code: 'MONTHLY_PLATFORM_REPORT_EXISTS',
+      }, { status: 409 })
+    }
     if (error instanceof Error && error.message === 'Budget exceeded') {
       return NextResponse.json({ success: false, message: 'تم تجاوز السقف الشهري لاستهلاك الذكاء الاصطناعي' }, { status: 429 })
     }

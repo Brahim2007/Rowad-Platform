@@ -68,12 +68,36 @@ export async function GET(request: NextRequest) {
 
     if (tab === 'members') return handleMembers(platformId, search)
     if (tab === 'activities') return handleActivities(platformId, search, statusFilter)
+    if (tab === 'reports') return handleSmartReports(platformId)
 
     return handleDashboard(platformId)
   } catch (error) {
     logger.error('Platform stats error', error)
     return NextResponse.json({ success: false, message: 'خطأ في الخادم' }, { status: 500 })
   }
+}
+
+async function handleSmartReports(platformId: string) {
+  const reports = await prisma.aiGeneratedReport.findMany({
+    where: { platformId, periodType: 'monthly' },
+    orderBy: { createdAt: 'desc' },
+    take: 36,
+    select: {
+      id: true,
+      title: true,
+      periodYear: true,
+      periodMonth: true,
+      createdAt: true,
+    },
+  })
+
+  return NextResponse.json({
+    success: true,
+    data: reports.map(report => ({
+      ...report,
+      createdAt: report.createdAt.toISOString(),
+    })),
+  })
 }
 
 // ═══════════════════════════════════════════════════

@@ -937,6 +937,182 @@ async function main() {
   }
   console.log("✅ كتالوج أنشطة الأثر (" + impactActionCount + ")")
 
+  // ═══════════════════════════════════════════════════════════
+  // LINK SEEDED MEMBERS TO PLATFORMS, PROGRAMS AND ACTIVITIES
+  // ═══════════════════════════════════════════════════════════
+  const linkedPlatforms = await prisma.platform.findMany({
+    where: { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    include: {
+      programs: {
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        include: {
+          activities: {
+            where: { isActive: true },
+            orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+          },
+        },
+      },
+    },
+  })
+  const usablePlatforms = linkedPlatforms.filter(platform =>
+    platform.programs.some(program => program.activities.length > 0),
+  )
+  const linkedImpactActions = await prisma.impactAction.findMany({
+    where: {
+      isActive: true,
+      name: {
+        in: [
+          "حضور ورشة عمل",
+          "المشاركة في ندوة/مؤتمر افتراضي",
+          "إنجاز مهمة في وقتها",
+          "الالتزام بالحضور الأسبوعي",
+        ],
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  })
+
+  let linkedMemberCount = 0
+  let linkedEnrollmentCount = 0
+  let linkedParticipationCount = 0
+  let linkedImpactLogCount = 0
+  const networkRoles = [
+    "باحث ومفكر",
+    "مؤثر رقمي",
+    "منسق مبادرات",
+    "صانع محتوى",
+    "مدرب ومتطوع",
+  ]
+
+  if (usablePlatforms.length > 0 && linkedImpactActions.length > 0) {
+    for (let memberIndex = 0; memberIndex < beneficiaryIds.length; memberIndex++) {
+      const beneficiaryId = beneficiaryIds[memberIndex]
+      const platform = usablePlatforms[memberIndex % usablePlatforms.length]
+      const programs = platform.programs
+        .filter(program => program.activities.length > 0)
+        .slice(0, 2)
+
+      await prisma.beneficiary.update({
+        where: { id: beneficiaryId },
+        data: {
+          platformId: platform.id,
+          networkRole: networkRoles[memberIndex % networkRoles.length],
+          joinDate: new Date(2024, memberIndex % 12, 1),
+        },
+      })
+      linkedMemberCount++
+
+      for (let programIndex = 0; programIndex < programs.length; programIndex++) {
+        const program = programs[programIndex]
+        const enrollment = await prisma.enrollment.upsert({
+          where: {
+            beneficiaryId_programId: {
+              beneficiaryId,
+              programId: program.id,
+            },
+          },
+          create: {
+            beneficiaryId,
+            programId: program.id,
+            status: programIndex === 0 ? "COMPLETED" : "ACTIVE",
+            enrolledAt: new Date(2025, programIndex, 10),
+            completedAt: programIndex === 0 ? new Date(2025, 5, 20) : null,
+            notes: "تسجيل تجريبي مرتبط ببطاقة الرائد",
+          },
+          update: {
+            status: programIndex === 0 ? "COMPLETED" : "ACTIVE",
+            completedAt: programIndex === 0 ? new Date(2025, 5, 20) : null,
+            notes: "تسجيل تجريبي مرتبط ببطاقة الرائد",
+          },
+        })
+        linkedEnrollmentCount++
+
+        const activities = program.activities.slice(0, 2)
+        for (let activityIndex = 0; activityIndex < activities.length; activityIndex++) {
+          const activity = activities[activityIndex]
+          const activityDate = new Date()
+          activityDate.setDate(5 + ((memberIndex + activityIndex) % 20))
+          activityDate.setMonth(activityDate.getMonth() - (programIndex + activityIndex))
+          activityDate.setHours(12, 0, 0, 0)
+          const participationStatus = activityIndex === 0 ? "COMPLETED" : "ATTENDED"
+          const participation = await prisma.participation.upsert({
+            where: {
+              beneficiaryId_activityId: {
+                beneficiaryId,
+                activityId: activity.id,
+              },
+            },
+            create: {
+              beneficiaryId,
+              activityId: activity.id,
+              enrollmentId: enrollment.id,
+              status: participationStatus,
+              attendedAt: activityDate,
+              score: participationStatus === "COMPLETED" ? 85 + (memberIndex % 15) : null,
+              feedback: "مشاركة تجريبية مرتبطة بالمنصة والبرنامج",
+            },
+            update: {
+              enrollmentId: enrollment.id,
+              status: participationStatus,
+              attendedAt: activityDate,
+              score: participationStatus === "COMPLETED" ? 85 + (memberIndex % 15) : null,
+              feedback: "مشاركة تجريبية مرتبطة بالمنصة والبرنامج",
+            },
+          })
+          linkedParticipationCount++
+
+          const action = linkedImpactActions[
+            (memberIndex + programIndex + activityIndex) % linkedImpactActions.length
+          ]
+          const existingImpactLog = await prisma.impactLog.findFirst({
+            where: {
+              sourceType: "PARTICIPATION",
+              sourceId: participation.id,
+              actionId: action.id,
+            },
+          })
+          const impactLogData = {
+            beneficiaryId,
+            actionId: action.id,
+            sourceType: "PARTICIPATION" as const,
+            sourceId: participation.id,
+            count: 1,
+            quality: activityIndex === 0 ? "EXCELLENT" as const : "GOOD" as const,
+            status: "APPROVED" as const,
+            date: activityDate,
+            note: `${activity.name} — ${program.name}`,
+            pointsSnapshot: action.points,
+            createdBy: "SEED",
+            approvedBy: "SEED",
+            approvedAt: activityDate,
+            platformId: platform.id,
+            programId: program.id,
+            activityId: activity.id,
+            enrollmentId: enrollment.id,
+            participationId: participation.id,
+          }
+
+          if (existingImpactLog) {
+            await prisma.impactLog.update({
+              where: { id: existingImpactLog.id },
+              data: impactLogData,
+            })
+          } else {
+            await prisma.impactLog.create({ data: impactLogData })
+            linkedImpactLogCount++
+          }
+        }
+      }
+    }
+  }
+  console.log(
+    `✅ ربط بطاقة الرائد: ${linkedMemberCount} عضو، ` +
+    `${linkedEnrollmentCount} تسجيل، ${linkedParticipationCount} مشاركة، ` +
+    `${linkedImpactLogCount} سجل أثر جديد`,
+  )
+
   // Impact Settings defaults
   const existingSettings = await prisma.impactSettings.findUnique({ where: { id: 1 } })
   if (!existingSettings) {
@@ -991,6 +1167,7 @@ async function main() {
     partners: await prisma.partner.count(),
     platformIndicators: await prisma.platformIndicator.count(),
     programIndicators: await prisma.programIndicator.count(),
+    impactLogs: await prisma.impactLog.count(),
   };
 
   console.log("\n" + "=".repeat(60));
@@ -1006,3 +1183,4 @@ async function main() {
 main()
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());
+

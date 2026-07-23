@@ -23,9 +23,8 @@ if (process.env.VERCEL_ENV === 'production') {
   console.log('Applying production database migrations...')
   run('npx', ['--no-install', 'prisma', 'migrate', 'deploy'])
 
-  // Seed the current production deployment unless explicitly disabled.
-  // After the first successful seed deployment this default is changed to opt-in.
-  if (process.env.SEED_PRODUCTION_DATA !== 'false') {
+  // Seed is opt-in so normal production deployments never rewrite test data.
+  if (process.env.SEED_PRODUCTION_DATA === 'true') {
     console.log('Loading production seed data...')
     run('npm', ['run', 'db:seed'])
   }

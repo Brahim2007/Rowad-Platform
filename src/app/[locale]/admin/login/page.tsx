@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 px-4 py-8 sm:px-6"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 px-4 py-6 sm:px-6"
       dir="rtl"
     >
       <div className="pointer-events-none absolute inset-0">
@@ -96,11 +96,11 @@ export default function AdminLoginPage() {
       </div>
 
       <div
-        className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-[26px] border border-white/20 bg-white shadow-[0_35px_100px_rgba(20,40,18,0.34)] lg:min-h-[570px] lg:grid-cols-[1fr_1fr]"
+        className="relative z-10 grid w-full max-w-4xl overflow-hidden rounded-[24px] border border-white/20 bg-white shadow-[0_30px_80px_rgba(20,40,18,0.32)] lg:min-h-[510px] lg:grid-cols-[0.95fr_1.05fr]"
         style={{ direction: 'ltr' }}
       >
         <section
-          className="relative flex min-h-[310px] flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-950 p-7 text-white sm:p-10 lg:min-h-full"
+          className="relative flex min-h-[290px] flex-col justify-between overflow-hidden bg-gradient-to-br from-primary-700 via-primary-800 to-primary-950 p-7 text-white sm:p-8 lg:min-h-full"
           dir="rtl"
         >
           <div className="pointer-events-none absolute inset-0 opacity-20">
@@ -111,19 +111,19 @@ export default function AdminLoginPage() {
             <div className="absolute bottom-0 start-0 h-24 w-full bg-gradient-to-t from-black/15 to-transparent" />
           </div>
 
-          <div className="relative">
-            <div className="mb-8 inline-flex rounded-2xl bg-white p-3 shadow-lg shadow-black/10 ring-1 ring-white/30">
+          <div className="relative flex flex-col items-start">
+            <div className="inline-flex rounded-2xl bg-white p-3 shadow-lg shadow-black/10 ring-1 ring-white/30">
               <Image
                 src="/images/Rowad-Logo.png"
                 alt="شبكة الرواد الإلكترونية"
                 width={220}
                 height={86}
-                className="h-auto w-44 sm:w-48"
+                className="h-auto w-40 sm:w-44"
                 priority
               />
             </div>
 
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-secondary-200/25 bg-secondary-300/10 px-3 py-1.5 text-[11px] font-bold text-secondary-200">
+            <div className="mb-4 mt-5 inline-flex items-center gap-2 rounded-full border border-secondary-200/25 bg-secondary-300/10 px-3 py-1.5 text-[11px] font-bold text-secondary-200">
               <Sparkles size={14} />
               منظومة إدارة الأثر والبرامج
             </div>
@@ -137,7 +137,7 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <div className="relative mt-8 grid grid-cols-3 gap-2">
+          <div className="relative mt-6 grid grid-cols-3 gap-2">
             {highlights.map(({ icon: Icon, label }) => (
               <div
                 key={label}
@@ -150,9 +150,9 @@ export default function AdminLoginPage() {
           </div>
         </section>
 
-        <main className="flex items-center bg-white px-6 py-9 sm:px-10 lg:px-14" dir="rtl">
+        <main className="flex items-center bg-white px-6 py-8 sm:px-9 lg:px-11" dir="rtl">
           <div className="mx-auto w-full max-w-md">
-            <div className="mb-8">
+            <div className="mb-6">
               <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 ring-1 ring-primary-100">
                 <LockKeyhole size={22} />
               </div>

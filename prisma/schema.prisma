@@ -652,21 +652,23 @@ model AiUsageLog {
 }
 
 model AiGeneratedReport {
-  id          String   @id @default(cuid())
-  title       String   @db.VarChar(300)
-  periodType  String   @db.VarChar(20)
-  periodYear  Int
-  periodMonth Int?
-  platformId  String?  @db.VarChar(100)
-  networkRole String?  @db.VarChar(200)
-  reportJson  String   @db.Text
-  metricsJson String   @db.Text
-  generatedBy String   @db.VarChar(200)
-  createdAt   DateTime @default(now())
+  id                 String   @id @default(cuid())
+  title              String   @db.VarChar(300)
+  periodType         String   @db.VarChar(20)
+  periodYear         Int
+  periodMonth        Int?
+  platformId         String?  @db.VarChar(100)
+  monthlyPlatformKey String?  @unique @db.VarChar(150)
+  networkRole        String?  @db.VarChar(200)
+  reportJson         String   @db.Text
+  metricsJson        String   @db.Text
+  generatedBy        String   @db.VarChar(200)
+  createdAt          DateTime @default(now())
 
   @@index([createdAt])
   @@index([generatedBy, createdAt])
   @@index([periodYear, periodMonth])
+  @@index([platformId, periodYear, periodMonth])
   @@map("ai_generated_reports")
 }
 

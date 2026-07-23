@@ -28,6 +28,7 @@ const globalOnlyRoutes = new Set([
   'backup/route.ts',
   'content/route.ts',
   'dashboard/route.ts',
+  'ai/usage/route.ts',
   'platforms-overview/route.ts',
   'users/route.ts',
   'visitors/route.ts',

@@ -3,8 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { requireActiveMember } from '@/lib/member-auth'
 import { logger } from '@/lib/logger'
+import { ensureMonthlyPlatformReportReminders } from '@/lib/monthly-platform-report-reminders'
 
-type RecipientContext = 'ADMIN' | 'MEMBER'
+type RecipientContext = 'ADMIN' | 'PLATFORM_MANAGER' | 'MEMBER'
 
 async function currentRecipientId(request: NextRequest, type: RecipientContext): Promise<string> {
   if (type === 'MEMBER') {
@@ -23,13 +24,21 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const limit = Math.min(Number(searchParams.get('limit')) || 30, 100)
 
-    if (type !== 'ADMIN' && type !== 'MEMBER') {
+    if (type !== 'ADMIN' && type !== 'PLATFORM_MANAGER' && type !== 'MEMBER') {
       return NextResponse.json({ success: false, message: 'نوع المستلم مطلوب' }, { status: 400 })
     }
     const userId = await currentRecipientId(request, type)
 
     if (!userId) {
       return NextResponse.json({ success: false, message: 'غير مصرح' }, { status: 401 })
+    }
+
+    if (type === 'ADMIN') {
+      const session = await auth()
+      const role = (session?.user as { role?: string } | undefined)?.role
+      if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+        await ensureMonthlyPlatformReportReminders(userId)
+      }
     }
 
     const notifications = await prisma.notification.findMany({
@@ -62,7 +71,7 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { id, readAll, type } = body
-    if (type !== 'ADMIN' && type !== 'MEMBER') {
+    if (type !== 'ADMIN' && type !== 'PLATFORM_MANAGER' && type !== 'MEMBER') {
       return NextResponse.json({ success: false, message: 'نوع المستلم مطلوب' }, { status: 400 })
     }
     const targetUserId = await currentRecipientId(request, type)

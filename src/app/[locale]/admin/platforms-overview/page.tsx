@@ -5,13 +5,17 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
   AlertTriangle, ArrowLeft, BarChart3, Blocks, CheckCircle, Clock, Gauge,
-  Search, Star, UserCheck, Users,
+  Eye, Loader2, Search, Sparkles, Star, UserCheck, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
 
@@ -39,6 +43,11 @@ interface PlatformRow {
   reports: { total: number; approved: number; pending: number }
   evaluation: { score: number | null; count: number }
   content: { programs: number; projects: number; documents: number }
+  smartReport: {
+    isDue: boolean
+    current: { id: string; generatedAt: string } | null
+    latest: { id: string; year: number; month: number | null; generatedAt: string } | null
+  }
 }
 
 interface OverviewData {
@@ -46,7 +55,7 @@ interface OverviewData {
   totals: {
     platforms: number; totalMembers: number; totalPending: number; totalApproved: number
     totalPoints: number; mostActive: string; mostAtRisk: number; withoutManager: number
-    unassignedMembers: number; unscopedLogs: number
+    dueSmartReports: number; unassignedMembers: number; unscopedLogs: number
   }
   period: { year: number; month: number; previousYear: number; previousMonth: number }
 }
@@ -70,6 +79,8 @@ export default function PlatformsOverviewPage() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [search, setSearch] = useState('')
   const [healthFilter, setHealthFilter] = useState('')
+  const [reportPlatform, setReportPlatform] = useState<PlatformRow | null>(null)
+  const [generatingReport, setGeneratingReport] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -83,6 +94,40 @@ export default function PlatformsOverviewPage() {
   }, [year, month])
 
   useEffect(() => { load() }, [load])
+
+  const generateMonthlyReport = async () => {
+    if (!reportPlatform) return
+    setGeneratingReport(true)
+    try {
+      const response = await fetch('/api/admin/ai/impact-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          periodType: 'monthly',
+          year,
+          month,
+          platformId: reportPlatform.platformId,
+          networkRole: '',
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        if (result.existingReportId) {
+          window.open(`/${params.locale || 'ar'}/admin/impact/ai-reports/${result.existingReportId}`, '_blank', 'noopener,noreferrer')
+        }
+        throw new Error(result.message || 'تعذر إنشاء التقرير الذكي')
+      }
+
+      toast.success(`تم إنشاء تقرير ${reportPlatform.platformName} وحفظه`)
+      setReportPlatform(null)
+      await load()
+      window.open(`/${params.locale || 'ar'}/admin/impact/ai-reports/${result.data.id}`, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر إنشاء التقرير الذكي')
+    } finally {
+      setGeneratingReport(false)
+    }
+  }
 
   const visiblePlatforms = useMemo(() => {
     if (!data) return []
@@ -107,6 +152,7 @@ export default function PlatformsOverviewPage() {
     { icon: CheckCircle, label: 'إجمالي المعتمدة', value: totals.totalApproved, color: 'bg-green-50 text-green-700' },
     { icon: AlertTriangle, label: 'منصات حرجة', value: totals.mostAtRisk, color: 'bg-red-50 text-red-700' },
     { icon: UserCheck, label: 'دون مدير', value: totals.withoutManager, color: 'bg-purple-50 text-purple-700' },
+    { icon: Sparkles, label: 'تقارير مستحقة', value: totals.dueSmartReports, color: 'bg-violet-50 text-violet-700' },
   ]
 
   return (
@@ -125,7 +171,7 @@ export default function PlatformsOverviewPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
         {summaryCards.map(item => (
           <div key={item.label} className="rounded-2xl border border-neutral-200 bg-white p-4">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.color}`}><item.icon size={17} /></div>
@@ -170,7 +216,7 @@ export default function PlatformsOverviewPage() {
         </div>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead className="text-right">المنصة</TableHead><TableHead className="text-right">المدير</TableHead><TableHead className="text-center">الصحة</TableHead><TableHead className="text-center">الأعضاء</TableHead><TableHead className="text-center">المشاركة</TableHead><TableHead className="text-center">النقاط</TableHead><TableHead className="text-center">الأنشطة</TableHead><TableHead className="text-center">المعلق</TableHead><TableHead /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead className="text-right">المنصة</TableHead><TableHead className="text-right">المدير</TableHead><TableHead className="text-center">الصحة</TableHead><TableHead className="text-center">الأعضاء</TableHead><TableHead className="text-center">المشاركة</TableHead><TableHead className="text-center">النقاط</TableHead><TableHead className="text-center">الأنشطة</TableHead><TableHead className="text-center">المعلق</TableHead><TableHead className="text-center">التقرير الذكي</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>
               {visiblePlatforms.map(platform => (
                 <TableRow key={platform.platformId} className={platform.healthStatus === 'CRITICAL' ? 'bg-red-50/30' : ''}>
@@ -182,6 +228,24 @@ export default function PlatformsOverviewPage() {
                   <TableCell className="text-center"><div className="font-bold text-primary-700">{platform.points.toLocaleString('ar-SA')}</div><div className={`text-[10px] ${platform.pointsTrend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{platform.pointsTrend > 0 ? '+' : ''}{platform.pointsTrend}%</div></TableCell>
                   <TableCell className="text-center"><div className="font-bold">{platform.thisMonthApproved}</div><div className={`text-[10px] ${platform.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>{platform.trend > 0 ? '+' : ''}{platform.trend}%</div></TableCell>
                   <TableCell className="text-center"><div className={platform.pendingCount ? 'text-amber-700 font-bold' : 'text-neutral-400'}>{platform.pendingCount}</div>{platform.stalePending > 0 && <div className="text-[10px] text-red-600">{platform.stalePending} متأخر</div>}</TableCell>
+                  <TableCell className="text-center">
+                    {platform.smartReport.current ? (
+                      <Link href={`/${locale}/admin/impact/ai-reports/${platform.smartReport.current.id}`} className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 no-underline">
+                        <Eye size={13} /> عرض التقرير
+                      </Link>
+                    ) : (
+                      <Button unstyled onClick={() => setReportPlatform(platform)} className="inline-flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-violet-700">
+                        <Sparkles size={13} /> توليد التقرير
+                      </Button>
+                    )}
+                    <div className="mt-1 text-[9px] text-neutral-400">
+                      {platform.smartReport.current
+                        ? new Date(platform.smartReport.current.generatedAt).toLocaleDateString('ar-SA')
+                        : platform.smartReport.latest
+                          ? `آخر تقرير ${MONTHS[(platform.smartReport.latest.month || 1) - 1]}`
+                          : 'لم يُنشأ سابقًا'}
+                    </div>
+                  </TableCell>
                   <TableCell><Link href={`/${locale}/admin/platforms-overview/${platform.platformSlug}`} className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 no-underline">غرفة المتابعة <ArrowLeft size={12} /></Link></TableCell>
                 </TableRow>
               ))}
@@ -189,6 +253,36 @@ export default function PlatformsOverviewPage() {
           </Table>
         </div>
       </section>
+
+      <Dialog open={Boolean(reportPlatform)} onOpenChange={open => !open && !generatingReport && setReportPlatform(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="text-violet-600" size={20} />
+              إنشاء التقرير الذكي الشهري
+            </DialogTitle>
+            <DialogDescription>
+              سيتم تحليل بيانات منصة {reportPlatform?.platformName} عن شهر {MONTHS[month - 1]} {year}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <div className="mb-2 flex items-center gap-2 font-bold"><AlertTriangle size={17} /> سياسة تقارير المنصات</div>
+            <ul className="list-disc space-y-2 pe-5 text-xs leading-6 text-amber-800">
+              <li>يُسمح بتقرير ذكي واحد فقط لكل منصة خلال كل شهر تقويمي.</li>
+              <li>بعد الإنشاء لا يمكن توليد تقرير بديل للشهر نفسه، ويمكن فتح التقرير المحفوظ في أي وقت.</li>
+              <li>سيتم إشعار مدير المنصة تلقائيًا ليطّلع على التقرير من لوحة منصته.</li>
+              <li>يستهلك الإنشاء من الميزانية الشهرية للذكاء الاصطناعي.</li>
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={generatingReport} onClick={() => setReportPlatform(null)}>إلغاء</Button>
+            <Button disabled={generatingReport} onClick={generateMonthlyReport} className="gap-2 bg-violet-600 hover:bg-violet-700">
+              {generatingReport ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+              {generatingReport ? 'جاري إنشاء التقرير...' : 'أوافق، أنشئ التقرير'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

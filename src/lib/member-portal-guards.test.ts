@@ -45,7 +45,7 @@ describe('member portal security and routing guards', () => {
     const route = source('src/app/api/notifications/route.ts')
     const memberPage = source('src/app/[locale]/member/page.tsx')
     const adminPage = source('src/app/[locale]/admin/notifications/page.tsx')
-    assert.match(route, /type !== 'ADMIN' && type !== 'MEMBER'/)
+    assert.match(route, /type !== 'ADMIN' && type !== 'PLATFORM_MANAGER' && type !== 'MEMBER'/)
     assert.match(memberPage, /type:\s*'MEMBER'/)
     assert.match(adminPage, /type:\s*'ADMIN'/)
   })

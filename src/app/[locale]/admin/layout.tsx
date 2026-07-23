@@ -314,21 +314,12 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
 
-          {/* User footer */}
-          <div className="p-4 border-t border-neutral-100 bg-neutral-50/80">
-            <div className="flex items-center gap-3 mb-3">
-              <NotificationBell recipientType={isPlatformManager ? 'PLATFORM_MANAGER' : 'ADMIN'} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-neutral-900 truncate">
-                  {session?.user?.name || 'Admin'}
-                </p>
-                <p className="text-xs text-neutral-400 truncate">{session?.user?.email}</p>
-              </div>
-            </div>
+          {/* User footer — simplified */}
+          <div className="p-3 border-t border-neutral-100">
             <Button unstyled
               onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
               variant="ghost"
-              className="w-full justify-start text-neutral-600 hover:bg-error-50 hover:text-error-700"
+              className="w-full justify-start gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-500 hover:bg-error-50 hover:text-error-700 transition-colors"
             >
               <LogOut size={16} />
               <span>تسجيل الخروج</span>
@@ -376,9 +367,26 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="min-w-[420px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
+              <div className="hidden xl:block min-w-[360px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
                 <SearchGlobal />
               </div>
+
+              {/* إشعارات */}
+              <NotificationBell recipientType={isPlatformManager ? 'PLATFORM_MANAGER' : 'ADMIN'} />
+
+              {/* المستخدم */}
+              <div className="flex items-center gap-2.5 border-r border-neutral-200 pr-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xs font-bold shadow-sm">
+                  {(session?.user?.name || 'أ')[0]}
+                </div>
+                <div className="hidden sm:block min-w-0">
+                  <p className="text-xs font-bold text-neutral-800 truncate leading-tight max-w-[120px]">
+                    {session?.user?.name || 'Admin'}
+                  </p>
+                  <p className="text-[10px] text-neutral-400 truncate max-w-[120px]">{session?.user?.email}</p>
+                </div>
+              </div>
+
               <ThemeCustomizer />
             </div>
           </div>

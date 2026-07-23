@@ -6,21 +6,6 @@ interface SmartImpactReportDocumentProps {
   generatedAt: string
 }
 
-function ListSection({ title, items, tone = '', empty = 'لا توجد ملاحظات في البيانات المتاحة' }: {
-  title: string
-  items: string[]
-  tone?: 'success' | 'warning' | 'accent' | 'neutral' | ''
-  empty?: string
-  id?: string
-}) {
-  return (
-    <section className={`report-section ${tone}`}>
-      <h2 className="report-section-title">{title}</h2>
-      {items.length ? <ul className="report-list report-section-body">{items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p className="report-section-body">{empty}</p>}
-    </section>
-  )
-}
-
 function formatChange(value: number | null) {
   if (value === null) return 'لا تتوفر مقارنة'
   if (value === 0) return 'دون تغير'
@@ -36,6 +21,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
 
   return (
     <article className="report-paper" dir="rtl">
+      {/* رأس التقرير — بتصميم محدث */}
       <header className="report-header">
         <p className="report-brand">شبكة الرواد الإلكترونية · وحدة قياس الأثر</p>
         <h1 className="report-title">{report.title}</h1>
@@ -47,6 +33,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
         </div>
       </header>
 
+      {/* بطاقات المؤشرات الرئيسية — متجاوبة */}
       <div className="report-meta">
         {[
           { label: 'إجمالي النقاط', value: metrics.totalPoints.toLocaleString('ar-SA'), hint: `مقابل ${metrics.previousTotalPoints.toLocaleString('ar-SA')} سابقًا` },
@@ -64,19 +51,21 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
         ))}
       </div>
 
+      {/* أبرز الرائد والمنصة */}
       <div className="report-highlight-grid">
         <div className="report-highlight-card">
-          <div className="report-highlight-label">رائد الفترة</div>
+          <div className="report-highlight-label">🏆 رائد الفترة</div>
           <div className="report-highlight-value">{metrics.topMember?.name || 'لا تتوفر بيانات'}</div>
           <div className="report-meta-hint">{metrics.topMember ? `${metrics.topMember.points} نقطة · ${metrics.topMember.activities} نشاط` : '—'}</div>
         </div>
         <div className="report-highlight-card secondary">
-          <div className="report-highlight-label">المنصة الأعلى أثرًا</div>
+          <div className="report-highlight-label">📊 المنصة الأعلى أثرًا</div>
           <div className="report-highlight-value">{metrics.topPlatform?.name || 'لا تتوفر بيانات'}</div>
           <div className="report-meta-hint">{metrics.topPlatform ? `${metrics.topPlatform.points} نقطة · ${metrics.topPlatform.activities} نشاط` : '—'}</div>
         </div>
       </div>
 
+      {/* أقسام التقرير */}
       <div className="report-sections">
         <section id="report-summary" className="report-section accent report-anchor">
           <h2 className="report-section-title">الملخص التنفيذي</h2>
@@ -87,9 +76,27 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           <p className="report-section-body">{report.performanceNarrative}</p>
         </section>
 
-        <ListSection title="أبرز النجاحات" items={report.highlights} tone="success" />
-        <ListSection title="المخاطر والتنبيهات" items={report.risks} tone="warning" empty="لم تظهر مخاطر بارزة في البيانات المتاحة." />
+        {/* النجاحات والمخاطر */}
+        <div className="report-highlight-grid">
+          <section className="report-section success">
+            <h2 className="report-section-title">✅ أبرز النجاحات</h2>
+            {report.highlights.length ? (
+              <ul className="report-list report-section-body">
+                {report.highlights.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            ) : <p className="report-section-body">لا توجد إنجازات بارزة في البيانات المتاحة.</p>}
+          </section>
+          <section className="report-section warning">
+            <h2 className="report-section-title">⚠️ المخاطر والتنبيهات</h2>
+            {report.risks.length ? (
+              <ul className="report-list report-section-body">
+                {report.risks.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            ) : <p className="report-section-body">لم تظهر مخاطر بارزة في البيانات المتاحة.</p>}
+          </section>
+        </div>
 
+        {/* التوصيات التنفيذية */}
         <section id="report-recommendations" className="report-section report-anchor">
           <h2 className="report-section-title">التوصيات التنفيذية</h2>
           <div className="report-recommendations">
@@ -106,6 +113,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           </div>
         </section>
 
+        {/* توزيع المحاور */}
         {metrics.categories.length > 0 && (
           <section id="report-categories" className="report-section report-anchor">
             <h2 className="report-section-title">توزيع الأداء حسب المحور</h2>
@@ -118,6 +126,7 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           </section>
         )}
 
+        {/* مقارنة المنصات */}
         {metrics.platforms.length > 0 && (
           <section id="report-platforms" className="report-section report-anchor">
             <h2 className="report-section-title">مقارنة المنصات</h2>
@@ -127,16 +136,38 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt }: Smar
           </section>
         )}
 
-        <ListSection title="رؤى المنصات" items={report.platformInsights} />
-        <ListSection title="رؤى الأعضاء" items={report.memberInsights} />
-        <ListSection title="تركيز الفترة القادمة" items={report.nextPeriodFocus} tone="accent" />
-        <ListSection title="ملاحظات جودة البيانات" items={report.dataNotes} tone="neutral" />
+        {/* رؤى */}
+        <div className="report-highlight-grid">
+          <ListSection title="🔍 رؤى المنصات" items={report.platformInsights} />
+          <ListSection title="👥 رؤى الأعضاء" items={report.memberInsights} />
+        </div>
+
+        <div className="report-highlight-grid">
+          <ListSection title="🎯 تركيز الفترة القادمة" items={report.nextPeriodFocus} tone="accent" />
+          <ListSection title="📋 ملاحظات جودة البيانات" items={report.dataNotes} tone="neutral" />
+        </div>
       </div>
 
+      {/* تذييل التقرير */}
       <footer className="report-footer">
         <span>سجلات محللة: {metrics.dataQuality.recordsAnalyzed.toLocaleString('ar-SA')} · نسبة المعلّق: {metrics.dataQuality.pendingRatio}%</span>
         <span>تحليل مساعد قابل للمراجعة البشرية ولا ينفذ قرارات اعتماد تلقائية.</span>
       </footer>
     </article>
+  )
+}
+
+/** مكون قائمة فرعية داخل التقرير */
+function ListSection({ title, items, tone = '', empty = 'لا توجد ملاحظات في البيانات المتاحة' }: {
+  title: string
+  items: string[]
+  tone?: 'success' | 'warning' | 'accent' | 'neutral' | ''
+  empty?: string
+}) {
+  return (
+    <section className={`report-section ${tone}`}>
+      <h2 className="report-section-title">{title}</h2>
+      {items.length ? <ul className="report-list report-section-body">{items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul> : <p className="report-section-body">{empty}</p>}
+    </section>
   )
 }

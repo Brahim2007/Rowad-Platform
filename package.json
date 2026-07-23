@@ -8,7 +8,7 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint .",
-    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test": "node scripts/run-tests.mjs",
     "type-check": "tsc --noEmit",
     "verify": "tsc --noEmit --pretty false",
     "db:migrate": "prisma migrate dev",

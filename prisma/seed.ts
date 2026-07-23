@@ -997,6 +997,7 @@ async function main() {
       await prisma.beneficiary.update({
         where: { id: beneficiaryId },
         data: {
+          code: String(990001 + memberIndex),
           platformId: platform.id,
           networkRole: networkRoles[memberIndex % networkRoles.length],
           joinDate: new Date(2024, memberIndex % 12, 1),

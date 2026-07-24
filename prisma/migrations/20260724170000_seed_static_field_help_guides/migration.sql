@@ -1,0 +1,130 @@
+-- Seed reviewed, reusable field guides. Runtime field help never calls Gemini.
+INSERT INTO "field_help_guides"
+  ("id", "service", "fieldKey", "label", "explanation", "example", "tipsJson", "source", "generatedBy", "createdAt", "updatedAt")
+VALUES
+  (
+    'guide_impact_activity_type',
+    'impact',
+    'impact.activity.type',
+    'نوع النشاط',
+    'اختر النشاط الأقرب لما أنجزته فعليًا؛ لأن نوع النشاط يحدد التصنيف والنقاط الأساسية قبل مراجعة مدير المنصة.',
+    'إذا شاركت في ندوة، اختر نشاط المشاركة العلمية المناسب بدل نشاط رقمي عام.',
+    '["لا تختَر نشاطًا أعلى نقاطًا إذا كان لا يطابق الإنجاز.","عند التردد، قارن اسم النشاط بالدليل الذي سترفقه."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_date',
+    'impact',
+    'impact.activity.date',
+    'تاريخ النشاط',
+    'سجّل تاريخ تنفيذ النشاط نفسه، وليس تاريخ تعبئة النموذج، حتى تظهر التقارير الشهرية في فترتها الصحيحة.',
+    'نشرت المقال يوم 15 مايو؛ أدخل 15 مايو حتى لو سجلته في المنصة يوم 18 مايو.',
+    '["ارجع إلى تاريخ النشر أو شهادة الحضور.","لا تستخدم تاريخًا مستقبليًا."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_count',
+    'impact',
+    'impact.activity.count',
+    'العدد',
+    'اكتب عدد الأنشطة المتشابهة التي يغطيها الدليل المرفق. يُضرب العدد في نقاط النشاط بعد المراجعة.',
+    'إذا أرفقت دليلًا يثبت نشر 3 مواد، اكتب 3.',
+    '["استخدم 1 لنشاط واحد.","لا تجمع أنشطة مختلفة في تسجيل واحد.","يجب أن يثبت الدليل كامل العدد."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_evidence',
+    'impact',
+    'impact.activity.evidence',
+    'رابط دليل النشاط',
+    'ضع رابطًا مباشرًا يثبت النشاط ويستطيع مدير المنصة فتحه دون طلب صلاحية إضافية.',
+    'رابط منشور عام، أو ملف Google Drive مضبوط على «أي شخص لديه الرابط».',
+    '["اختبر الرابط في نافذة خاصة قبل الإرسال.","تأكد أن الدليل يوضح اسم النشاط أو نتيجته وتاريخه.","لا تضع رابط الصفحة الرئيسية فقط."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_note',
+    'impact',
+    'impact.activity.note',
+    'ملاحظات النشاط',
+    'اكتب ملخصًا قصيرًا يوضح ماذا أنجزت، ودورك، وأبرز نتيجة؛ ولا تكرر اسم النشاط فقط.',
+    'أعددت ونشرت مادة توعوية عن التطوع، ووصلت إلى 500 مشاهدة خلال أسبوع.',
+    '["استخدم جملة أو جملتين واضحتين.","اذكر النتيجة القابلة للتحقق إن وجدت.","لا تضع بيانات شخصية حساسة."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_quality',
+    'impact',
+    'impact.activity.quality',
+    'الجودة',
+    'اختر مستوى الجودة بناءً على جودة التنفيذ والدليل والأثر المحقق، وليس على عدد الأنشطة وحده.',
+    'نشاط موثق جيدًا وحقق هدفه بوضوح يمكن تقييمه «جيد» أو أعلى بحسب معايير المنصة.',
+    '["استند إلى الدليل لا الانطباع.","طبّق المستوى نفسه على الحالات المتشابهة.","وثّق سبب التقدير العالي أو المنخفض في الملاحظات."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_status',
+    'impact',
+    'impact.activity.status',
+    'حالة الاعتماد',
+    'استخدم «قيد المراجعة» قبل اكتمال التحقق، و«معتمد» عند صحة النشاط والدليل، و«مرفوض» عند وجود سبب واضح.',
+    'إذا كان رابط الدليل لا يفتح، أبقِ النشاط قيد المراجعة أو ارفضه مع توضيح السبب وفق الإجراء المتبع.',
+    '["لا تعتمد النشاط قبل فتح الدليل.","عند الرفض اكتب سببًا يساعد العضو على التصحيح."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_source',
+    'impact',
+    'impact.activity.source',
+    'المصدر',
+    'حدد مصدر السجل ليسهل تتبعه: إدخال يدوي، مشاركة، تسجيل، تقرير، تقييم، أو مصدر خارجي.',
+    'اختر «يدوي» عندما أدخل المدير النشاط مباشرة من هذه النافذة.',
+    '["المصدر لا يعبّر عن جودة النشاط.","اختر القناة الفعلية التي أنشأت السجل."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'guide_impact_activity_rejection_reason',
+    'impact',
+    'impact.activity.rejection_reason',
+    'سبب الرفض',
+    'اكتب سببًا محددًا ومحايدًا يوضح المشكلة والخطوة المطلوبة من العضو، دون أحكام شخصية.',
+    'رابط الدليل غير متاح للمشاهدة؛ يرجى تعديل المشاركة إلى «أي شخص لديه الرابط» ثم إعادة الإرسال.',
+    '["تجنب عبارة «غير صحيح» وحدها.","اذكر الحقل أو الدليل الذي يحتاج إلى تصحيح.","لا تضع بيانات حساسة."]',
+    'CURATED',
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT ("fieldKey") DO UPDATE SET
+  "service" = EXCLUDED."service",
+  "label" = EXCLUDED."label",
+  "explanation" = EXCLUDED."explanation",
+  "example" = EXCLUDED."example",
+  "tipsJson" = EXCLUDED."tipsJson",
+  "source" = 'CURATED',
+  "generatedBy" = NULL,
+  "updatedAt" = CURRENT_TIMESTAMP;

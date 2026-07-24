@@ -247,6 +247,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = pathname.includes('/admin/login')
   const isImpactPage = pathname.includes('/admin/impact')
+  const adminPathname = pathname.replace(/^\/(ar|en)/, '')
 
   // Redirect /admin to /admin/impact
   useEffect(() => {
@@ -314,9 +315,13 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         {
           title: 'منصتي',
           links: [
-            { href: '/admin/my-platform',                   label: 'لوحة المنصة',     icon: Shield },
+            { href: '/admin/platform-overview',             label: 'نظرة عامة',      icon: Shield },
             { href: '/admin/my-platform?tab=members',       label: 'الأعضاء',         icon: Users },
             { href: '/admin/my-platform?tab=activities',    label: 'الأنشطة',        icon: Activity },
+            { href: '/admin/platforms',                     label: 'المنصة والبرامج', icon: Blocks },
+            { href: '/admin/projects',                      label: 'مشاريع المنصة',   icon: FolderKanban },
+            { href: '/admin/reports',                       label: 'رفع التقارير',    icon: ClipboardList },
+            { href: '/admin/documents',                     label: 'وثائق المنصة',    icon: Archive },
             { href: '/admin/analytics',                     label: 'تحليلات منصتي',  icon: TrendingUp },
             { href: '/admin/evaluations',                   label: 'تقييمات منصتي',  icon: ClipboardCheck },
             { href: '/admin/coordination',                  label: 'مهام منصتي',     icon: CalendarCheck },
@@ -360,7 +365,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="h-full w-72 flex flex-col">
           {/* Brand */}
           <div className="p-5 border-b border-neutral-100 bg-gradient-to-l from-primary-50/80 to-white">
-            <Link href="/admin/impact" prefetch={false} className="no-underline">
+            <Link href={isPlatformManager ? '/admin/platform-overview' : '/admin/impact'} prefetch={false} className="no-underline">
               <div className="flex items-center gap-3">
                 <Image
                   src="/images/Rowad-Logo.png"
@@ -400,7 +405,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 </p>
                 <div className="space-y-1">
                   {section.links.map(({ href, label, icon: Icon }) => {
-                    const active = pathname.startsWith(href)
+                    const hrefPath = href.split('?')[0]
+                    const hrefTab = new URLSearchParams(href.split('?')[1] || '').get('tab')
+                    const active = adminPathname === hrefPath && (!hrefTab || searchParams.get('tab') === hrefTab)
                     return (
                       <Link
                         key={href}
@@ -449,7 +456,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           >
             <Menu size={22} />
           </Button>
-          <span className="font-semibold text-neutral-900 text-sm">لوحة أثر الرواد</span>
+          <span className="font-semibold text-neutral-900 text-sm">{isPlatformManager ? 'مساحة إدارة المنصة' : 'لوحة أثر الرواد'}</span>
           <div className="flex items-center gap-1.5">
             <Button unstyled
               onClick={() => signOut({ callbackUrl: '/ar/admin/login' })}
@@ -480,8 +487,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 {sidebarHidden ? <PanelRightOpen size={19} /> : <PanelRightClose size={19} />}
               </Button>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-neutral-950">مركز التحكم</p>
-                <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
+                <p className="text-sm font-bold text-neutral-950">{isPlatformManager ? 'مركز إدارة المنصة' : 'مركز التحكم'}</p>
+                <p className="text-xs text-neutral-500">
+                  {isPlatformManager ? 'الأعضاء والبرامج والمشاريع والتقارير والوثائق في مساحة واحدة' : 'متابعة الأثر، المحتوى، والمنصات من مساحة واحدة'}
+                </p>
               </div>
             </div>
             <div className="flex min-w-0 items-center gap-2 xl:gap-3">

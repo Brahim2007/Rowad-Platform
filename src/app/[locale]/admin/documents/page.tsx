@@ -217,15 +217,17 @@ export default function DocumentsPage() {
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
-              <Archive size={15} /> المستودع الرسمي للشبكة
+              <Archive size={15} /> {isManager ? 'المستودع الرسمي لمنصتك' : 'المستودع الرسمي للشبكة'}
             </div>
-            <h1 className="text-2xl font-black md:text-3xl">الأرشيف المؤسسي ومركز المعرفة</h1>
+            <h1 className="text-2xl font-black md:text-3xl">{isManager ? 'وثائق وأرشيف منصتي' : 'الأرشيف المؤسسي ومركز المعرفة'}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
-              المرجع المركزي لكل ما يصدر عن المنصات: التقارير، الميزانيات، القرارات، محاضر الاجتماعات، الخطط، المراسلات، الأدلة والدروس المستفادة.
+              {isManager
+                ? 'احفظ تقارير منصتك وخططها ومحاضرها وقراراتها وأدلتها في أرشيف واحد لا يعرض إلا السجلات المرتبطة بمنصتك.'
+                : 'المرجع المركزي لكل ما يصدر عن المنصات: التقارير، الميزانيات، القرارات، محاضر الاجتماعات، الخطط، المراسلات، الأدلة والدروس المستفادة.'}
             </p>
           </div>
           <Button unstyled onClick={openCreate} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-primary-800 shadow-sm transition hover:bg-primary-50">
-            <Upload size={17} /> إضافة سجل للأرشيف
+            <Upload size={17} /> {isManager ? 'رفع تقرير أو وثيقة' : 'إضافة سجل للأرشيف'}
           </Button>
         </div>
       </section>

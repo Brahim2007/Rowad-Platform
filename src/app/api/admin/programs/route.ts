@@ -6,6 +6,9 @@ import { logger } from '@/lib/logger'
 export async function GET(request: NextRequest) {
   const auth = await requireAuth()
   if (!auth.ok) return auth.error
+  if (auth.user.role === 'PLATFORM_MANAGER' && !auth.user.platformId) {
+    return NextResponse.json({ success: false, message: 'مدير المنصة غير مرتبط بمنصة' }, { status: 403 })
+  }
 
   try {
     const { searchParams } = new URL(request.url)
@@ -13,7 +16,7 @@ export async function GET(request: NextRequest) {
     const scope = getPlatformScope(auth.user)
 
     const programs = await prisma.program.findMany({
-      where: scope.filterId ? { platformId: scope.filterId } : undefined,
+      where: scope.filterAll ? undefined : { platformId: scope.filterId || '__UNASSIGNED_PLATFORM__' },
       take: limit,
       orderBy: { sortOrder: 'asc' },
       select: {

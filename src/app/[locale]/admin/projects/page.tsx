@@ -7,6 +7,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import {
   Plus, Pencil, Trash2, X, FolderKanban, FolderOpen,
   CheckCircle, Clock, Target, Star, Image as ImageIcon,
@@ -83,6 +84,8 @@ const emptyForm = {
 // ─── Main Page ───
 
 export default function AdminProjectsPage() {
+  const { data: session } = useSession()
+  const isPlatformManager = (session?.user as { role?: string } | undefined)?.role === 'PLATFORM_MANAGER'
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -139,7 +142,10 @@ export default function AdminProjectsPage() {
   // ─── Form handlers ───
   const openCreate = () => {
     setEditing(null)
-    setForm(emptyForm)
+    setForm({
+      ...emptyForm,
+      platformId: isPlatformManager ? platforms[0]?.id || '' : '',
+    })
     setShowModal(true)
   }
 
@@ -216,11 +222,13 @@ export default function AdminProjectsPage() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">
               <FolderKanban size={15} />
-              محفظة مشاريع شبكة الرواد
+              {isPlatformManager ? 'محفظة مشاريع المنصة' : 'محفظة مشاريع شبكة الرواد'}
             </div>
-            <h1 className="text-2xl font-black md:text-3xl">إدارة المشاريع</h1>
+            <h1 className="text-2xl font-black md:text-3xl">{isPlatformManager ? 'مشاريع منصتي' : 'إدارة المشاريع'}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-7 text-primary-50">
-              إدارة المشاريع، تصنيفها، وربطها بالمنصات والبرامج ضمن مساحة موحّدة تبيّن الحالة والمخرجات والعلاقات المؤسسية.
+              {isPlatformManager
+                ? 'أنشئ مشاريع منصتك واربطها ببرامجها، وتابع الحالة والمخرجات والتقارير والتقييمات المرتبطة.'
+                : 'إدارة المشاريع، تصنيفها، وربطها بالمنصات والبرامج ضمن مساحة موحّدة تبيّن الحالة والمخرجات والعلاقات المؤسسية.'}
             </p>
           </div>
           <Button
@@ -522,8 +530,9 @@ export default function AdminProjectsPage() {
                     value={form.platformId}
                     onChange={e => setForm({ ...form, platformId: e.target.value })}
                     className="input-field"
+                    disabled={isPlatformManager}
                   >
-                    <option value="">بدون منصة</option>
+                    <option value="">{isPlatformManager ? 'منصتك المرتبطة بالحساب' : 'بدون منصة'}</option>
                     {platforms.map(pl => (
                       <option key={pl.id} value={pl.id}>{pl.name}</option>
                     ))}

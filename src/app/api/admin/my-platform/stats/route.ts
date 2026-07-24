@@ -109,7 +109,17 @@ async function handleDashboard(platformId: string) {
   const curYear = now.getFullYear()
   const curMonth = now.getMonth() + 1
 
-  const [memberCount, platformData, pendingLogs, allLogs] = await Promise.all([
+  const [
+    memberCount,
+    platformData,
+    pendingLogs,
+    allLogs,
+    programCount,
+    activityCatalogCount,
+    projectCount,
+    reportCount,
+    documentCount,
+  ] = await Promise.all([
     prisma.beneficiary.count({ where: { platformId, status: 'ACTIVE' } }),
     prisma.platform.findUnique({ where: { id: platformId }, select: { id: true, name: true, slug: true } }),
     prisma.impactLog.findMany({
@@ -125,6 +135,11 @@ async function handleDashboard(platformId: string) {
       where: { platformId },
       select: { status: true, date: true, beneficiaryId: true },
     }),
+    prisma.program.count({ where: { platformId } }),
+    prisma.activity.count({ where: { program: { platformId } } }),
+    prisma.project.count({ where: { platformId } }),
+    prisma.submittedReport.count({ where: { platformId } }),
+    prisma.document.count({ where: { platformId, status: { not: 'ARCHIVED' } } }),
   ])
 
   const thisMonthLogs = allLogs.filter((l) => {
@@ -157,6 +172,11 @@ async function handleDashboard(platformId: string) {
         pendingReviews: pendingLogs.length,
         totalApproved: approvedCount,
         monthlyApproved: thisMonthApproved,
+        programCount,
+        activityCatalogCount,
+        projectCount,
+        reportCount,
+        documentCount,
       },
       pendingActivities,
     },

@@ -7,6 +7,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import {
   Bold, CheckCircle, ClipboardList, Clock, Code, Download, ExternalLink, Eye, FileCheck,
   FileSpreadsheet, FileText, Heading, Image, List, ListOrdered, Loader2, Pencil, Plus, Printer, Search,
@@ -133,6 +134,9 @@ function dateLabel(value?: string | null) {
 }
 
 export default function AdminReportsPage() {
+  const { data: session } = useSession()
+  const userRole = (session?.user as { role?: string } | undefined)?.role
+  const isPlatformManager = userRole === 'PLATFORM_MANAGER'
   const previewRef = useRef<HTMLDivElement>(null)
   const [templates, setTemplates] = useState<Template[]>([])
   const [reports, setReports] = useState<Report[]>([])
@@ -204,6 +208,10 @@ export default function AdminReportsPage() {
     fetchData()
   }, [fetchData])
 
+  useEffect(() => {
+    if (isPlatformManager) setActiveTab('reports')
+  }, [isPlatformManager])
+
   const openCreateTemplate = () => {
     setEditingTemplate(null)
     setTemplateForm(emptyTemplate)
@@ -226,7 +234,11 @@ export default function AdminReportsPage() {
 
   const openCreateReport = () => {
     setEditingReport(null)
-    setReportForm({ ...emptyReport, templateId: templates[0]?.id || '' })
+    setReportForm({
+      ...emptyReport,
+      templateId: templates[0]?.id || '',
+      submittedBy: session?.user?.name || '',
+    })
     setHtmlContent('')
     setHtmlPreviewMode(false)
     setShowReportModal(true)
@@ -420,17 +432,21 @@ export default function AdminReportsPage() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-2 flex items-center gap-3">
             <ClipboardList className="text-primary-600" size={28} />
-            التقارير ودعم القرار
+            {isPlatformManager ? 'تقارير منصتي' : 'التقارير ودعم القرار'}
           </h1>
           <p className="text-neutral-500 max-w-2xl text-sm">
-            قوالب مرنة لجمع البيانات، تقارير مرفوعة، ومراجعة واعتماد لدعم اتخاذ القرار.
+            {isPlatformManager
+              ? 'أنشئ تقارير منصتك وارفعها للإدارة، وتابع حالة المراجعة والاعتماد من مكان واحد.'
+              : 'قوالب مرنة لجمع البيانات، تقارير مرفوعة، ومراجعة واعتماد لدعم اتخاذ القرار.'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button unstyled onClick={openCreateTemplate} className="btn-ghost btn-sm flex items-center gap-1.5">
-            <Plus size={15} />
-            قالب
-          </Button>
+          {!isPlatformManager && (
+            <Button unstyled onClick={openCreateTemplate} className="btn-ghost btn-sm flex items-center gap-1.5">
+              <Plus size={15} />
+              قالب
+            </Button>
+          )}
           <Button unstyled onClick={openCreateReport} className="btn-primary btn-sm flex items-center gap-1.5" disabled={templates.length === 0}>
             <Plus size={15} />
             تقرير
@@ -452,7 +468,7 @@ export default function AdminReportsPage() {
         ))}
       </div>
 
-      <div className="flex gap-1 mb-6 bg-neutral-100 p-1 rounded-xl w-fit">
+      {!isPlatformManager && <div className="flex gap-1 mb-6 bg-neutral-100 p-1 rounded-xl w-fit">
         <Button unstyled
           onClick={() => setActiveTab('templates')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -471,9 +487,9 @@ export default function AdminReportsPage() {
           <FileCheck size={16} className="inline ml-1.5" />
           التقارير المرفوعة
         </Button>
-      </div>
+      </div>}
 
-      {activeTab === 'templates' && (
+      {!isPlatformManager && activeTab === 'templates' && (
         <div>
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-neutral-500">{templates.length} قالب</p>
@@ -607,12 +623,16 @@ export default function AdminReportsPage() {
                         <Link href={`/ar/admin/reports/${report.id}`} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg no-underline" title="فتح التقرير">
                           <ExternalLink size={14} />
                         </Link>
-                        <Button unstyled onClick={() => openEditReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
-                          <Pencil size={14} />
-                        </Button>
-                        <Button unstyled onClick={() => deleteReport(report.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
-                          <Trash2 size={14} />
-                        </Button>
+                        {(!isPlatformManager || ['DRAFT', 'SUBMITTED'].includes(report.status)) && (
+                          <>
+                            <Button unstyled onClick={() => openEditReport(report)} className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg" title="تعديل">
+                              <Pencil size={14} />
+                            </Button>
+                            <Button unstyled onClick={() => deleteReport(report.id)} className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg" title="حذف">
+                              <Trash2 size={14} />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -646,9 +666,13 @@ export default function AdminReportsPage() {
                               <ExternalLink size={13} />
                               فتح
                             </Link>
-                            <Button unstyled onClick={() => updateReportStatus(report, 'REVIEWED')} className="btn-ghost btn-xs">مراجعة</Button>
-                            <Button unstyled onClick={() => updateReportStatus(report, 'APPROVED')} className="btn-primary btn-xs">اعتماد</Button>
-                            <Button unstyled onClick={() => updateReportStatus(report, 'REJECTED')} className="btn-ghost btn-xs text-error-600">رفض</Button>
+                            {!isPlatformManager && (
+                              <>
+                                <Button unstyled onClick={() => updateReportStatus(report, 'REVIEWED')} className="btn-ghost btn-xs">مراجعة</Button>
+                                <Button unstyled onClick={() => updateReportStatus(report, 'APPROVED')} className="btn-primary btn-xs">اعتماد</Button>
+                                <Button unstyled onClick={() => updateReportStatus(report, 'REJECTED')} className="btn-ghost btn-xs text-error-600">رفض</Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -697,7 +721,7 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      {showTemplateModal && (
+      {!isPlatformManager && showTemplateModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-neutral-200">
@@ -773,7 +797,9 @@ export default function AdminReportsPage() {
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">الحالة</label>
                   <NativeSelect value={reportForm.status} onChange={e => setReportForm({ ...reportForm, status: e.target.value })} className="input-field">
-                    {Object.entries(STATUS_CONFIG).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+                    {Object.entries(STATUS_CONFIG)
+                      .filter(([key]) => !isPlatformManager || key === 'DRAFT' || key === 'SUBMITTED')
+                      .map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
                   </NativeSelect>
                 </div>
               </div>
@@ -797,15 +823,17 @@ export default function AdminReportsPage() {
                   </NativeSelect>
                 </div>
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${isPlatformManager ? '' : 'sm:grid-cols-2'}`}>
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">رافع التقرير</label>
                   <Input value={reportForm.submittedBy} onChange={e => setReportForm({ ...reportForm, submittedBy: e.target.value })} className="input-field" />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المراجع</label>
-                  <Input value={reportForm.reviewedBy} onChange={e => setReportForm({ ...reportForm, reviewedBy: e.target.value })} className="input-field" />
-                </div>
+                {!isPlatformManager && (
+                  <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">المراجع</label>
+                    <Input value={reportForm.reviewedBy} onChange={e => setReportForm({ ...reportForm, reviewedBy: e.target.value })} className="input-field" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">بيانات التقرير (JSON)</label>
@@ -880,10 +908,12 @@ export default function AdminReportsPage() {
                   </div>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات المراجعة</label>
-                <Textarea rows={2} value={reportForm.reviewNotes} onChange={e => setReportForm({ ...reportForm, reviewNotes: e.target.value })} className="input-field" />
-              </div>
+              {!isPlatformManager && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات المراجعة</label>
+                  <Textarea rows={2} value={reportForm.reviewNotes} onChange={e => setReportForm({ ...reportForm, reviewNotes: e.target.value })} className="input-field" />
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
                 <Button unstyled type="button" onClick={() => setShowReportModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
                 <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري الحفظ...' : 'حفظ'}</Button>

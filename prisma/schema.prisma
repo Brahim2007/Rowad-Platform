@@ -1340,3 +1340,24 @@ model ImpactSettings {
 
   @@map("impact_settings")
 }
+
+// ─── أدلة الحقول المشتركة ───
+// يولد Gemini الدليل مرة واحدة ثم يُعاد استخدامه في جميع الخدمات والحسابات.
+
+model FieldHelpGuide {
+  id          String   @id @default(cuid())
+  service     String   @db.VarChar(100)
+  fieldKey    String   @unique @db.VarChar(160)
+  label       String   @db.VarChar(200)
+  explanation String   @db.Text
+  example     String   @db.Text
+  tipsJson    String   @db.Text
+  source      String   @default("GEMINI") @db.VarChar(30)
+  generatedBy String?  @db.VarChar(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([service])
+  @@index([service, updatedAt])
+  @@map("field_help_guides")
+}

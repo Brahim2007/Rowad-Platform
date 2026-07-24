@@ -1,17 +1,18 @@
 import { z } from 'zod'
 import { ai } from '@/lib/ai/gemini'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 
 export const fieldHelpKeySchema = z.enum([
-  'activity_type',
-  'activity_date',
-  'activity_count',
-  'activity_evidence',
-  'activity_note',
-  'activity_quality',
-  'activity_status',
-  'activity_source',
-  'activity_rejection_reason',
+  'impact.activity.type',
+  'impact.activity.date',
+  'impact.activity.count',
+  'impact.activity.evidence',
+  'impact.activity.note',
+  'impact.activity.quality',
+  'impact.activity.status',
+  'impact.activity.source',
+  'impact.activity.rejection_reason',
 ])
 
 export type FieldHelpKey = z.infer<typeof fieldHelpKeySchema>
@@ -25,13 +26,15 @@ export const fieldHelpResponseSchema = z.object({
 export type FieldHelpResponse = z.infer<typeof fieldHelpResponseSchema>
 
 type FieldDefinition = {
+  service: string
   label: string
   context: string
   fallback: FieldHelpResponse
 }
 
 const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
-  activity_type: {
+  'impact.activity.type': {
+    service: 'impact',
     label: 'نوع النشاط',
     context: 'اختيار النشاط الذي نفذه العضو من قائمة الأنشطة المعتمدة في منظومة الأثر.',
     fallback: {
@@ -40,7 +43,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['لا تختَر نشاطًا أعلى نقاطًا إذا كان لا يطابق الإنجاز.', 'عند التردد، قارن اسم النشاط بالدليل الذي سترفقه.'],
     },
   },
-  activity_date: {
+  'impact.activity.date': {
+    service: 'impact',
     label: 'تاريخ النشاط',
     context: 'التاريخ الفعلي الذي أُنجز أو نُشر فيه النشاط.',
     fallback: {
@@ -49,7 +53,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['ارجع إلى تاريخ النشر أو شهادة الحضور.', 'لا تستخدم تاريخًا مستقبليًا.'],
     },
   },
-  activity_count: {
+  'impact.activity.count': {
+    service: 'impact',
     label: 'العدد',
     context: 'عدد الوحدات المتشابهة المنفذة والمثبتة بالدليل في هذا التسجيل.',
     fallback: {
@@ -58,7 +63,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['استخدم 1 لنشاط واحد.', 'لا تجمع أنشطة مختلفة في تسجيل واحد.', 'يجب أن يثبت الدليل كامل العدد.'],
     },
   },
-  activity_evidence: {
+  'impact.activity.evidence': {
+    service: 'impact',
     label: 'رابط دليل النشاط',
     context: 'رابط يمكن للمراجع فتحه للتحقق من تنفيذ النشاط، مثل Google Drive أو منشور أو مقال.',
     fallback: {
@@ -67,7 +73,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['اختبر الرابط في نافذة خاصة قبل الإرسال.', 'تأكد أن الدليل يوضح اسم النشاط أو نتيجته وتاريخه.', 'لا تضع رابط الصفحة الرئيسية فقط.'],
     },
   },
-  activity_note: {
+  'impact.activity.note': {
+    service: 'impact',
     label: 'ملاحظات النشاط',
     context: 'وصف موجز يساعد المراجع على فهم ما أُنجز والنتيجة المرتبطة به.',
     fallback: {
@@ -76,7 +83,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['استخدم جملة أو جملتين واضحتين.', 'اذكر النتيجة القابلة للتحقق إن وجدت.', 'لا تضع بيانات شخصية حساسة.'],
     },
   },
-  activity_quality: {
+  'impact.activity.quality': {
+    service: 'impact',
     label: 'الجودة',
     context: 'تقدير إداري لمستوى إتقان النشاط وجودة دليله وأثره.',
     fallback: {
@@ -85,7 +93,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['استند إلى الدليل لا الانطباع.', 'طبّق المستوى نفسه على الحالات المتشابهة.', 'وثّق سبب التقدير العالي أو المنخفض في الملاحظات.'],
     },
   },
-  activity_status: {
+  'impact.activity.status': {
+    service: 'impact',
     label: 'حالة الاعتماد',
     context: 'قرار المراجع بشأن احتساب النشاط بعد فحص بياناته ودليله.',
     fallback: {
@@ -94,7 +103,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['لا تعتمد النشاط قبل فتح الدليل.', 'عند الرفض اكتب سببًا يساعد العضو على التصحيح.'],
     },
   },
-  activity_source: {
+  'impact.activity.source': {
+    service: 'impact',
     label: 'المصدر',
     context: 'القناة التي وصل منها سجل النشاط إلى المنظومة.',
     fallback: {
@@ -103,7 +113,8 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
       tips: ['المصدر لا يعبّر عن جودة النشاط.', 'اختر القناة الفعلية التي أنشأت السجل.'],
     },
   },
-  activity_rejection_reason: {
+  'impact.activity.rejection_reason': {
+    service: 'impact',
     label: 'سبب الرفض',
     context: 'تفسير مهني واضح لعدم اعتماد النشاط وما يلزم لتصحيحه.',
     fallback: {
@@ -114,20 +125,45 @@ const FIELD_DEFINITIONS: Record<FieldHelpKey, FieldDefinition> = {
   },
 }
 
-const helpCache = new Map<FieldHelpKey, FieldHelpResponse>()
-
 export function getFieldHelpFallback(fieldKey: FieldHelpKey): FieldHelpResponse {
   return FIELD_DEFINITIONS[fieldKey].fallback
+}
+
+function parseStoredGuide(guide: { explanation: string; example: string; tipsJson: string }): FieldHelpResponse | null {
+  try {
+    const parsed = fieldHelpResponseSchema.safeParse({
+      explanation: guide.explanation,
+      example: guide.example,
+      tips: JSON.parse(guide.tipsJson),
+    })
+    return parsed.success ? parsed.data : null
+  } catch {
+    return null
+  }
 }
 
 export async function generateFieldHelp(
   fieldKey: FieldHelpKey,
   userId: string,
-): Promise<{ help: FieldHelpResponse; source: 'gemini' | 'fallback' }> {
-  const cached = helpCache.get(fieldKey)
-  if (cached) return { help: cached, source: 'gemini' }
-
+): Promise<{ help: FieldHelpResponse; source: 'stored' | 'gemini' | 'fallback' }> {
   const definition = FIELD_DEFINITIONS[fieldKey]
+
+  try {
+    const stored = await prisma.fieldHelpGuide.findUnique({
+      where: { fieldKey },
+      select: { explanation: true, example: true, tipsJson: true },
+    })
+    if (stored) {
+      const help = parseStoredGuide(stored)
+      if (help) return { help, source: 'stored' }
+    }
+  } catch (error) {
+    logger.warn('[field-help] Unable to read the shared guide store', {
+      fieldKey,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+
   if (!process.env.GEMINI_API_KEY) {
     return { help: definition.fallback, source: 'fallback' }
   }
@@ -154,7 +190,28 @@ export async function generateFieldHelp(
     )
     const parsed = fieldHelpResponseSchema.safeParse(JSON.parse(result.text))
     if (!parsed.success) throw new Error('Invalid field-help response')
-    helpCache.set(fieldKey, parsed.data)
+
+    await prisma.fieldHelpGuide.upsert({
+      where: { fieldKey },
+      create: {
+        service: definition.service,
+        fieldKey,
+        label: definition.label,
+        explanation: parsed.data.explanation,
+        example: parsed.data.example,
+        tipsJson: JSON.stringify(parsed.data.tips),
+        source: 'GEMINI',
+        generatedBy: userId,
+      },
+      update: {},
+    })
+
+    const shared = await prisma.fieldHelpGuide.findUnique({
+      where: { fieldKey },
+      select: { explanation: true, example: true, tipsJson: true },
+    })
+    const help = shared ? parseStoredGuide(shared) : null
+    if (help) return { help, source: 'stored' }
     return { help: parsed.data, source: 'gemini' }
   } catch (error) {
     logger.warn('[field-help] Gemini unavailable; serving curated fallback', {

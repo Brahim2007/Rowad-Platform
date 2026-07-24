@@ -1594,14 +1594,14 @@ function ActivitiesTab({
       </section>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+          <div className="w-full max-w-5xl rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b px-5 py-4">
               <h2 className="font-bold text-neutral-900">{editing ? 'تعديل نشاط' : 'تسجيل نشاط جديد'}</h2>
               <Button unstyled onClick={() => setShowModal(false)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><X size={18} /></Button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3 p-5">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-1">العضو</label>
                   <NativeSelect required value={form.beneficiaryId} onChange={e => setForm({ ...form, beneficiaryId: e.target.value })} className="input-field">
@@ -1610,39 +1610,39 @@ function ActivitiesTab({
                 </div>
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    نوع النشاط <FieldHelp fieldKey="activity_type" label="نوع النشاط" />
+                    نوع النشاط <FieldHelp fieldKey="impact.activity.type" label="نوع النشاط" />
                   </label>
                   <NativeSelect required value={form.actionId} onChange={e => setForm({ ...form, actionId: e.target.value })} className="input-field">
                     {actions.filter(a => a.isActive).map(a => <option key={a.id} value={a.id}>{a.name} ({a.points} نقطة)</option>)}
                   </NativeSelect>
                 </div>
               </div>
-              <div className="grid sm:grid-cols-3 gap-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    التاريخ <FieldHelp fieldKey="activity_date" label="تاريخ النشاط" />
+                    التاريخ <FieldHelp fieldKey="impact.activity.date" label="تاريخ النشاط" />
                   </label>
                   <Input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    العدد <FieldHelp fieldKey="activity_count" label="العدد" />
+                    العدد <FieldHelp fieldKey="impact.activity.count" label="العدد" />
                   </label>
                   <Input type="number" min="1" value={form.count} onChange={e => setForm({ ...form, count: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    الجودة <FieldHelp fieldKey="activity_quality" label="الجودة" />
+                    الجودة <FieldHelp fieldKey="impact.activity.quality" label="الجودة" />
                   </label>
                   <NativeSelect value={form.quality} onChange={e => setForm({ ...form, quality: e.target.value })} className="input-field">
                     {QUALITIES.map(q => <option key={q} value={q}>{QUALITY_LABELS[q] || q}</option>)}
                   </NativeSelect>
                 </div>
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    حالة الاعتماد <FieldHelp fieldKey="activity_status" label="حالة الاعتماد" />
+                    حالة الاعتماد <FieldHelp fieldKey="impact.activity.status" label="حالة الاعتماد" />
                   </label>
                   <NativeSelect value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
                     {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
@@ -1650,7 +1650,7 @@ function ActivitiesTab({
                 </div>
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    المصدر <FieldHelp fieldKey="activity_source" label="مصدر النشاط" />
+                    المصدر <FieldHelp fieldKey="impact.activity.source" label="مصدر النشاط" />
                   </label>
                   <NativeSelect value={form.sourceType} onChange={e => setForm({ ...form, sourceType: e.target.value })} className="input-field">
                     <option value="MANUAL">يدوي</option>
@@ -1661,28 +1661,30 @@ function ActivitiesTab({
                     <option value="EXTERNAL">خارجي</option>
                   </NativeSelect>
                 </div>
-              </div>
-              {form.status === 'REJECTED' && (
                 <div>
-                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-red-700">
-                    سبب الرفض * <FieldHelp fieldKey="activity_rejection_reason" label="سبب الرفض" />
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    رابط الدليل <FieldHelp fieldKey="impact.activity.evidence" label="رابط دليل النشاط" />
                   </label>
-                  <Textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
+                  <Input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
                 </div>
-              )}
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                  رابط الدليل <FieldHelp fieldKey="activity_evidence" label="رابط دليل النشاط" />
-                </label>
-                <Input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
               </div>
-              <div>
-                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                  ملاحظات <FieldHelp fieldKey="activity_note" label="ملاحظات النشاط" />
-                </label>
-                <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
+              <div className={`grid gap-3 ${form.status === 'REJECTED' ? 'md:grid-cols-2' : ''}`}>
+                {form.status === 'REJECTED' && (
+                  <div>
+                    <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-red-700">
+                      سبب الرفض * <FieldHelp fieldKey="impact.activity.rejection_reason" label="سبب الرفض" />
+                    </label>
+                    <Textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
+                  </div>
+                )}
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    ملاحظات <FieldHelp fieldKey="impact.activity.note" label="ملاحظات النشاط" />
+                  </label>
+                  <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
+                </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-3 border-t pt-3">
                 <Button unstyled type="button" onClick={() => setShowModal(false)} className="btn-ghost btn-sm">إلغاء</Button>
                 <Button unstyled type="submit" disabled={submitting} className="btn-primary btn-sm">{submitting ? 'جاري...' : 'حفظ'}</Button>
               </div>

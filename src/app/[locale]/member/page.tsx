@@ -420,7 +420,7 @@ export default function MemberPortalPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                  نوع النشاط <FieldHelp fieldKey="activity_type" label="نوع النشاط" />
+                  نوع النشاط <FieldHelp fieldKey="impact.activity.type" label="نوع النشاط" />
                 </label>
                 <NativeSelect required value={subForm.actionId} onChange={e => setSubForm({ ...subForm, actionId: e.target.value })} className="input-field">
                   <option value="">— اختر النشاط —</option>
@@ -432,20 +432,20 @@ export default function MemberPortalPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    التاريخ <FieldHelp fieldKey="activity_date" label="تاريخ النشاط" />
+                    التاريخ <FieldHelp fieldKey="impact.activity.date" label="تاريخ النشاط" />
                   </label>
                   <Input type="date" required value={subForm.date} onChange={e => setSubForm({ ...subForm, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
                   <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                    العدد <FieldHelp fieldKey="activity_count" label="العدد" />
+                    العدد <FieldHelp fieldKey="impact.activity.count" label="العدد" />
                   </label>
                   <Input type="number" min="1" value={subForm.count} onChange={e => setSubForm({ ...subForm, count: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                  رابط دليل النشاط <FieldHelp fieldKey="activity_evidence" label="رابط دليل النشاط" />
+                  رابط دليل النشاط <FieldHelp fieldKey="impact.activity.evidence" label="رابط دليل النشاط" />
                 </label>
                 <Input
                   type="url"
@@ -462,7 +462,7 @@ export default function MemberPortalPage() {
               </div>
               <div>
                 <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
-                  ملاحظات <FieldHelp fieldKey="activity_note" label="ملاحظات النشاط" />
+                  ملاحظات <FieldHelp fieldKey="impact.activity.note" label="ملاحظات النشاط" />
                 </label>
                 <Textarea rows={2} value={subForm.note} onChange={e => setSubForm({ ...subForm, note: e.target.value })} className="input-field" placeholder="وصف مختصر لما أنجزته..." />
               </div>

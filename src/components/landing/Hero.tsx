@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
-import { ArrowLeft, BookOpen, CheckCircle2, Layers, Users, Sparkles, Zap, Globe, TrendingUp, Award } from 'lucide-react'
+import { ArrowLeft, BookOpen, CheckCircle2, Layers, Users, Sparkles, Globe, TrendingUp, Award } from 'lucide-react'
 import FadeIn from '@/components/motion/FadeIn'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, verifyPlatformOwnership } from '@/lib/auth-helpers'
-import { ai } from '@/lib/ai/deepseek'
+import { ai } from '@/lib/ai/gemini'
 import { buildPerformanceAlertProposals, type PerformanceAlertProposal } from '@/lib/performance-alerts'
 import { logger } from '@/lib/logger'
 

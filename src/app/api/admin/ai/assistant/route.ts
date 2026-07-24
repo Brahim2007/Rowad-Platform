@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ai } from '@/lib/ai/deepseek'
+import { ai } from '@/lib/ai/gemini'
 import { requireSuperAdmin } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { question } = parsed.data
 
     if (!ai.isConfigured()) {
-      return NextResponse.json({ success: false, message: 'مفتاح DeepSeek غير مضبوط' }, { status: 503 })
+      return NextResponse.json({ success: false, message: 'مفتاح Gemini غير مضبوط' }, { status: 503 })
     }
 
     // جمع بيانات النظام الحالية — استعلامات محددة سلفاً فقط، لا SQL حر

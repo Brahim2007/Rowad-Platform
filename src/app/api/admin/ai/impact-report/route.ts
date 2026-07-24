@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-helpers'
-import { ai } from '@/lib/ai/deepseek'
+import { ai } from '@/lib/ai/gemini'
 import { buildImpactReportMetrics, getImpactReportPeriod, impactReportRequestSchema } from '@/lib/ai/impact-report'
 import { logger } from '@/lib/logger'
 import { archiveAiReport } from '@/lib/institutional-archive'
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ai.isConfigured()) {
-      return NextResponse.json({ success: false, message: 'مفتاح DeepSeek غير مضبوط' }, { status: 503 })
+      return NextResponse.json({ success: false, message: 'مفتاح Gemini غير مضبوط' }, { status: 503 })
     }
 
     const input = parsed.data

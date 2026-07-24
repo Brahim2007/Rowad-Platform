@@ -18,7 +18,7 @@ function buildCsp(nonce: string) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://res.cloudinary.com https://www.rowwad.net https://images.unsplash.com",
     "font-src 'self'",
-    "connect-src 'self' https://api.deepseek.com",
+    "connect-src 'self' https://generativelanguage.googleapis.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

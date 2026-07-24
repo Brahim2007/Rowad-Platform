@@ -6,7 +6,7 @@
 
 - **Next.js 15** (App Router) + **TypeScript** · **Prisma** + **PostgreSQL**
 - **NextAuth.js** (الإدارة) · **JWT** (بوابة العضو) · **Nodemailer** (البريد)
-- **DeepSeek API** (مساعد ذكي — اختياري)
+- **Gemini API** (مساعد ذكي — اختياري)
 - **CI/CD:** GitHub Actions — type-check + build تلقائي
 
 ## الأدوار
@@ -27,7 +27,7 @@ npm run dev
 ```
 
 **متغيرات أساسية:** `AUTH_SECRET`, `ROWAD_DATABASE_URL`, `SMTP_*`, `EMAIL_FROM`
-**AI (اختياري):** `DEEPSEEK_API_KEY`, `AI_MONTHLY_BUDGET`
+**AI (اختياري):** `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_MONTHLY_BUDGET`
 
 ## الدخول
 

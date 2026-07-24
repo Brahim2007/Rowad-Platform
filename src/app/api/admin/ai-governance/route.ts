@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-helpers'
-import { ai } from '@/lib/ai/deepseek'
+import { ai } from '@/lib/ai/gemini'
 import { buildGovernanceDrafts, type GovernanceDraft } from '@/lib/ai-governance'
 import { recordActivityLog } from '@/lib/activity-log'
 import { logger } from '@/lib/logger'

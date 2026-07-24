@@ -193,14 +193,16 @@ export default function SmartImpactReportPage() {
         </div>
 
         {/* شريط الأدوات — desktop */}
-        <div className="hidden lg:flex items-center justify-between px-4 py-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-neutral-400 ml-1.5">انتقال سريع:</span>
-            {navLinks.map(({ id, label }) => (
-              <Button unstyled key={id} onClick={() => scrollToSection(id)} className="rounded-lg px-2.5 py-1.5 text-xs text-neutral-600 hover:bg-primary-50 hover:text-primary-700 whitespace-nowrap transition-colors">{label}</Button>
-            ))}
+        <div className="hidden overflow-hidden px-4 py-2.5 lg:block">
+          <div className="flex max-w-full items-center gap-1.5 overflow-x-auto pb-1">
+            <div className="flex min-w-max items-center gap-1.5">
+              <span className="ml-1.5 text-xs font-semibold text-neutral-400">انتقال سريع:</span>
+              {navLinks.map(({ id, label }) => (
+                <Button unstyled key={id} onClick={() => scrollToSection(id)} className="whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs text-neutral-600 transition-colors hover:bg-primary-50 hover:text-primary-700">{label}</Button>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="mt-1.5 flex flex-wrap items-center justify-end gap-1.5 border-t border-neutral-100 pt-2">
             <Button unstyled onClick={loadReport} className="btn-ghost btn-sm"><RefreshCw size={14} /> تحديث</Button>
             <Button unstyled onClick={copyExecutiveSummary} className="btn-ghost btn-sm"><Copy size={14} /> نسخ الملخص</Button>
             <Button unstyled onClick={copyLink} className="btn-ghost btn-sm"><Link2 size={14} /> نسخ الرابط</Button>

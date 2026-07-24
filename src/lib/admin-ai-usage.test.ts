@@ -26,8 +26,9 @@ describe('admin AI usage balance', () => {
     assert.match(routeSource, /monthlyBudget - consumed/)
   })
 
-  it('renders the balance only for system managers in the impact tabs bar', () => {
-    assert.match(layoutSource, /\{isSystemManager && <AiUsageBalance \/>\}/)
+  it('keeps the balance available behind an off-by-default feature flag', () => {
+    assert.match(layoutSource, /NEXT_PUBLIC_SHOW_AI_USAGE_BALANCE === 'true'/)
+    assert.match(layoutSource, /\{SHOW_AI_USAGE_BALANCE && isSystemManager && <AiUsageBalance \/>\}/)
     assert.match(layoutSource, /المستهلك/)
     assert.match(layoutSource, /المتبقي/)
   })

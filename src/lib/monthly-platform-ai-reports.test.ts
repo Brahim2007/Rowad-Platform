@@ -56,6 +56,8 @@ describe('monthly platform AI report policy', () => {
     assert.match(aiClient, /recommendedSolution/)
     assert.match(aiClient, /immediateAction/)
     assert.match(aiClient, /rapidActionPlan/)
+    assert.match(aiClient, /reasoning_effort: 'low'/)
+    assert.match(aiClient, /context\.scope === 'platform' \? 8000 : 6000/)
     assert.match(document, /التقويم التنفيذي للمنصة/)
     assert.match(document, /المشكلات الحرجة والحلول العاجلة/)
     assert.match(document, /خطة التحرك السريع/)

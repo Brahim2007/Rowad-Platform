@@ -110,6 +110,7 @@ export const ai = {
         model: GEMINI_MODEL,
         messages,
         max_tokens: opts.maxTokens ?? 800,
+        reasoning_effort: 'low',
         ...(opts.responseFormat && { response_format: opts.responseFormat }),
       })
 
@@ -283,7 +284,7 @@ ${JSON.stringify(metrics, null, 2)}
         ? 'أنت محلل أداء تنفيذي لمنصة محددة ضمن شبكة رواد. لا تخلط أداء المنصة بأداء الشبكة الكلي، والتزم بالأرقام المقدمة.'
         : 'أنت محلل أداء تنفيذي لشبكة رواد. هذا تقرير الشبكة الكلي؛ التزم بالأرقام المقدمة، واكتب بالعربية الفصحى.',
       temperature: 0.2,
-      maxTokens: context.scope === 'platform' ? 4800 : 3600,
+      maxTokens: context.scope === 'platform' ? 8000 : 6000,
       userId,
       feature: context.scope === 'platform' ? 'platform-performance-report' : 'network-performance-report',
       responseFormat: { type: 'json_object' },

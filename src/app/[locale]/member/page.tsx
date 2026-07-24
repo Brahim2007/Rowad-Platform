@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { NativeSelect } from '@/components/ui/native-select'
+import { FieldHelp } from '@/components/shared/FieldHelp'
 
 import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -418,7 +419,9 @@ export default function MemberPortalPage() {
             <h2 className="font-bold text-neutral-900 mb-4 flex items-center gap-2"><Send size={18} className="text-primary-600" /> إرسال نشاط جديد</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع النشاط</label>
+                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                  نوع النشاط <FieldHelp fieldKey="activity_type" label="نوع النشاط" />
+                </label>
                 <NativeSelect required value={subForm.actionId} onChange={e => setSubForm({ ...subForm, actionId: e.target.value })} className="input-field">
                   <option value="">— اختر النشاط —</option>
                   {actions.filter(a => a.isActive).map(a => (
@@ -428,16 +431,22 @@ export default function MemberPortalPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">التاريخ</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    التاريخ <FieldHelp fieldKey="activity_date" label="تاريخ النشاط" />
+                  </label>
                   <Input type="date" required value={subForm.date} onChange={e => setSubForm({ ...subForm, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">العدد</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    العدد <FieldHelp fieldKey="activity_count" label="العدد" />
+                  </label>
                   <Input type="number" min="1" value={subForm.count} onChange={e => setSubForm({ ...subForm, count: e.target.value })} className="input-field" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط دليل النشاط</label>
+                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                  رابط دليل النشاط <FieldHelp fieldKey="activity_evidence" label="رابط دليل النشاط" />
+                </label>
                 <Input
                   type="url"
                   inputMode="url"
@@ -452,7 +461,9 @@ export default function MemberPortalPage() {
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
+                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                  ملاحظات <FieldHelp fieldKey="activity_note" label="ملاحظات النشاط" />
+                </label>
                 <Textarea rows={2} value={subForm.note} onChange={e => setSubForm({ ...subForm, note: e.target.value })} className="input-field" placeholder="وصف مختصر لما أنجزته..." />
               </div>
 

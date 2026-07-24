@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { NativeSelect } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { FieldHelp } from '@/components/shared/FieldHelp'
 
 /**
  * لوحة أثر الرواد — Impact Dashboard
@@ -1608,7 +1609,9 @@ function ActivitiesTab({
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">نوع النشاط</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    نوع النشاط <FieldHelp fieldKey="activity_type" label="نوع النشاط" />
+                  </label>
                   <NativeSelect required value={form.actionId} onChange={e => setForm({ ...form, actionId: e.target.value })} className="input-field">
                     {actions.filter(a => a.isActive).map(a => <option key={a.id} value={a.id}>{a.name} ({a.points} نقطة)</option>)}
                   </NativeSelect>
@@ -1616,15 +1619,21 @@ function ActivitiesTab({
               </div>
               <div className="grid sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">التاريخ</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    التاريخ <FieldHelp fieldKey="activity_date" label="تاريخ النشاط" />
+                  </label>
                   <Input type="date" required value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input-field" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">العدد</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    العدد <FieldHelp fieldKey="activity_count" label="العدد" />
+                  </label>
                   <Input type="number" min="1" value={form.count} onChange={e => setForm({ ...form, count: e.target.value })} className="input-field" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">الجودة</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    الجودة <FieldHelp fieldKey="activity_quality" label="الجودة" />
+                  </label>
                   <NativeSelect value={form.quality} onChange={e => setForm({ ...form, quality: e.target.value })} className="input-field">
                     {QUALITIES.map(q => <option key={q} value={q}>{QUALITY_LABELS[q] || q}</option>)}
                   </NativeSelect>
@@ -1632,13 +1641,17 @@ function ActivitiesTab({
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">حالة الاعتماد</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    حالة الاعتماد <FieldHelp fieldKey="activity_status" label="حالة الاعتماد" />
+                  </label>
                   <NativeSelect value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input-field">
                     {APPROVAL_STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s] || s}</option>)}
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-1">المصدر</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                    المصدر <FieldHelp fieldKey="activity_source" label="مصدر النشاط" />
+                  </label>
                   <NativeSelect value={form.sourceType} onChange={e => setForm({ ...form, sourceType: e.target.value })} className="input-field">
                     <option value="MANUAL">يدوي</option>
                     <option value="PARTICIPATION">مشاركة</option>
@@ -1651,16 +1664,22 @@ function ActivitiesTab({
               </div>
               {form.status === 'REJECTED' && (
                 <div>
-                  <label className="block text-sm font-semibold text-red-700 mb-1">سبب الرفض *</label>
+                  <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-red-700">
+                    سبب الرفض * <FieldHelp fieldKey="activity_rejection_reason" label="سبب الرفض" />
+                  </label>
                   <Textarea rows={2} required value={form.rejectionReason} onChange={e => setForm({ ...form, rejectionReason: e.target.value })} className="input-field border-red-300 focus:border-red-500" placeholder="يجب توضيح سبب رفض النشاط..." />
                 </div>
               )}
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">رابط الدليل</label>
+                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                  رابط الدليل <FieldHelp fieldKey="activity_evidence" label="رابط دليل النشاط" />
+                </label>
                 <Input value={form.link} onChange={e => setForm({ ...form, link: e.target.value })} className="input-field" placeholder="https://..." />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-1">ملاحظات</label>
+                <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-neutral-700">
+                  ملاحظات <FieldHelp fieldKey="activity_note" label="ملاحظات النشاط" />
+                </label>
                 <Textarea rows={2} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} className="input-field" />
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t">

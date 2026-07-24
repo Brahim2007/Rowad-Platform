@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateFieldHelp, fieldHelpKeySchema } from '@/lib/ai/field-help'
+import { getFieldHelp, fieldHelpKeySchema } from '@/lib/ai/field-help'
 import { requireAuth } from '@/lib/auth-helpers'
 import { getMemberTokenPayload, requireActiveMember } from '@/lib/member-auth'
 import { rateLimit, rateLimitResponse } from '@/lib/rate-limit'
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'حقل المساعدة غير معتمد' }, { status: 400 })
   }
 
-  const result = await generateFieldHelp(parsed.data.fieldKey, userId)
+  const result = await getFieldHelp(parsed.data.fieldKey)
   return NextResponse.json({
     success: true,
     data: result.help,

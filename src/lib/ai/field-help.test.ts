@@ -6,7 +6,7 @@ function source(path: string) {
   return readFileSync(path, 'utf8')
 }
 
-describe('Gemini contextual field help', () => {
+describe('static contextual field help', () => {
   it('allows only curated field keys and provides a complete fallback', () => {
     const service = source('src/lib/ai/field-help.ts')
     assert.match(service, /fieldHelpKeySchema = z\.enum\(\[/)
@@ -22,13 +22,25 @@ describe('Gemini contextual field help', () => {
     const service = source('src/lib/ai/field-help.ts')
     const schema = source('prisma/schema.prisma')
     const migration = source('prisma/migrations/20260724153000_shared_field_help_guides/migration.sql')
+    const seedMigration = source('prisma/migrations/20260724170000_seed_static_field_help_guides/migration.sql')
     assert.match(schema, /model FieldHelpGuide/)
     assert.match(schema, /fieldKey\s+String\s+@unique/)
     assert.match(schema, /service\s+String/)
     assert.match(migration, /CREATE TABLE "field_help_guides"/)
     assert.match(service, /prisma\.fieldHelpGuide\.findUnique/)
-    assert.match(service, /prisma\.fieldHelpGuide\.upsert/)
-    assert.match(service, /update:\s*\{\}/)
+    assert.match(seedMigration, /INSERT INTO "field_help_guides"/)
+    assert.match(seedMigration, /ON CONFLICT \("fieldKey"\) DO UPDATE/)
+    assert.match(seedMigration, /'CURATED'/)
+  })
+
+  it('never calls Gemini while serving field help', () => {
+    const service = source('src/lib/ai/field-help.ts')
+    const component = source('src/components/shared/FieldHelp.tsx')
+    assert.doesNotMatch(service, /@\/lib\/ai\/gemini/)
+    assert.doesNotMatch(service, /ai\.chat/)
+    assert.doesNotMatch(service, /GEMINI_API_KEY/)
+    assert.doesNotMatch(component, /Gemini|بالذكاء الاصطناعي/)
+    assert.match(service, /source: 'stored' \| 'project'/)
   })
 
   it('authenticates members and administrators and rate-limits each account', () => {
@@ -44,7 +56,7 @@ describe('Gemini contextual field help', () => {
     const component = source('src/components/shared/FieldHelp.tsx')
     assert.match(component, /JSON\.stringify\(\{ fieldKey \}\)/)
     assert.doesNotMatch(component, /JSON\.stringify\(\{[^}]*value/)
-    assert.match(component, /لا تُرسل قيمة الحقل أو بياناتك إلى Gemini/)
+    assert.match(component, /دليل جاهز وموحّد لجميع مستخدمي المنصة/)
   })
 
   it('exposes contextual help in member submission and admin review forms', () => {

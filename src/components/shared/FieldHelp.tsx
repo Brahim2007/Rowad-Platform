@@ -47,9 +47,9 @@ export function FieldHelp({ fieldKey, label }: FieldHelpProps) {
         type="button"
         onClick={toggleHelp}
         className="inline-flex size-6 items-center justify-center rounded-full text-primary-600 transition hover:bg-primary-50 hover:text-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-300"
-        aria-label={`مساعدة ذكية لحقل ${label}`}
+        aria-label={`دليل حقل ${label}`}
         aria-expanded={open}
-        title={`شرح ${label} بالذكاء الاصطناعي`}
+        title={`دليل ${label}`}
       >
         <CircleHelp size={16} />
       </button>
@@ -71,7 +71,7 @@ export function FieldHelp({ fieldKey, label }: FieldHelpProps) {
           {loading && (
             <div className="flex items-center gap-2 py-3 text-sm text-neutral-500">
               <LoaderCircle size={16} className="animate-spin text-primary-600" />
-              Gemini يجهز شرحًا مبسطًا...
+              جاري تحميل دليل الحقل...
             </div>
           )}
 
@@ -87,7 +87,7 @@ export function FieldHelp({ fieldKey, label }: FieldHelpProps) {
                 {help.tips.map((tip, index) => <li key={index}>• {tip}</li>)}
               </ul>
               <p className="border-t border-neutral-100 pt-2 text-[10px] text-neutral-400">
-                لا تُرسل قيمة الحقل أو بياناتك إلى Gemini.
+                دليل جاهز وموحّد لجميع مستخدمي المنصة.
               </p>
             </div>
           )}

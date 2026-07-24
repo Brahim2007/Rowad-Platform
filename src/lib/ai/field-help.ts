@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { ai } from '@/lib/ai/gemini'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 
@@ -142,10 +141,9 @@ function parseStoredGuide(guide: { explanation: string; example: string; tipsJso
   }
 }
 
-export async function generateFieldHelp(
+export async function getFieldHelp(
   fieldKey: FieldHelpKey,
-  userId: string,
-): Promise<{ help: FieldHelpResponse; source: 'stored' | 'gemini' | 'fallback' }> {
+): Promise<{ help: FieldHelpResponse; source: 'stored' | 'project' }> {
   const definition = FIELD_DEFINITIONS[fieldKey]
 
   try {
@@ -163,61 +161,5 @@ export async function generateFieldHelp(
       error: error instanceof Error ? error.message : String(error),
     })
   }
-
-  if (!process.env.GEMINI_API_KEY) {
-    return { help: definition.fallback, source: 'fallback' }
-  }
-
-  try {
-    const result = await ai.chat(
-      `اشرح الحقل التالي لمستخدم في منصة رواد:
-اسم الحقل: ${definition.label}
-سياقه الموثوق: ${definition.context}
-
-أعد JSON فقط بهذه البنية:
-{
-  "explanation": "شرح عربي مبسط من جملتين كحد أقصى",
-  "example": "مثال عملي صحيح وقصير",
-  "tips": ["نصيحة عملية", "خطأ شائع يجب تجنبه"]
-}`,
-      {
-        system: 'أنت مساعد حقول عربي موجز لمنصة إدارية. التزم بالسياق المقدم، ولا تطلب بيانات شخصية، ولا تفترض أنك شاهدت قيمة الحقل.',
-        maxTokens: 450,
-        userId,
-        feature: `field-help:${fieldKey}`,
-        responseFormat: { type: 'json_object' },
-      },
-    )
-    const parsed = fieldHelpResponseSchema.safeParse(JSON.parse(result.text))
-    if (!parsed.success) throw new Error('Invalid field-help response')
-
-    await prisma.fieldHelpGuide.upsert({
-      where: { fieldKey },
-      create: {
-        service: definition.service,
-        fieldKey,
-        label: definition.label,
-        explanation: parsed.data.explanation,
-        example: parsed.data.example,
-        tipsJson: JSON.stringify(parsed.data.tips),
-        source: 'GEMINI',
-        generatedBy: userId,
-      },
-      update: {},
-    })
-
-    const shared = await prisma.fieldHelpGuide.findUnique({
-      where: { fieldKey },
-      select: { explanation: true, example: true, tipsJson: true },
-    })
-    const help = shared ? parseStoredGuide(shared) : null
-    if (help) return { help, source: 'stored' }
-    return { help: parsed.data, source: 'gemini' }
-  } catch (error) {
-    logger.warn('[field-help] Gemini unavailable; serving curated fallback', {
-      fieldKey,
-      error: error instanceof Error ? error.message : String(error),
-    })
-    return { help: definition.fallback, source: 'fallback' }
-  }
+  return { help: definition.fallback, source: 'project' }
 }

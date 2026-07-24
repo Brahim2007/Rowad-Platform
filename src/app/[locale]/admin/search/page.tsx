@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Users, Activity, FileText } from 'lucide-react'
 
@@ -18,15 +18,46 @@ function Badge({ children, className }: { children: React.ReactNode; className: 
 
 export default function SearchResultsPage() {
   const searchParams = useSearchParams()
+  const params = useParams<{ locale: string }>()
   const q = searchParams.get('q') || ''
   const [results, setResults] = useState<{ members: ResultItem[]; activities: ResultItem[]; documents: ResultItem[] } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const locale = params.locale === 'en' ? 'en' : 'ar'
 
   useEffect(() => {
-    if (!q || q.length < 2) { setLoading(false); return }
-    fetch(`/api/admin/search?q=${encodeURIComponent(q)}`).then(r => r.json()).then(json => {
-      if (json.success) setResults(json.data)
-    }).finally(() => setLoading(false))
+    const normalizedQuery = q.trim()
+    if (normalizedQuery.length < 2) {
+      setResults(null)
+      setError('')
+      setLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    setLoading(true)
+    setError('')
+    setResults(null)
+
+    fetch(`/api/admin/search?q=${encodeURIComponent(normalizedQuery)}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async response => {
+        const json = await response.json()
+        if (!response.ok || !json.success) throw new Error(json.message || 'تعذر تنفيذ البحث')
+        setResults(json.data)
+      })
+      .catch(fetchError => {
+        if ((fetchError as Error).name !== 'AbortError') {
+          setError('تعذر تنفيذ البحث الآن. حاول مرة أخرى.')
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
   }, [q])
 
   const total = results ? results.members.length + results.activities.length + results.documents.length : 0
@@ -50,6 +81,12 @@ export default function SearchResultsPage() {
         <div className="text-center py-12"><div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto" /></div>
       )}
 
+      {!loading && error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-center text-sm font-semibold text-red-700">
+          {error}
+        </div>
+      )}
+
       {results && total === 0 && (
         <div className="text-center py-16 text-neutral-400">
           <Search size={48} className="mx-auto mb-4 text-neutral-300" />
@@ -66,7 +103,7 @@ export default function SearchResultsPage() {
               <h2 className="font-bold text-neutral-900 mb-3 flex items-center gap-2"><Users size={16} className="text-primary-600" /> أعضاء ({results.members.length})</h2>
               <div className="space-y-2">
                 {results.members.map(m => (
-                  <Link key={m.id} href={`/admin/impact?tab=card`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
+                  <Link key={m.id} href={`/${locale}/admin/impact?tab=card&memberId=${encodeURIComponent(m.id)}`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-neutral-800 text-sm">{m.name}</span>
@@ -89,7 +126,7 @@ export default function SearchResultsPage() {
               <h2 className="font-bold text-neutral-900 mb-3 flex items-center gap-2"><Activity size={16} className="text-teal-600" /> أنشطة ({results.activities.length})</h2>
               <div className="space-y-2">
                 {results.activities.map(a => (
-                  <Link key={a.id} href={`/admin/impact?tab=activities`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
+                  <Link key={a.id} href={`/${locale}/admin/impact?tab=activities`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-neutral-800 text-sm">{a.title}</span>
@@ -111,7 +148,7 @@ export default function SearchResultsPage() {
               <h2 className="font-bold text-neutral-900 mb-3 flex items-center gap-2"><FileText size={16} className="text-purple-600" /> وثائق ({results.documents.length})</h2>
               <div className="space-y-2">
                 {results.documents.map(d => (
-                  <Link key={d.id} href={`/admin/documents`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
+                  <Link key={d.id} href={`/${locale}/admin/documents`} className="block border rounded-lg p-3 hover:bg-neutral-50 transition-colors no-underline">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-semibold text-neutral-800 text-sm">{d.title}</span>

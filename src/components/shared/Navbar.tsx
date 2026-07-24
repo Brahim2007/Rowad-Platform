@@ -56,7 +56,7 @@ export default function Navbar() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         floatingOnHero
-          ? 'border-b border-white/10 bg-neutral-950/16 text-white backdrop-blur-md'
+          ? 'border-b border-primary-100/90 bg-white/95 shadow-md shadow-primary-950/5 backdrop-blur-xl'
           : scrolled
           ? 'border-b border-neutral-200/80 bg-white/95 shadow-lg shadow-neutral-900/5 backdrop-blur-xl'
           : 'border-b border-transparent bg-white/80 backdrop-blur-sm'
@@ -83,12 +83,8 @@ export default function Navbar() {
                 href={href}
                 className={`relative inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 no-underline ${
                   isActive(href)
-                    ? floatingOnHero
-                      ? 'bg-white/14 text-white shadow-sm'
-                      : 'bg-primary-50 text-primary-700 shadow-sm'
-                    : floatingOnHero
-                      ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-primary-600'
+                    ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-100'
+                    : 'text-neutral-700 hover:bg-primary-50 hover:text-primary-700'
                 }`}
               >
                 <Icon size={16} />
@@ -98,13 +94,13 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button unstyled asChild size="sm" variant={floatingOnHero ? 'glass' : 'default'} className="hidden sm:inline-flex">
+            <Button unstyled asChild size="sm" variant="default" className="hidden sm:inline-flex">
               <Link href="/contact" className="group no-underline">
                 {t('contact')}
                 <ArrowLeft size={16} className="rtl-flip transition-transform duration-200 group-hover:-translate-x-0.5" />
               </Link>
             </Button>
-            <Button unstyled asChild size="sm" variant={floatingOnHero ? 'glass' : 'outline'} className="hidden sm:inline-flex">
+            <Button unstyled asChild size="sm" variant="outline" className="hidden sm:inline-flex border-primary-200 bg-white text-primary-700 hover:bg-primary-50">
               <Link href="/admin/login" className="no-underline">
                 <Lock size={14} />
                 دخول الإدارة
@@ -113,7 +109,7 @@ export default function Navbar() {
             <Button unstyled
               type="button"
               size="icon"
-              variant={floatingOnHero ? 'glass' : 'outline'}
+              variant="outline"
               className="md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}

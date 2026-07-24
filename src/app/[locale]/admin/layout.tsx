@@ -38,6 +38,9 @@ const impactTabs = [
   { id: 'settings',    href: '/admin/impact?tab=settings',            label: 'الإعدادات',       icon: Settings },
 ]
 
+/** إبقاء الميزة جاهزة للعودة دون عرضها افتراضيًا. */
+const SHOW_AI_USAGE_BALANCE = process.env.NEXT_PUBLIC_SHOW_AI_USAGE_BALANCE === 'true'
+
 /** القائمة الجانبية — أدوات الإدارة المساندة */
 const sidebarSections = [
   {
@@ -110,24 +113,39 @@ function NotificationBell({ recipientType }: { recipientType: string }) {
 
 function SearchGlobal() {
   const router = useRouter()
+  const pathname = usePathname()
   const [q, setQ] = useState('')
+  const normalizedQuery = q.trim()
+  const locale = pathname.split('/')[1] === 'en' ? 'en' : 'ar'
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (q.trim().length >= 2) router.push(`/ar/admin/search?q=${encodeURIComponent(q.trim())}`)
+    if (normalizedQuery.length >= 2) {
+      router.push(`/${locale}/admin/search?q=${encodeURIComponent(normalizedQuery)}`)
+    }
   }
 
   return (
-    <form onSubmit={handleSearch} className="flex items-center gap-2">
-      <Search size={16} className="text-neutral-400" />
+    <form onSubmit={handleSearch} className="flex min-w-0 items-center gap-2" role="search">
+      <Search size={16} className="shrink-0 text-neutral-400" aria-hidden="true" />
       <Input
         value={q}
         onChange={e => setQ(e.target.value)}
         placeholder="بحث سريع في الأعضاء والأنشطة والوثائق..."
-        className="h-8 min-w-[300px] flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         dir="rtl"
+        aria-label="البحث السريع في لوحة التحكم"
       />
-      <Button unstyled type="submit" variant="ghost" size="sm" className="h-7 px-2 text-primary-700">بحث</Button>
+      <Button
+        unstyled
+        type="submit"
+        variant="ghost"
+        size="sm"
+        disabled={normalizedQuery.length < 2}
+        className="h-7 shrink-0 px-2 text-primary-700 disabled:cursor-not-allowed disabled:text-neutral-300"
+      >
+        بحث
+      </Button>
     </form>
   )
 }
@@ -466,8 +484,8 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 <p className="text-xs text-neutral-500">متابعة الأثر، المحتوى، والمنصات من مساحة واحدة</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="hidden xl:block min-w-[360px] rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
+            <div className="flex min-w-0 items-center gap-2 xl:gap-3">
+              <div className="hidden w-[clamp(220px,28vw,380px)] min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm lg:block">
                 <SearchGlobal />
               </div>
 
@@ -531,7 +549,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
                 </Link>
               ))}
             </div>
-            {isSystemManager && <AiUsageBalance />}
+            {SHOW_AI_USAGE_BALANCE && isSystemManager && <AiUsageBalance />}
           </div>
         </div>
         )}

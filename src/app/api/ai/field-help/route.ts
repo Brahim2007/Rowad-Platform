@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     audience = 'admin'
   }
 
-  const limit = rateLimit(`field-help:${audience}:${userId}`, 20, 60 * 60 * 1000)
+  const limit = rateLimit(`field-help:${audience}:${userId}`, 120, 60 * 60 * 1000)
   if (!limit.success) {
     return rateLimitResponse('وصلت إلى حد مساعدات الحقول لهذه الساعة — حاول لاحقًا', limit.retryAfter)
   }

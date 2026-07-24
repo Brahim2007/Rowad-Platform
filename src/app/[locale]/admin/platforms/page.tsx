@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -89,10 +90,11 @@ const StatCard = ({ label, value, icon: Icon, gradient }: {
 
 // ─── Platform Card ───
 
-const PlatformCard = ({ platform, onEdit, onDelete }: {
+const PlatformCard = ({ platform, onEdit, onDelete, canDelete }: {
   platform: Platform
   onEdit: (p: Platform) => void
   onDelete: (id: string) => void
+  canDelete: boolean
 }) => {
   const color = platform.color || '#527F47'
   const image = platform.coverImage || platform.logo
@@ -144,13 +146,15 @@ const PlatformCard = ({ platform, onEdit, onDelete }: {
           >
             <Pencil size={13} />
           </Button>
-          <Button unstyled
-            onClick={(event) => { event.preventDefault(); event.stopPropagation(); onDelete(platform.id) }}
-            className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-error-50 hover:text-error-600 border border-neutral-200 shadow-sm transition-all"
-            title="حذف المنصة"
-          >
-            <Trash2 size={13} />
-          </Button>
+          {canDelete && (
+            <Button unstyled
+              onClick={(event) => { event.preventDefault(); event.stopPropagation(); onDelete(platform.id) }}
+              className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-error-50 hover:text-error-600 border border-neutral-200 shadow-sm transition-all"
+              title="حذف المنصة"
+            >
+              <Trash2 size={13} />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -238,6 +242,8 @@ const Modal = ({ show, onClose, title, icon: ModalIcon, iconColor, children }: {
 // ─── Main Page ───
 
 export default function AdminPlatformsPage() {
+  const { data: session } = useSession()
+  const isPlatformManager = (session?.user as { role?: string } | undefined)?.role === 'PLATFORM_MANAGER'
   const [platforms, setPlatforms] = useState<Platform[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -357,8 +363,10 @@ export default function AdminPlatformsPage() {
                   <Blocks size={22} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-white">المنصات</h1>
-                  <p className="text-primary-200 text-sm mt-1">إدارة وعرض جميع المنصات في شبكة الرواد</p>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-white">{isPlatformManager ? 'منصتي وبرامجها' : 'المنصات'}</h1>
+                  <p className="text-primary-200 text-sm mt-1">
+                    {isPlatformManager ? 'إدارة بيانات المنصة والبرامج والدورات والأنشطة التابعة لها' : 'إدارة وعرض جميع المنصات في شبكة الرواد'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -372,13 +380,15 @@ export default function AdminPlatformsPage() {
                   placeholder="بحث في المنصات..."
                 />
               </div>
-              <Button unstyled
-                onClick={openAdd}
-                className="h-10 px-5 bg-white text-primary-800 hover:bg-primary-50 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:-translate-y-0.5 shrink-0"
-              >
-                <Plus size={18} />
-                إضافة منصة
-              </Button>
+              {!isPlatformManager && (
+                <Button unstyled
+                  onClick={openAdd}
+                  className="h-10 px-5 bg-white text-primary-800 hover:bg-primary-50 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:shadow-lg hover:-translate-y-0.5 shrink-0"
+                >
+                  <Plus size={18} />
+                  إضافة منصة
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -411,9 +421,11 @@ export default function AdminPlatformsPage() {
             </div>
             <p className="text-lg font-semibold text-neutral-900 mb-1">لا توجد منصات بعد</p>
             <p className="text-sm text-neutral-500 mb-6 max-w-sm text-center">أضف منصتك الأولى لبدء بناء البرامج والدورات والأنشطة.</p>
-            <Button unstyled onClick={openAdd} className="btn-primary btn-sm">
-              <Plus size={16} /> إضافة منصة
-            </Button>
+            {!isPlatformManager && (
+              <Button unstyled onClick={openAdd} className="btn-primary btn-sm">
+                <Plus size={16} /> إضافة منصة
+              </Button>
+            )}
           </div>
         </div>
       ) : (
@@ -432,6 +444,7 @@ export default function AdminPlatformsPage() {
                 platform={platform}
                 onEdit={openEdit}
                 onDelete={handleDelete}
+                canDelete={!isPlatformManager}
               />
             ))}
           </div>

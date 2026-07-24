@@ -18,7 +18,8 @@ import { toast } from 'sonner'
 import {
   Shield, Users, Activity, TrendingUp, Clock, CheckCircle,
   Search, UserCheck, Plus,
-  Hourglass, Eye, Copy, KeyRound, CalendarDays, FileText, Sparkles
+  Hourglass, Eye, Copy, KeyRound, CalendarDays, FileText, Sparkles,
+  Blocks, FolderKanban, Archive, ArrowLeft
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════
@@ -31,6 +32,11 @@ interface Kpis {
   pendingReviews: number
   totalApproved: number
   monthlyApproved: number
+  programCount: number
+  activityCatalogCount: number
+  projectCount: number
+  reportCount: number
+  documentCount: number
 }
 
 interface PendingActivity {
@@ -112,7 +118,18 @@ export default function MyPlatformDashboard() {
   const platformName = sessionUser?.platformName || 'المنصة'
   const platformId = sessionUser?.platformId
 
-  const [kpis, setKpis] = useState<Kpis>({ memberCount: 0, activeNow: 0, pendingReviews: 0, totalApproved: 0, monthlyApproved: 0 })
+  const [kpis, setKpis] = useState<Kpis>({
+    memberCount: 0,
+    activeNow: 0,
+    pendingReviews: 0,
+    totalApproved: 0,
+    monthlyApproved: 0,
+    programCount: 0,
+    activityCatalogCount: 0,
+    projectCount: 0,
+    reportCount: 0,
+    documentCount: 0,
+  })
   const [pendingActivities, setPendingActivities] = useState<PendingActivity[]>([])
   const [members, setMembers] = useState<MemberItem[]>([])
   const [activities, setActivities] = useState<ActivityItem[]>([])
@@ -266,6 +283,24 @@ export default function MyPlatformDashboard() {
             <KpiCard icon={Clock} label="بانتظار الاعتماد" value={kpis.pendingReviews} color="bg-amber-100 text-amber-600" />
             <KpiCard icon={CheckCircle} label="المعتمدة هذا الشهر" value={kpis.monthlyApproved} color="bg-teal-100 text-teal-600" />
             <KpiCard icon={CheckCircle} label="إجمالي المعتمدة" value={kpis.totalApproved} color="bg-blue-100 text-blue-600" />
+          </div>
+
+          <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { href: '/ar/admin/platforms', label: 'البرامج والأنشطة', value: `${kpis.programCount} برنامج · ${kpis.activityCatalogCount} نشاط`, icon: Blocks, color: 'bg-indigo-50 text-indigo-700' },
+              { href: '/ar/admin/projects', label: 'مشاريع المنصة', value: `${kpis.projectCount} مشروع`, icon: FolderKanban, color: 'bg-sky-50 text-sky-700' },
+              { href: '/ar/admin/reports', label: 'التقارير المرفوعة', value: `${kpis.reportCount} تقرير`, icon: FileText, color: 'bg-violet-50 text-violet-700' },
+              { href: '/ar/admin/documents', label: 'وثائق المنصة', value: `${kpis.documentCount} وثيقة`, icon: Archive, color: 'bg-emerald-50 text-emerald-700' },
+            ].map(({ href, label, value, icon: Icon, color }) => (
+              <Link key={href} href={href} className="group rounded-2xl border border-neutral-200 bg-white p-4 no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <span className={`flex size-10 items-center justify-center rounded-xl ${color}`}><Icon size={19} /></span>
+                  <ArrowLeft size={16} className="text-neutral-300 transition group-hover:-translate-x-1 group-hover:text-primary-600" />
+                </div>
+                <h3 className="mt-3 text-sm font-bold text-neutral-900">{label}</h3>
+                <p className="mt-1 text-xs text-neutral-500">{value}</p>
+              </Link>
+            ))}
           </div>
 
           {/* Pending Activities */}

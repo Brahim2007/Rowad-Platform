@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { ai } from '@/lib/ai/gemini'
+import { ai, isAiCapacityError } from '@/lib/ai/gemini'
 import { requireSuperAdmin } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -105,6 +105,12 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'Budget exceeded') {
       return NextResponse.json({ success: false, message: 'تم تجاوز السقف الشهري' }, { status: 429 })
+    }
+    if (isAiCapacityError(error)) {
+      return NextResponse.json({
+        success: false,
+        message: 'خدمة Gemini مزدحمة أو بلغت حد الطلبات مؤقتًا — حاول بعد دقيقة',
+      }, { status: 503 })
     }
     logger.error('[ai] assistant error', error)
     return NextResponse.json({ success: false, message: 'فشل معالجة السؤال' }, { status: 500 })

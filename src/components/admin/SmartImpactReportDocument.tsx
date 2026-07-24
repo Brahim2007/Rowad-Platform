@@ -81,6 +81,81 @@ export function SmartImpactReportDocument({ report, metrics, generatedAt, report
           <p className="report-section-body">{report.performanceNarrative}</p>
         </section>
 
+        {reportScope === 'PLATFORM' && report.platformEvaluation && (
+          <section id="platform-evaluation" className={`report-section report-anchor ${
+            report.platformEvaluation.overallStatus === 'حرجة'
+              ? 'warning'
+              : report.platformEvaluation.overallStatus === 'مستقرة'
+                ? 'success'
+                : 'accent'
+          }`}>
+            <div className="report-recommendation-head">
+              <h2 className="report-section-title">التقويم التنفيذي للمنصة</h2>
+              <span className={`report-priority ${
+                report.platformEvaluation.overallStatus === 'حرجة' || report.platformEvaluation.overallStatus === 'تحتاج تدخل'
+                  ? 'high'
+                  : report.platformEvaluation.overallStatus === 'مستقرة'
+                    ? 'low'
+                    : ''
+              }`}>{report.platformEvaluation.overallStatus}</span>
+            </div>
+            <p className="report-section-body">{report.platformEvaluation.summary}</p>
+            <div className="report-highlight-grid">
+              <ListSection title="نقاط القوة" items={report.platformEvaluation.strengths} tone="success" />
+              <ListSection title="فجوات تحتاج معالجة" items={report.platformEvaluation.gaps} tone="warning" />
+            </div>
+          </section>
+        )}
+
+        {reportScope === 'PLATFORM' && (
+          <section id="critical-issues" className="report-section warning report-anchor">
+            <h2 className="report-section-title">المشكلات الحرجة والحلول العاجلة</h2>
+            {report.criticalIssues?.length ? (
+              <div className="report-recommendations">
+                {report.criticalIssues.map((issue, index) => (
+                  <div className="report-recommendation" key={`${issue.title}-${index}`}>
+                    <div className="report-recommendation-head">
+                      <span className="report-recommendation-number">{index + 1}</span>
+                      <span className={`report-priority ${issue.severity === 'حرجة' || issue.severity === 'عالية' ? 'high' : ''}`}>
+                        {issue.severity}
+                      </span>
+                    </div>
+                    <div className="report-recommendation-title">{issue.title}</div>
+                    <div className="report-section-body"><strong>الدليل:</strong> {issue.evidence}</div>
+                    <div className="report-section-body"><strong>الأثر:</strong> {issue.impact}</div>
+                    <div className="report-section-body"><strong>الحل المقترح:</strong> {issue.recommendedSolution}</div>
+                    <div className="report-section-body"><strong>التحرك الفوري:</strong> {issue.immediateAction}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="report-section-body">لا تدعم البيانات المتاحة وجود مشكلة حرجة موثقة في هذه الفترة.</p>
+            )}
+          </section>
+        )}
+
+        {reportScope === 'PLATFORM' && report.rapidActionPlan?.length ? (
+          <section id="rapid-action" className="report-section accent report-anchor">
+            <h2 className="report-section-title">خطة التحرك السريع</h2>
+            <table className="report-table">
+              <thead><tr><th>الأولوية</th><th>الإجراء</th><th>المسؤول</th><th>المدة</th><th>مؤشر النجاح</th></tr></thead>
+              <tbody>
+                {[...report.rapidActionPlan]
+                  .sort((a, b) => a.priority - b.priority)
+                  .map(item => (
+                    <tr key={`${item.priority}-${item.action}`}>
+                      <td><span className="report-rank">{item.priority}</span></td>
+                      <td className="report-table-name">{item.action}</td>
+                      <td>{item.ownerRole}</td>
+                      <td>{item.timeframe}</td>
+                      <td>{item.successMeasure}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </section>
+        ) : null}
+
         {/* النجاحات والمخاطر */}
         <div className="report-highlight-grid">
           <section className="report-section success">

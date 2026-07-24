@@ -40,11 +40,25 @@ describe('monthly platform AI report policy', () => {
     const archive = source('src/app/[locale]/admin/impact/ai-reports/page.tsx')
 
     assert.match(route, /تقرير أداء شبكة رواد — الكلي/)
-    assert.match(route, /تقرير أداء منصة/)
+    assert.match(route, /تقرير أداء \$\{reportPlatform!\.name\}/)
     assert.match(networkPage, /reportScope: 'network'/)
     assert.doesNotMatch(networkPage, /setRepPlat|setRepRole/)
     assert.match(archive, /تقرير أداء الشبكة الكلي/)
     assert.match(archive, /تقرير أداء منصة/)
+  })
+
+  it('gives platform reports evaluation, critical issues, solutions, and rapid actions', () => {
+    const aiClient = source('src/lib/ai/deepseek.ts')
+    const document = source('src/components/admin/SmartImpactReportDocument.tsx')
+
+    assert.match(aiClient, /platformSmartImpactReportSchema/)
+    assert.match(aiClient, /criticalIssues/)
+    assert.match(aiClient, /recommendedSolution/)
+    assert.match(aiClient, /immediateAction/)
+    assert.match(aiClient, /rapidActionPlan/)
+    assert.match(document, /التقويم التنفيذي للمنصة/)
+    assert.match(document, /المشكلات الحرجة والحلول العاجلة/)
+    assert.match(document, /خطة التحرك السريع/)
   })
 
   it('creates due reminders and notifies platform managers after generation', () => {

@@ -15,7 +15,7 @@
 import OpenAI from 'openai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { smartImpactReportSchema, type ImpactReportMetrics, type SmartImpactReport } from '@/lib/ai/impact-report'
+import { platformSmartImpactReportSchema, smartImpactReportSchema, type ImpactReportMetrics, type SmartImpactReport } from '@/lib/ai/impact-report'
 
 // ═══════════════════════════════════════════════════
 // الإعدادات
@@ -226,8 +226,34 @@ ${data.platforms.map(p => `- ${p.name}: ${p.current} نشاط (السابق: ${p
     if (!withinBudget) throw new Error('Budget exceeded')
 
     const scopeInstruction = context.scope === 'platform'
-      ? `هذا تقرير أداء منصة "${context.platformName || 'المنصة'}" فقط. حلّل أداء هذه المنصة وأعضائها، ولا تصفه كتقرير الشبكة الكلي ولا تنشئ مقارنات بين منصات غير موجودة.`
+      ? `هذا تقرير تقويمي تنفيذي لمنصة "${context.platformName || 'المنصة'}" فقط. حلّل أداء هذه المنصة وأعضائها وحدها، ولا تصفه كتقرير الشبكة الكلي ولا تنشئ مقارنات بين منصات غير موجودة.
+قوّم حالة المنصة بوضوح، واستخرج المشكلات الحرجة من المؤشرات المقدمة فقط. لكل مشكلة اذكر دليلها وأثرها والحل المقترح والتحرك الفوري.
+أنشئ خطة تحرك سريع مرتبة بالأولوية، وحدد المسؤول بصفته والمدة ومؤشر نجاح قابلًا للقياس. إذا لم تدعم البيانات وجود مشكلة حرجة فأعد criticalIssues فارغة ولا تخترع مشكلة.`
       : 'هذا تقرير أداء شبكة رواد الكلي. حلّل بيانات الشبكة كاملة وقارن أداء المنصات الواردة فيها.'
+    const platformOutputFields = context.scope === 'platform'
+      ? `,
+  "platformEvaluation": {
+    "overallStatus": "مستقرة أو تحتاج متابعة أو تحتاج تدخل أو حرجة",
+    "summary": "حكم تقويمي تنفيذي مبرر بالمؤشرات",
+    "strengths": ["نقاط القوة المدعومة بالبيانات"],
+    "gaps": ["فجوات الأداء المدعومة بالبيانات"]
+  },
+  "criticalIssues": [{
+    "title": "المشكلة",
+    "severity": "حرجة أو عالية أو متوسطة",
+    "evidence": "الدليل الرقمي من البيانات",
+    "impact": "الأثر المتوقع على المنصة",
+    "recommendedSolution": "الحل العملي",
+    "immediateAction": "الخطوة التي يجب تنفيذها الآن"
+  }],
+  "rapidActionPlan": [{
+    "priority": 1,
+    "action": "الإجراء المحدد",
+    "ownerRole": "مدير المنصة أو إدارة النظام أو مدير المنصة وإدارة النظام",
+    "timeframe": "خلال 24 ساعة أو خلال 3 أيام أو خلال 7 أيام أو خلال 30 يومًا",
+    "successMeasure": "مؤشر قابل للقياس للتحقق من الإنجاز"
+  }]`
+      : ''
 
     const prompt = `أنشئ تقريراً إدارياً تحليلياً باللغة العربية اعتماداً حصراً على بيانات JSON التالية.
 ${scopeInstruction}
@@ -248,7 +274,7 @@ ${JSON.stringify(metrics, null, 2)}
   "platformInsights": ["رؤى مقارنة عن المنصات دون اختلاق أسباب"],
   "memberInsights": ["رؤى عن التفاعل والمتصدرين والخمول"],
   "nextPeriodFocus": ["3 إلى 5 أولويات للفترة القادمة"],
-  "dataNotes": ["قيود جودة البيانات أو المقارنة"]
+  "dataNotes": ["قيود جودة البيانات أو المقارنة"]${platformOutputFields}
 }`
 
     const result = await this.chat(prompt, {
@@ -256,9 +282,9 @@ ${JSON.stringify(metrics, null, 2)}
         ? 'أنت محلل أداء تنفيذي لمنصة محددة ضمن شبكة رواد. لا تخلط أداء المنصة بأداء الشبكة الكلي، والتزم بالأرقام المقدمة.'
         : 'أنت محلل أداء تنفيذي لشبكة رواد. هذا تقرير الشبكة الكلي؛ التزم بالأرقام المقدمة، واكتب بالعربية الفصحى.',
       temperature: 0.2,
-      maxTokens: 3600,
+      maxTokens: context.scope === 'platform' ? 4800 : 3600,
       userId,
-      feature: 'impact-smart-report',
+      feature: context.scope === 'platform' ? 'platform-performance-report' : 'network-performance-report',
       responseFormat: { type: 'json_object' },
     })
 
@@ -266,7 +292,10 @@ ${JSON.stringify(metrics, null, 2)}
       throw new Error('AI report response was truncated')
     }
     const normalized = result.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
-    const parsed = smartImpactReportSchema.safeParse(JSON.parse(normalized))
+    const responseSchema = context.scope === 'platform'
+      ? platformSmartImpactReportSchema
+      : smartImpactReportSchema
+    const parsed = responseSchema.safeParse(JSON.parse(normalized))
     if (!parsed.success) {
       logger.error('[deepseek] invalid impact report structure', parsed.error.flatten())
       throw new Error('Invalid AI report structure')

@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
     const report = {
       ...generatedReport,
       title: input.reportScope === 'platform'
-        ? `تقرير أداء منصة ${reportPlatform!.name} — ${period.label}`
+        ? `تقرير أداء ${reportPlatform!.name} — ${period.label}`
         : `تقرير أداء شبكة رواد — الكلي — ${period.label}`,
     }
     const savedReport = await prisma.aiGeneratedReport.create({

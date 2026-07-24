@@ -136,6 +136,11 @@ export default function SmartImpactReportPage() {
   const navLinks = [
     { id: 'report-summary', label: 'الملخص' },
     { id: 'report-performance', label: 'الأداء' },
+    ...(data.reportScope === 'PLATFORM' ? [
+      { id: 'platform-evaluation', label: 'التقويم' },
+      { id: 'critical-issues', label: 'المشكلات الحرجة' },
+      { id: 'rapid-action', label: 'التحرك السريع' },
+    ] : []),
     { id: 'report-recommendations', label: 'التوصيات' },
     { id: 'report-categories', label: 'المحاور' },
     { id: 'report-platforms', label: 'المنصات' },

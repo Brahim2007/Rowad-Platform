@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Activity, Archive, ArrowRight, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2, MessageCircle, Printer, RefreshCw, Sparkles, Users, ChevronDown, Star, Target, TrendingUp, Shield, Info } from 'lucide-react'
+import { Activity, Archive, ArrowRight, CheckCircle2, Copy, Download, ExternalLink, FileText, Link2, Loader2, MessageCircle, Printer, RefreshCw, Sparkles, Users, ChevronDown, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { SmartImpactReportDocument } from '@/components/admin/SmartImpactReportDocument'

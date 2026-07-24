@@ -48,7 +48,7 @@ describe('monthly platform AI report policy', () => {
   })
 
   it('gives platform reports evaluation, critical issues, solutions, and rapid actions', () => {
-    const aiClient = source('src/lib/ai/deepseek.ts')
+    const aiClient = source('src/lib/ai/gemini.ts')
     const document = source('src/components/admin/SmartImpactReportDocument.tsx')
 
     assert.match(aiClient, /platformSmartImpactReportSchema/)

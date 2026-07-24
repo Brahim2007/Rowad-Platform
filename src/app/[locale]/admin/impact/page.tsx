@@ -2395,7 +2395,7 @@ function ReportsTab({ beneficiaries, logs, actions, qualityBonus }: { beneficiar
         router.push(`/${params.locale || 'ar'}/admin/impact/ai-reports/${data.data.id}`)
       }
       else toast.error(data.message || 'فشل')
-    } catch { toast.error('فشل الاتصال بـ DeepSeek') }
+    } catch { toast.error('فشل الاتصال بـ Gemini') }
     finally { setAiLoading(false) }
   }
 

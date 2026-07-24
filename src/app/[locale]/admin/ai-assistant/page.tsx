@@ -68,7 +68,7 @@ export default function AiAssistantPage() {
       if (!response.ok || !result.success) throw new Error(result.message || 'فشل معالجة السؤال')
       setMessages(current => [...current, { id: crypto.randomUUID(), role: 'assistant', content: result.data.answer, createdAt: new Date().toISOString() }])
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'تعذر الاتصال بـ DeepSeek'
+      const message = error instanceof Error ? error.message : 'تعذر الاتصال بـ Gemini'
       setMessages(current => [...current, { id: crypto.randomUUID(), role: 'assistant', content: `تعذر إكمال الطلب: ${message}`, createdAt: new Date().toISOString() }])
       toast.error(message)
     } finally {
@@ -105,7 +105,7 @@ export default function AiAssistantPage() {
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0"><Bot size={28} /></div>
-            <div><Badge className="bg-white/15 text-white border-white/20 mb-3"><Sparkles size={13} /> DeepSeek</Badge><h1 className="text-2xl md:text-3xl font-black">مساعد رواد الذكي</h1><p className="text-primary-100 mt-2 leading-7 max-w-2xl">حوّل بيانات الأداء الحالية إلى إجابات إدارية واضحة، مع الالتزام بالأرقام المتاحة وعدم اتخاذ قرارات تلقائية.</p></div>
+            <div><Badge className="bg-white/15 text-white border-white/20 mb-3"><Sparkles size={13} /> Gemini</Badge><h1 className="text-2xl md:text-3xl font-black">مساعد رواد الذكي</h1><p className="text-primary-100 mt-2 leading-7 max-w-2xl">حوّل بيانات الأداء الحالية إلى إجابات إدارية واضحة، مع الالتزام بالأرقام المتاحة وعدم اتخاذ قرارات تلقائية.</p></div>
           </div>
           <div className="flex gap-2 text-xs"><span className="rounded-full bg-white/10 px-3 py-1.5 flex items-center gap-1.5"><Activity size={13} /> بيانات مباشرة</span><span className="rounded-full bg-white/10 px-3 py-1.5 flex items-center gap-1.5"><Check size={13} /> للإدارة العليا</span></div>
         </div>

@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { ai } from '@/lib/ai/deepseek'
+import { ai } from '@/lib/ai/gemini'
 import { requireSuperAdmin } from '@/lib/auth-helpers'
 import { logger } from '@/lib/logger'
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ai.isConfigured()) {
-      return NextResponse.json({ success: false, message: 'مفتاح DeepSeek غير مضبوط — راجع إعدادات البيئة' }, { status: 503 })
+      return NextResponse.json({ success: false, message: 'مفتاح Gemini غير مضبوط — راجع إعدادات البيئة' }, { status: 503 })
     }
 
     const text = await ai.reportSummary({

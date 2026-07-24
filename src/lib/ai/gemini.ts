@@ -1,14 +1,16 @@
 /**
- * عميل DeepSeek API الموحّد — متوافق مع OpenAI SDK
+ * عميل Gemini API الموحّد عبر واجهة OpenAI المتوافقة
  *
  * الاستخدام:
- *   import { ai } from '@/lib/ai/deepseek'
+ *   import { ai } from '@/lib/ai/gemini'
  *   const result = await ai.chat('اكتب ملخصاً...', { system: 'أنت مساعد...', maxTokens: 500 })
  *
  * متغيرات البيئة:
- *   DEEPSEEK_API_KEY  — مفتاح API
- *   DEEPSEEK_BASE_URL — (اختياري) الرابط الأساسي، الافتراضي: https://api.deepseek.com/v1
- *   DEEPSEEK_MODEL    — (اختياري) اسم النموذج، الافتراضي: deepseek-chat
+ *   GEMINI_API_KEY  — مفتاح API
+ *   GEMINI_BASE_URL — (اختياري) الرابط الأساسي المتوافق مع OpenAI
+ *   GEMINI_MODEL    — (اختياري) اسم النموذج، الافتراضي: gemini-3.5-flash
+ *   GEMINI_INPUT_PRICE_PER_MILLION / GEMINI_OUTPUT_PRICE_PER_MILLION
+ *                    — (اختياري) أسعار الخطة المدفوعة؛ تبقى صفراً للخطة المجانية
  *   AI_MONTHLY_BUDGET — (اختياري) السقف الشهري بالدولار، الافتراضي: 5.00
  */
 
@@ -21,26 +23,26 @@ import { platformSmartImpactReportSchema, smartImpactReportSchema, type ImpactRe
 // الإعدادات
 // ═══════════════════════════════════════════════════
 
-const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1'
-const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat'
+const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/'
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
 const MONTHLY_BUDGET = Number(process.env.AI_MONTHLY_BUDGET) || 5.00
 
-// تقدير تكلفة تقريبي لكل 1K tokens
-const COST_PER_1K_INPUT = 0.00027   // $0.27 per 1M input tokens
-const COST_PER_1K_OUTPUT = 0.0011   // $1.10 per 1M output tokens
+// الخطة المجانية تكلفتها صفر. عند تفعيل الفوترة تُضبط الأسعار من متغيرات البيئة.
+const COST_PER_1K_INPUT = (Number(process.env.GEMINI_INPUT_PRICE_PER_MILLION) || 0) / 1000
+const COST_PER_1K_OUTPUT = (Number(process.env.GEMINI_OUTPUT_PRICE_PER_MILLION) || 0) / 1000
 
 // ═══════════════════════════════════════════════════
 // العميل
 // ═══════════════════════════════════════════════════
 
 function getClient() {
-  const apiKey = process.env.DEEPSEEK_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     if (process.env.NODE_ENV === 'development') {
-      logger.warn('[deepseek] DEEPSEEK_API_KEY غير مضبوط — الـ API سيفشل حتى يُضبط المفتاح')
+      logger.warn('[gemini] GEMINI_API_KEY غير مضبوط — الـ API سيفشل حتى يُضبط المفتاح')
     }
   }
-  return new OpenAI({ baseURL: DEEPSEEK_BASE_URL, apiKey: apiKey || 'sk-placeholder' })
+  return new OpenAI({ baseURL: GEMINI_BASE_URL, apiKey: apiKey || 'gemini-placeholder' })
 }
 
 // ═══════════════════════════════════════════════════
@@ -105,10 +107,9 @@ export const ai = {
 
     try {
       const response = await client.chat.completions.create({
-        model: DEEPSEEK_MODEL,
+        model: GEMINI_MODEL,
         messages,
         max_tokens: opts.maxTokens ?? 800,
-        temperature: opts.temperature ?? 0.7,
         ...(opts.responseFormat && { response_format: opts.responseFormat }),
       })
 
@@ -129,7 +130,7 @@ export const ai = {
         finishReason: response.choices[0]?.finish_reason || null,
       }
     } catch (error: unknown) {
-      logger.error('[deepseek] chat error', error instanceof Error ? error.message : error)
+      logger.error('[gemini] chat error', error instanceof Error ? error.message : error)
       if (opts.userId) {
         await logUsage({ userId: opts.userId, feature: opts.feature || 'chat', inputTokens: 0, outputTokens: 0, success: false })
       }
@@ -297,7 +298,7 @@ ${JSON.stringify(metrics, null, 2)}
       : smartImpactReportSchema
     const parsed = responseSchema.safeParse(JSON.parse(normalized))
     if (!parsed.success) {
-      logger.error('[deepseek] invalid impact report structure', parsed.error.flatten())
+      logger.error('[gemini] invalid impact report structure', parsed.error.flatten())
       throw new Error('Invalid AI report structure')
     }
     return parsed.data
@@ -328,6 +329,6 @@ ${JSON.stringify(metrics, null, 2)}
 
   /** التحقق من توفر API key */
   isConfigured(): boolean {
-    return !!process.env.DEEPSEEK_API_KEY
+    return !!process.env.GEMINI_API_KEY
   },
 }

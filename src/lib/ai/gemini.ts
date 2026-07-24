@@ -9,6 +9,7 @@
  *   GEMINI_API_KEY  — مفتاح API
  *   GEMINI_BASE_URL — (اختياري) الرابط الأساسي المتوافق مع OpenAI
  *   GEMINI_MODEL    — (اختياري) اسم النموذج، الافتراضي: gemini-3.5-flash
+ *   GEMINI_FALLBACK_MODEL — نموذج احتياطي عند ازدحام/تجاوز حصة النموذج الأساسي
  *   GEMINI_INPUT_PRICE_PER_MILLION / GEMINI_OUTPUT_PRICE_PER_MILLION
  *                    — (اختياري) أسعار الخطة المدفوعة؛ تبقى صفراً للخطة المجانية
  *   AI_MONTHLY_BUDGET — (اختياري) السقف الشهري بالدولار، الافتراضي: 5.00
@@ -25,6 +26,7 @@ import { platformSmartImpactReportSchema, smartImpactReportSchema, type ImpactRe
 
 const GEMINI_BASE_URL = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai/'
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
+const GEMINI_FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite'
 const MONTHLY_BUDGET = Number(process.env.AI_MONTHLY_BUDGET) || 5.00
 
 // الخطة المجانية تكلفتها صفر. عند تفعيل الفوترة تُضبط الأسعار من متغيرات البيئة.
@@ -95,6 +97,17 @@ interface ChatOptions {
   responseFormat?: { type: 'json_object' }
 }
 
+function providerStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null
+  const status = (error as { status?: unknown }).status
+  return typeof status === 'number' ? status : null
+}
+
+export function isAiCapacityError(error: unknown): boolean {
+  const status = providerStatus(error)
+  return status === 429 || status === 503
+}
+
 export const ai = {
   /**
    * محادثة عامة — ترسل prompt وتستقبل رداً
@@ -106,13 +119,26 @@ export const ai = {
     messages.push({ role: 'user', content: prompt })
 
     try {
-      const response = await client.chat.completions.create({
-        model: GEMINI_MODEL,
-        messages,
-        max_tokens: opts.maxTokens ?? 800,
-        reasoning_effort: 'low',
-        ...(opts.responseFormat && { response_format: opts.responseFormat }),
-      })
+      const createCompletion = (model: string) => client.chat.completions.create({
+          model,
+          messages,
+          max_tokens: opts.maxTokens ?? 800,
+          reasoning_effort: 'low',
+          ...(opts.responseFormat && { response_format: opts.responseFormat }),
+        })
+
+      let response: OpenAI.Chat.Completions.ChatCompletion
+      try {
+        response = await createCompletion(GEMINI_MODEL)
+      } catch (primaryError) {
+        if (!isAiCapacityError(primaryError) || GEMINI_FALLBACK_MODEL === GEMINI_MODEL) throw primaryError
+        logger.warn('[gemini] primary model unavailable; retrying with fallback', {
+          primaryModel: GEMINI_MODEL,
+          fallbackModel: GEMINI_FALLBACK_MODEL,
+          status: providerStatus(primaryError),
+        })
+        response = await createCompletion(GEMINI_FALLBACK_MODEL)
+      }
 
       const usage = response.usage
       if (opts.userId && usage) {

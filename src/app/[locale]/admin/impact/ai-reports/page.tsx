@@ -19,6 +19,7 @@ interface ArchivedReport {
   periodYear: number
   periodMonth: number | null
   platformId: string | null
+  reportScope: 'NETWORK' | 'PLATFORM'
   networkRole: string | null
   createdAt: string
 }
@@ -29,6 +30,7 @@ export default function SmartReportsArchivePage() {
   const [reports, setReports] = useState<ArchivedReport[]>([])
   const [search, setSearch] = useState('')
   const [year, setYear] = useState('')
+  const [scope, setScope] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 })
   const [loading, setLoading] = useState(true)
@@ -41,6 +43,7 @@ export default function SmartReportsArchivePage() {
         const query = new URLSearchParams({ page: String(page), pageSize: '12' })
         if (search.trim()) query.set('search', search.trim())
         if (year) query.set('year', year)
+        if (scope) query.set('scope', scope)
         const response = await fetch(`/api/admin/ai/impact-report?${query}`, { cache: 'no-store', signal: controller.signal })
         const result = await response.json()
         if (result.success) {
@@ -52,7 +55,7 @@ export default function SmartReportsArchivePage() {
       }
     }, 250)
     return () => { window.clearTimeout(timer); controller.abort() }
-  }, [page, search, year])
+  }, [page, scope, search, year])
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto" dir="rtl">
@@ -64,14 +67,19 @@ export default function SmartReportsArchivePage() {
             <h1 className="text-2xl md:text-3xl font-black">أرشيف تقارير أثر الرواد</h1>
             <p className="text-primary-100 mt-2 max-w-2xl leading-7">كل تقرير ذكي يتم توليده يُحفظ هنا كوثيقة مستقلة يمكن فتحها وطباعتها وتصديرها لاحقًا.</p>
           </div>
-          <Link href={`/${locale}/admin/impact?tab=reports`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-primary-800 px-4 py-2.5 font-bold text-sm no-underline hover:bg-primary-50">
-            <Sparkles size={16} /> إنشاء تقرير جديد
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/${locale}/admin/impact?tab=reports`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-primary-800 px-4 py-2.5 font-bold text-sm no-underline hover:bg-primary-50">
+              <Sparkles size={16} /> تقرير الشبكة الكلي
+            </Link>
+            <Link href={`/${locale}/admin/platforms-overview`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 text-white px-4 py-2.5 font-bold text-sm no-underline hover:bg-white/20">
+              <FileText size={16} /> تقارير المنصات
+            </Link>
+          </div>
         </div>
       </div>
 
       <Card className="mb-6">
-        <CardContent className="pt-5 sm:pt-6 grid md:grid-cols-[1fr_180px_auto] gap-3 items-center">
+        <CardContent className="pt-5 sm:pt-6 grid md:grid-cols-[1fr_160px_190px_auto] gap-3 items-center">
           <label className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} />
             <Input value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} placeholder="ابحث بعنوان التقرير..." className="pr-10" />
@@ -79,6 +87,11 @@ export default function SmartReportsArchivePage() {
           <NativeSelect value={year} onChange={event => { setYear(event.target.value); setPage(1) }}>
             <option value="">كل السنوات</option>
             {Array.from({ length: 8 }, (_, index) => new Date().getFullYear() - index).map(value => <option key={value} value={value}>{value}</option>)}
+          </NativeSelect>
+          <NativeSelect value={scope} onChange={event => { setScope(event.target.value); setPage(1) }}>
+            <option value="">كل أنواع التقارير</option>
+            <option value="network">تقرير أداء الشبكة الكلي</option>
+            <option value="platform">تقرير أداء منصة</option>
           </NativeSelect>
           <div className="text-sm text-neutral-500 text-center md:text-left">{pagination.total.toLocaleString('ar-SA')} تقرير</div>
         </CardContent>
@@ -90,7 +103,7 @@ export default function SmartReportsArchivePage() {
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {reports.map(report => (
             <Card key={report.id} className="group hover:-translate-y-1 hover:shadow-lg transition-all overflow-hidden">
-              <div className="h-1.5 bg-gradient-to-l from-primary-500 to-secondary-500" />
+              <div className={`h-1.5 bg-gradient-to-l ${report.reportScope === 'PLATFORM' ? 'from-violet-500 to-indigo-500' : 'from-primary-500 to-secondary-500'}`} />
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="w-11 h-11 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center shrink-0"><FileText size={20} /></div>
@@ -101,6 +114,9 @@ export default function SmartReportsArchivePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant={report.reportScope === 'PLATFORM' ? 'outline' : 'success'}>
+                    {report.reportScope === 'PLATFORM' ? 'تقرير أداء منصة' : 'تقرير أداء الشبكة الكلي'}
+                  </Badge>
                   {report.networkRole && <Badge variant="neutral">{report.networkRole}</Badge>}
                   <Badge variant="success">محفوظ</Badge>
                 </div>

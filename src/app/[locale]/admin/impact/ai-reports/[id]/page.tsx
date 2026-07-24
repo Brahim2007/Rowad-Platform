@@ -15,6 +15,7 @@ interface SavedSmartReport {
   report: SmartImpactReport
   metrics: ImpactReportMetrics
   generatedAt: string
+  reportScope: 'NETWORK' | 'PLATFORM'
 }
 
 function safeFileName(title: string) {
@@ -135,6 +136,11 @@ export default function SmartImpactReportPage() {
   const navLinks = [
     { id: 'report-summary', label: 'الملخص' },
     { id: 'report-performance', label: 'الأداء' },
+    ...(data.reportScope === 'PLATFORM' ? [
+      { id: 'platform-evaluation', label: 'التقويم' },
+      { id: 'critical-issues', label: 'المشكلات الحرجة' },
+      { id: 'rapid-action', label: 'التحرك السريع' },
+    ] : []),
     { id: 'report-recommendations', label: 'التوصيات' },
     { id: 'report-categories', label: 'المحاور' },
     { id: 'report-platforms', label: 'المنصات' },
@@ -275,7 +281,7 @@ export default function SmartImpactReportPage() {
       <div className="rounded-3xl bg-neutral-100/80 p-2 sm:p-4 lg:p-6 border border-neutral-200/80 shadow-inner">
         <div className="mx-auto w-full max-w-[210mm] rounded-2xl bg-white shadow-lg ring-1 ring-neutral-200/50 overflow-hidden transition-all">
           <div ref={reportRef} data-filename={filename}>
-            <SmartImpactReportDocument report={data.report} metrics={data.metrics} generatedAt={data.generatedAt} />
+            <SmartImpactReportDocument report={data.report} metrics={data.metrics} generatedAt={data.generatedAt} reportScope={data.reportScope} />
           </div>
         </div>
       </div>

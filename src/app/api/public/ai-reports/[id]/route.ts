@@ -18,6 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         id: true,
         reportJson: true,
         metricsJson: true,
+        platformId: true,
         createdAt: true,
       },
     })
@@ -34,6 +35,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         report,
         metrics,
         generatedAt: saved.createdAt.toISOString(),
+        reportScope: saved.platformId ? 'PLATFORM' : 'NETWORK',
       },
     })
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')

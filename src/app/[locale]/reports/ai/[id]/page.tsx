@@ -14,6 +14,7 @@ interface PublicSmartReport {
   report: SmartImpactReport
   metrics: ImpactReportMetrics
   generatedAt: string
+  reportScope: 'NETWORK' | 'PLATFORM'
 }
 
 function safeFileName(title: string) {
@@ -91,7 +92,9 @@ export default function PublicSmartImpactReportPage() {
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10"><Sparkles size={23} /></span>
                 {data.report.title}
               </h1>
-              <p className="mt-3 text-sm leading-7 text-white/70">تقرير أثر ذكي صادر عن شبكة الرواد الإلكترونية، متاح للعرض عبر الرابط دون تسجيل دخول.</p>
+              <p className="mt-3 text-sm leading-7 text-white/70">
+                {data.reportScope === 'PLATFORM' ? 'تقرير أداء خاص بمنصة ضمن شبكة رواد' : 'تقرير أداء شبكة رواد الكلي'}، متاح للعرض عبر الرابط دون تسجيل دخول.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2" data-print-hidden>
               <Button unstyled onClick={copyLink} className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-bold text-white hover:bg-white/20"><Copy size={16} /> نسخ الرابط</Button>
@@ -112,7 +115,7 @@ export default function PublicSmartImpactReportPage() {
 
         <div className="overflow-x-auto rounded-3xl border border-neutral-200 bg-neutral-200/70 p-3 sm:p-6 lg:p-8">
           <div ref={reportRef} className="mx-auto w-full max-w-[210mm] shadow-sm">
-            <SmartImpactReportDocument report={data.report} metrics={data.metrics} generatedAt={data.generatedAt} />
+            <SmartImpactReportDocument report={data.report} metrics={data.metrics} generatedAt={data.generatedAt} reportScope={data.reportScope} />
           </div>
         </div>
       </main>

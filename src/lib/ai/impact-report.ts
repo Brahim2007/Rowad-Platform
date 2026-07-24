@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 export const impactReportRequestSchema = z.object({
+  reportScope: z.enum(['network', 'platform']).default('network'),
   periodType: z.enum(['monthly', 'yearly']).default('monthly'),
   year: z.coerce.number().int().min(2020).max(2100),
   month: z.coerce.number().int().min(1).max(12).optional(),
@@ -10,12 +11,48 @@ export const impactReportRequestSchema = z.object({
   if (value.periodType === 'monthly' && !value.month) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['month'], message: 'الشهر مطلوب للتقرير الشهري' })
   }
+  if (value.reportScope === 'network' && value.platformId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['platformId'], message: 'تقرير الشبكة الكلي لا يقبل منصة محددة' })
+  }
+  if (value.reportScope === 'network' && value.networkRole) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['networkRole'], message: 'تقرير الشبكة الكلي يشمل كل صفات الأعضاء' })
+  }
+  if (value.reportScope === 'platform' && !value.platformId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['platformId'], message: 'المنصة مطلوبة لتقرير أداء المنصة' })
+  }
+  if (value.reportScope === 'platform' && value.periodType !== 'monthly') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['periodType'], message: 'تقرير أداء المنصة شهري فقط' })
+  }
+  if (value.reportScope === 'platform' && value.networkRole) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['networkRole'], message: 'تقرير أداء المنصة يشمل كل صفات أعضائها' })
+  }
 })
 
 export type ImpactReportRequest = z.infer<typeof impactReportRequestSchema>
 
 const boundedText = z.string().trim().min(1).max(3000)
 const boundedItems = z.array(z.string().trim().min(1).max(700)).max(8)
+const platformEvaluationSchema = z.object({
+  overallStatus: z.enum(['مستقرة', 'تحتاج متابعة', 'تحتاج تدخل', 'حرجة']),
+  summary: boundedText,
+  strengths: boundedItems,
+  gaps: boundedItems,
+})
+const criticalIssueSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  severity: z.enum(['حرجة', 'عالية', 'متوسطة']),
+  evidence: z.string().trim().min(1).max(700),
+  impact: z.string().trim().min(1).max(700),
+  recommendedSolution: z.string().trim().min(1).max(700),
+  immediateAction: z.string().trim().min(1).max(700),
+})
+const rapidActionSchema = z.object({
+  priority: z.coerce.number().int().min(1).max(10),
+  action: z.string().trim().min(1).max(700),
+  ownerRole: z.enum(['مدير المنصة', 'إدارة النظام', 'مدير المنصة وإدارة النظام']),
+  timeframe: z.enum(['خلال 24 ساعة', 'خلال 3 أيام', 'خلال 7 أيام', 'خلال 30 يومًا']),
+  successMeasure: z.string().trim().min(1).max(500),
+})
 
 export const smartImpactReportSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -32,9 +69,18 @@ export const smartImpactReportSchema = z.object({
   memberInsights: boundedItems,
   nextPeriodFocus: boundedItems,
   dataNotes: boundedItems,
+  platformEvaluation: platformEvaluationSchema.optional(),
+  criticalIssues: z.array(criticalIssueSchema).max(8).optional(),
+  rapidActionPlan: z.array(rapidActionSchema).max(10).optional(),
 })
 
 export type SmartImpactReport = z.infer<typeof smartImpactReportSchema>
+
+export const platformSmartImpactReportSchema = smartImpactReportSchema.extend({
+  platformEvaluation: platformEvaluationSchema,
+  criticalIssues: z.array(criticalIssueSchema).max(8),
+  rapidActionPlan: z.array(rapidActionSchema).min(1).max(10),
+})
 
 export interface ImpactReportMetrics {
   periodLabel: string
